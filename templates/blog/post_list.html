@@ -5,49 +5,47 @@
 {% block meta_description %}Liste complète des articles du blog.{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <div class="max-w-4xl mx-auto px-4 py-12">
-        <div class="flex items-center justify-between mb-8">
-            <h1 class="text-4xl font-bold text-gray-800">Tous les articles</h1>
-            <a href="{% url 'home' %}" class="text-blue-600 hover:text-blue-800 font-medium">Retour</a>
-        </div>
+<div class="max-w-3xl mx-auto px-4 py-12">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Tous les articles</h1>
+        <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black transition-colors">Retour</a>
+    </div>
 
-        {% if posts %}
-        <div class="space-y-6">
-            {% for post in posts %}
-            <article class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-800">{{ post.title }}</h2>
-                <p class="text-sm text-gray-500 mt-2">
-                    Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
-                </p>
-                <p class="text-gray-700 mt-4">{{ post.content|truncatewords:50 }}</p>
-            </article>
-            {% endfor %}
-        </div>
+    {% if posts %}
+    <div>
+        {% for post in posts %}
+        <article class="card">
+            <h2 class="text-xl font-semibold text-gray-900">{{ post.title }}</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
+            </p>
+            <p class="text-gray-600 mt-3 leading-relaxed">{{ post.content|truncatewords:50 }}</p>
+        </article>
+        {% endfor %}
+    </div>
 
-        {% if page_obj.has_other_pages %}
-        <div class="mt-8 flex justify-center gap-4">
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}"
-               class="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition">
-                Précédent
-            </a>
-            {% endif %}
-            <span class="px-4 py-2 text-gray-600">
-                Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
-            </span>
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}"
-               class="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition">
-                Suivant
-            </a>
-            {% endif %}
-        </div>
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex items-center justify-center gap-4">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           class="text-sm text-gray-500 hover:text-black transition-colors">
+            &larr; Précédent
+        </a>
         {% endif %}
-
-        {% else %}
-        <p class="text-gray-500 text-center text-lg mt-12">Aucun article pour le moment.</p>
+        <span class="text-sm text-gray-400">
+            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           class="text-sm text-gray-500 hover:text-black transition-colors">
+            Suivant &rarr;
+        </a>
         {% endif %}
     </div>
+    {% endif %}
+
+    {% else %}
+    <p class="text-gray-500 text-center mt-12">Aucun article pour le moment.</p>
+    {% endif %}
 </div>
 {% endblock %}
