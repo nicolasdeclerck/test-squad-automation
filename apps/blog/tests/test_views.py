@@ -65,7 +65,16 @@ class TestHomeView:
 
     def test_home_seo_title(self):
         response = self.client.get(HOME_URL)
-        assert "<title>Blog</title>" in response.content.decode()
+        assert "<title>NICKORP</title>" in response.content.decode()
+
+    def test_home_header_displays_nickorp(self):
+        response = self.client.get(HOME_URL)
+        assert "NICKORP</a>" in response.content.decode()
+
+    def test_home_footer_displays_nickorp(self):
+        response = self.client.get(HOME_URL)
+        assert "NICKORP" in response.content.decode()
+        assert "Blog" not in response.content.decode().split("<footer")[1]
 
     def test_home_seo_meta_description(self):
         response = self.client.get(HOME_URL)
