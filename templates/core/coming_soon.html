@@ -9,6 +9,15 @@
     <div class="text-center">
         <h1 class="text-5xl font-bold text-gray-800">Coming Soon</h1>
         <p class="text-xl text-gray-500 mt-4">Notre blog arrive bientôt. Restez connectés !</p>
+        {% if user.is_authenticated %}
+        <p class="text-lg text-gray-600 mt-4">Bienvenue, {{ user.username }} !</p>
+        <form method="post" action="{% url 'accounts:logout' %}" class="mt-6">
+            {% csrf_token %}
+            <button type="submit" class="inline-block border border-red-600 text-red-600 px-6 py-3 rounded-lg hover:bg-red-50 transition font-semibold">
+                Se déconnecter
+            </button>
+        </form>
+        {% else %}
         <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="{% url 'accounts:signup' %}"
                class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
@@ -19,6 +28,7 @@
                 Se connecter
             </a>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

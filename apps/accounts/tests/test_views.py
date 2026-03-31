@@ -185,6 +185,12 @@ class TestLoginView:
         response = self.client.get(LOGIN_URL)
         assert response.status_code == 302
 
+    def test_login_redirects_authenticated_user_to_home(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(LOGIN_URL)
+        assert response.status_code == 302
+        assert response.url == "/"
+
     def test_login_with_email(self):
         response = self.client.post(
             LOGIN_URL,
@@ -219,8 +225,40 @@ class TestLogoutView:
 class TestComingSoonView:
     def setup_method(self):
         self.client = Client()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="coming@example.com", password=self.password)
 
     def test_coming_soon_contains_login_link(self):
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/connexion/" in content
+
+    def test_coming_soon_shows_login_link_for_anonymous(self):
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "/comptes/connexion/" in content
+
+    def test_coming_soon_shows_signup_link_for_anonymous(self):
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "/comptes/inscription/" in content
+
+    def test_coming_soon_hides_login_link_for_authenticated(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "/comptes/connexion/" not in content
+
+    def test_coming_soon_hides_signup_link_for_authenticated(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "/comptes/inscription/" not in content
+
+    def test_coming_soon_shows_logout_for_authenticated(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "/comptes/deconnexion/" in content
+        assert "csrfmiddlewaretoken" in content
+        assert "Se déconnecter" in content
