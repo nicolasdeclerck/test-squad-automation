@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(sudo lsof:*)"
+      "Bash(sudo lsof:*)",
+      "Bash(git:*)"
     ]
   }
 }
