@@ -2,9 +2,13 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 
+from .factories import UserFactory
+
 User = get_user_model()
 
 SIGNUP_URL = "/comptes/inscription/"
+LOGIN_URL = "/comptes/connexion/"
+LOGOUT_URL = "/comptes/deconnexion/"
 
 
 @pytest.mark.django_db
@@ -97,3 +101,126 @@ class TestSignUpView:
         response = self.client.get(SIGNUP_URL)
         content = response.content.decode()
         assert "Créez votre compte pour accéder au blog." in content
+
+    def test_signup_page_contains_login_link(self):
+        response = self.client.get(SIGNUP_URL)
+        content = response.content.decode()
+        assert "/comptes/connexion/" in content
+
+
+@pytest.mark.django_db
+class TestLoginView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="login@example.com", password=self.password)
+
+    def test_login_page_returns_200(self):
+        response = self.client.get(LOGIN_URL)
+        assert response.status_code == 200
+
+    def test_login_page_uses_correct_template(self):
+        response = self.client.get(LOGIN_URL)
+        assert "accounts/login.html" in [t.name for t in response.templates]
+
+    def test_login_page_contains_form(self):
+        response = self.client.get(LOGIN_URL)
+        content = response.content.decode()
+        assert 'type="email"' in content
+        assert 'type="password"' in content
+
+    def test_login_page_contains_csrf(self):
+        response = self.client.get(LOGIN_URL)
+        content = response.content.decode()
+        assert "csrfmiddlewaretoken" in content
+
+    def test_login_success_redirects(self):
+        response = self.client.post(
+            LOGIN_URL,
+            {"username": "login@example.com", "password": self.password},
+        )
+        assert response.status_code == 302
+
+    def test_login_success_authenticates_user(self):
+        response = self.client.post(
+            LOGIN_URL,
+            {"username": "login@example.com", "password": self.password},
+            follow=True,
+        )
+        assert response.wsgi_request.user.is_authenticated
+        assert response.wsgi_request.user == self.user
+
+    def test_login_invalid_credentials_returns_200(self):
+        response = self.client.post(
+            LOGIN_URL,
+            {"username": "login@example.com", "password": "wrongpass"},
+        )
+        assert response.status_code == 200
+
+    def test_login_invalid_credentials_shows_error(self):
+        response = self.client.post(
+            LOGIN_URL,
+            {"username": "login@example.com", "password": "wrongpass"},
+        )
+        content = response.content.decode()
+        assert "incorrect" in content.lower() or "erreur" in content.lower()
+
+    def test_login_seo_title(self):
+        response = self.client.get(LOGIN_URL)
+        content = response.content.decode()
+        assert "<title>Se connecter</title>" in content
+
+    def test_login_seo_meta_description(self):
+        response = self.client.get(LOGIN_URL)
+        content = response.content.decode()
+        assert "Connectez-vous à votre compte pour accéder au blog." in content
+
+    def test_login_contains_signup_link(self):
+        response = self.client.get(LOGIN_URL)
+        content = response.content.decode()
+        assert "/comptes/inscription/" in content
+
+    def test_login_redirects_authenticated_user(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(LOGIN_URL)
+        assert response.status_code == 302
+
+    def test_login_with_email(self):
+        response = self.client.post(
+            LOGIN_URL,
+            {"username": "login@example.com", "password": self.password},
+            follow=True,
+        )
+        assert response.wsgi_request.user.is_authenticated
+        assert response.wsgi_request.user.email == "login@example.com"
+
+
+@pytest.mark.django_db
+class TestLogoutView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="logout@example.com", password=self.password)
+
+    def test_logout_redirects_to_home(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(LOGOUT_URL)
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_logout_actually_logs_out(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self.client.post(LOGOUT_URL)
+        response = self.client.get("/")
+        assert not response.wsgi_request.user.is_authenticated
+
+
+@pytest.mark.django_db
+class TestComingSoonView:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_coming_soon_contains_login_link(self):
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "/comptes/connexion/" in content

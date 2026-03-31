@@ -1,7 +1,8 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import RequestFactory
 
-from apps.accounts.forms import SignUpForm
+from apps.accounts.forms import LoginForm, SignUpForm
 
 from .factories import UserFactory
 
@@ -88,3 +89,46 @@ class TestSignUpForm:
         assert form.is_valid()
         user = form.save()
         assert user.username.startswith("jean.dupont")
+
+
+@pytest.mark.django_db
+class TestLoginForm:
+    def setup_method(self):
+        self.factory = RequestFactory()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="test@example.com", password=self.password)
+
+    def _get_form(self, data):
+        request = self.factory.post("/comptes/connexion/")
+        return LoginForm(request=request, data=data)
+
+    def test_login_form_valid_credentials(self):
+        form = self._get_form(
+            {"username": "test@example.com", "password": self.password}
+        )
+        assert form.is_valid()
+
+    def test_login_form_invalid_email(self):
+        form = self._get_form(
+            {"username": "nonexistent@example.com", "password": self.password}
+        )
+        assert not form.is_valid()
+
+    def test_login_form_invalid_password(self):
+        form = self._get_form(
+            {"username": "test@example.com", "password": "wrongpassword"}
+        )
+        assert not form.is_valid()
+
+    def test_login_form_email_label(self):
+        request = self.factory.get("/comptes/connexion/")
+        form = LoginForm(request=request)
+        assert form.fields["username"].label == "Adresse email"
+
+    def test_login_form_error_message_in_french(self):
+        form = self._get_form(
+            {"username": "test@example.com", "password": "wrongpassword"}
+        )
+        form.is_valid()
+        errors = form.non_field_errors()
+        assert any("incorrect" in str(e).lower() for e in errors)
