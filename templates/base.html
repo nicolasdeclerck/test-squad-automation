@@ -8,7 +8,36 @@
     <title>{% block title %}Blog{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
 </head>
-<body class="bg-gray-50">
-    {% block content %}{% endblock %}
+<body class="bg-white min-h-screen flex flex-col">
+    <header class="border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+            <nav class="flex items-center gap-6">
+                <a href="{% url 'home' %}" class="text-base font-semibold text-gray-900 hover:text-black">Blog</a>
+                <a href="{% url 'post_list' %}" class="nav-link">Articles</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                {% if user.is_authenticated %}
+                <a href="{% url 'post_create' %}" class="btn-primary">Ajouter un article</a>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-secondary">Se déconnecter</button>
+                </form>
+                {% else %}
+                <a href="{% url 'accounts:login' %}" class="btn-secondary">Se connecter</a>
+                <a href="{% url 'accounts:signup' %}" class="btn-primary">Créer un compte</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 py-6">
+            <p class="text-sm text-gray-400 text-center">&copy; {{ now|date:"Y" }} Blog</p>
+        </div>
+    </footer>
 </body>
 </html>
