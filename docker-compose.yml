@@ -1,0 +1,42 @@
+services:
+  django:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    command: celery -A config worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:

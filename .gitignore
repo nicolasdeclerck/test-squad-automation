@@ -1,0 +1,11 @@
+.env
+*.pyc
+__pycache__/
+db.sqlite3
+.coverage
+media/
+*.egg-info/
+dist/
+build/
+node_modules/
+static/css/output.css
