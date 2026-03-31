@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from .forms import PostForm
 from .models import Post
@@ -44,6 +44,43 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         context["title"] = "Ajouter un article"
         context["meta_description"] = (
             "Créez un nouvel article sur le blog."
+        )
+        return context
+
+
+class PostUpdateView(LoginRequiredMixin, UpdateView):
+    model = Post
+    form_class = PostForm
+    template_name = "blog/post_form.html"
+    success_url = reverse_lazy("home")
+    slug_url_kwarg = "slug"
+
+    def get_queryset(self):
+        return Post.objects.filter(author=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Modifier l'article"
+        context["meta_description"] = (
+            "Modifiez votre article sur le blog."
+        )
+        return context
+
+
+class PostDeleteView(LoginRequiredMixin, DeleteView):
+    model = Post
+    template_name = "blog/post_confirm_delete.html"
+    success_url = reverse_lazy("home")
+    slug_url_kwarg = "slug"
+
+    def get_queryset(self):
+        return Post.objects.filter(author=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Supprimer l'article"
+        context["meta_description"] = (
+            "Confirmez la suppression de votre article."
         )
         return context
 

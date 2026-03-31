@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Supprimer l'article{% endblock %}
+
+{% block meta_description %}Confirmez la suppression de votre article.{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Supprimer l'article</h1>
+
+    <div class="card">
+        <p class="text-gray-700">
+            Êtes-vous sûr de vouloir supprimer l'article
+            <strong>« {{ object.title }} »</strong> ?
+        </p>
+        <p class="text-sm text-gray-500 mt-2">Cette action est irréversible.</p>
+
+        <form method="post" class="mt-6" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?');">
+            {% csrf_token %}
+            <div class="flex gap-4">
+                <button type="submit" class="btn-primary bg-black text-white px-6 py-2">
+                    Supprimer
+                </button>
+                <a href="{% url 'home' %}" class="btn-primary bg-white text-black border border-black px-6 py-2">
+                    Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -178,6 +178,136 @@ class TestPostCreateView:
 
 
 @pytest.mark.django_db
+class TestPostUpdateView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+        self.post = PostFactory(author=self.user)
+        self.url = f"/articles/{self.post.slug}/modifier/"
+
+    def test_update_returns_200_for_author(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+
+    def test_update_redirects_anonymous_to_login(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 302
+        assert LOGIN_URL in response.url
+
+    def test_update_returns_404_for_non_author(self):
+        other_user = UserFactory(password=self.password)
+        self.client.login(
+            username=other_user.username, password=self.password
+        )
+        response = self.client.get(self.url)
+        assert response.status_code == 404
+
+    def test_update_post_success(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(
+            self.url,
+            {"title": "Titre modifié", "content": "Contenu modifié"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+        self.post.refresh_from_db()
+        assert self.post.title == "Titre modifié"
+        assert self.post.content == "Contenu modifié"
+
+    def test_update_form_is_prefilled(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert self.post.title in content
+        assert response.context["form"].initial["content"] == self.post.content
+
+    def test_update_slug_does_not_change(self):
+        original_slug = self.post.slug
+        self.client.login(username=self.user.username, password=self.password)
+        self.client.post(
+            self.url,
+            {"title": "Un tout nouveau titre", "content": "Contenu"},
+        )
+        self.post.refresh_from_db()
+        assert self.post.slug == original_slug
+
+    def test_update_invalid_data_returns_200(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(
+            self.url,
+            {"title": "", "content": ""},
+        )
+        assert response.status_code == 200
+
+    def test_update_seo_title(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "<title>Modifier l&#x27;article</title>" in content or "<title>Modifier l'article</title>" in content
+
+    def test_update_seo_meta_description(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "Modifiez votre article sur le blog." in content
+
+
+@pytest.mark.django_db
+class TestPostDeleteView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+        self.post = PostFactory(author=self.user)
+        self.url = f"/articles/{self.post.slug}/supprimer/"
+
+    def test_delete_returns_200_for_author(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+
+    def test_delete_redirects_anonymous_to_login(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 302
+        assert LOGIN_URL in response.url
+
+    def test_delete_returns_404_for_non_author(self):
+        other_user = UserFactory(password=self.password)
+        self.client.login(
+            username=other_user.username, password=self.password
+        )
+        response = self.client.get(self.url)
+        assert response.status_code == 404
+
+    def test_delete_post_success(self):
+        self.client.login(username=self.user.username, password=self.password)
+        post_pk = self.post.pk
+        response = self.client.post(self.url)
+        assert response.status_code == 302
+        assert response.url == "/"
+        assert not Post.objects.filter(pk=post_pk).exists()
+
+    def test_delete_post_no_longer_in_db(self):
+        self.client.login(username=self.user.username, password=self.password)
+        post_pk = self.post.pk
+        self.client.post(self.url)
+        assert Post.objects.filter(pk=post_pk).count() == 0
+
+    def test_delete_seo_title(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert "<title>Supprimer l&#x27;article</title>" in response.content.decode() or "<title>Supprimer l'article</title>" in response.content.decode()
+
+    def test_delete_seo_meta_description(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "Confirmez la suppression de votre article." in content
+
+
+@pytest.mark.django_db
 class TestPostListView:
     def setup_method(self):
         self.client = Client()
