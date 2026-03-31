@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Blog — Articles{% endblock %}
+{% block meta_description %}Découvrez nos derniers articles de blog.{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Articles</h1>
+
+    {% if posts %}
+    <div class="space-y-8">
+        {% for post in posts %}
+        <article class="border-b border-gray-200 pb-6">
+            <h2 class="text-2xl font-semibold mb-2">
+                <a href="{% url 'blog:post_detail' post.slug %}" class="text-gray-900 hover:text-blue-600">
+                    {{ post.title }}
+                </a>
+            </h2>
+            <div class="text-gray-500 text-sm mb-2">
+                Par {{ post.author }} — {{ post.published_at|date:"d F Y" }}
+                {% if post.category %}
+                    dans <span class="text-blue-600">{{ post.category }}</span>
+                {% endif %}
+            </div>
+            {% if post.excerpt %}
+                <p class="text-gray-700">{{ post.excerpt }}</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-8 flex justify-center gap-2">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Précédent</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-600">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Suivant</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <p class="text-gray-500">Aucun article publié pour le moment.</p>
+    {% endif %}
+</div>
+{% endblock %}
