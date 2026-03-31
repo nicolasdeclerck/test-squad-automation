@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Ajouter un article{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
-{% block meta_description %}Créez un nouvel article sur le blog.{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Ajouter un article</h1>
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ title }}</h1>
 
     {% if form.non_field_errors %}
     <div class="mb-6 p-3 border border-red-200 rounded">
@@ -57,7 +57,7 @@
         </div>
 
         <button type="submit" class="btn-primary w-full py-3">
-            Publier
+            {% if form.instance.pk %}Modifier{% else %}Publier{% endif %}
         </button>
     </form>
 
