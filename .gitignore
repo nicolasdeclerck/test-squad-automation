@@ -9,3 +9,4 @@ dist/
 build/
 node_modules/
 static/css/output.css
+.venv/
