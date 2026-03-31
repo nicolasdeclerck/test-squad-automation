@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.core",
     "apps.accounts",
+    "apps.blog",
 ]
 
 MIDDLEWARE = [
@@ -65,6 +66,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/comptes/connexion/"
 LOGOUT_REDIRECT_URL = "/"
 
 AUTH_PASSWORD_VALIDATORS = [

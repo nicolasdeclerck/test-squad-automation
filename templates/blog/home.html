@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Blog{% endblock %}
+
+{% block meta_description %}Découvrez les derniers articles de notre blog.{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 py-12">
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Blog</h1>
+            {% if user.is_authenticated %}
+            <div class="flex items-center gap-4">
+                <a href="{% url 'post_create' %}"
+                   class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                    Ajouter un article
+                </a>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="inline-block border border-red-600 text-red-600 px-6 py-3 rounded-lg hover:bg-red-50 transition font-semibold">
+                        Se déconnecter
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="flex items-center gap-4">
+                <a href="{% url 'accounts:signup' %}"
+                   class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                    Créer un compte
+                </a>
+                <a href="{% url 'accounts:login' %}"
+                   class="inline-block border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition font-semibold">
+                    Se connecter
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if posts %}
+        <div class="space-y-6">
+            {% for post in posts %}
+            <article class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800">{{ post.title }}</h2>
+                <p class="text-sm text-gray-500 mt-2">
+                    Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
+                </p>
+                <p class="text-gray-700 mt-4">{{ post.content|truncatewords:50 }}</p>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% if show_full_list_link %}
+        <div class="mt-8 text-center">
+            <a href="{% url 'post_list' %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                Voir tous les articles
+            </a>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <p class="text-gray-500 text-center text-lg mt-12">Aucun article pour le moment.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

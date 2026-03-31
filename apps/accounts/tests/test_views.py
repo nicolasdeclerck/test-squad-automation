@@ -222,40 +222,40 @@ class TestLogoutView:
 
 
 @pytest.mark.django_db
-class TestComingSoonView:
+class TestHomePageAuthButtons:
     def setup_method(self):
         self.client = Client()
         self.password = "Str0ngP@ss!"
         self.user = UserFactory(email="coming@example.com", password=self.password)
 
-    def test_coming_soon_contains_login_link(self):
+    def test_home_contains_login_link(self):
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/connexion/" in content
 
-    def test_coming_soon_shows_login_link_for_anonymous(self):
+    def test_home_shows_login_link_for_anonymous(self):
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/connexion/" in content
 
-    def test_coming_soon_shows_signup_link_for_anonymous(self):
+    def test_home_shows_signup_link_for_anonymous(self):
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/inscription/" in content
 
-    def test_coming_soon_hides_login_link_for_authenticated(self):
+    def test_home_hides_login_link_for_authenticated(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/connexion/" not in content
 
-    def test_coming_soon_hides_signup_link_for_authenticated(self):
+    def test_home_hides_signup_link_for_authenticated(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/inscription/" not in content
 
-    def test_coming_soon_shows_logout_for_authenticated(self):
+    def test_home_shows_logout_for_authenticated(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get("/")
         content = response.content.decode()
