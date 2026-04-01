@@ -11,3 +11,7 @@ class ComingSoonView(TemplateView):
             "Notre blog arrive bientôt. Restez connectés !"
         )
         return context
+
+
+class AboutView(TemplateView):
+    template_name = "core/about.html"
