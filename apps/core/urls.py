@@ -1,7 +1,7 @@
 from django.urls import path
 
-from .views import ComingSoonView
+from .views import AboutView
 
 urlpatterns = [
-    path("", ComingSoonView.as_view(), name="coming_soon"),
+    path("a-propos/", AboutView.as_view(), name="about"),
 ]
