@@ -15,6 +15,7 @@
                 <a href="{% url 'home' %}" class="text-base font-semibold text-gray-900 hover:text-black">NICKORP</a>
                 <a href="{% url 'post_list' %}" class="nav-link">Articles</a>
                 <a href="{% url 'about' %}" class="nav-link">À propos</a>
+                <a href="{% url 'contact' %}" class="nav-link">Contact</a>
             </nav>
             <div class="flex items-center gap-3">
                 {% if user.is_authenticated %}
