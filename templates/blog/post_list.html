@@ -17,7 +17,9 @@
         <article class="card">
             <div class="flex items-start justify-between">
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-900">{{ post.title }}</h2>
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        <a href="{% url 'post_detail' post.slug %}" class="hover:underline">{{ post.title }}</a>
+                    </h2>
                     <p class="text-sm text-gray-500 mt-1">
                         Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
                     </p>

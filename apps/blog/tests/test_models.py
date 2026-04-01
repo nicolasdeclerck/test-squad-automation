@@ -1,8 +1,8 @@
 import pytest
 
-from apps.blog.models import Post
+from apps.blog.models import Comment, Post
 
-from .factories import PostFactory
+from .factories import CommentFactory, PostFactory
 
 
 @pytest.mark.django_db
@@ -37,3 +37,21 @@ class TestPostModel:
     def test_str_returns_title(self):
         post = PostFactory(title="Test titre")
         assert str(post) == "Test titre"
+
+
+@pytest.mark.django_db
+class TestCommentModel:
+    def test_is_approved_false_by_default(self):
+        comment = CommentFactory()
+        assert comment.is_approved is False
+
+    def test_str_representation(self):
+        comment = CommentFactory()
+        expected = f"Commentaire de {comment.author} sur {comment.post}"
+        assert str(comment) == expected
+
+    def test_cascade_delete_with_post(self):
+        comment = CommentFactory()
+        post_pk = comment.post.pk
+        comment.post.delete()
+        assert not Comment.objects.filter(post_id=post_pk).exists()

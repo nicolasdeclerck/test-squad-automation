@@ -2,9 +2,9 @@ import pytest
 from django.test import Client
 
 from apps.accounts.tests.factories import UserFactory
-from apps.blog.models import Post
+from apps.blog.models import Comment, Post
 
-from .factories import PostFactory
+from .factories import CommentFactory, PostFactory
 
 HOME_URL = "/"
 CREATE_URL = "/articles/creer/"
@@ -350,3 +350,106 @@ class TestPostListView:
         response = self.client.get(LIST_URL)
         content = response.content.decode()
         assert "Liste complète des articles du blog." in content
+
+
+@pytest.mark.django_db
+class TestPostDetailView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.post = PostFactory(
+            title="Article test",
+            content="Contenu de test pour l'article",
+        )
+        self.url = f"/articles/{self.post.slug}/"
+
+    def test_detail_returns_200_for_published(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+
+    def test_detail_returns_404_for_draft(self):
+        draft = PostFactory(status=Post.STATUS_DRAFT)
+        response = self.client.get(f"/articles/{draft.slug}/")
+        assert response.status_code == 404
+
+    def test_detail_returns_404_for_nonexistent_slug(self):
+        response = self.client.get("/articles/slug-inexistant/")
+        assert response.status_code == 404
+
+    def test_detail_displays_approved_comments(self):
+        comment = CommentFactory(
+            post=self.post, is_approved=True, content="Commentaire visible"
+        )
+        response = self.client.get(self.url)
+        assert "Commentaire visible" in response.content.decode()
+
+    def test_detail_hides_unapproved_comments(self):
+        comment = CommentFactory(
+            post=self.post, is_approved=False, content="Commentaire masqué"
+        )
+        response = self.client.get(self.url)
+        assert "Commentaire masqué" not in response.content.decode()
+
+    def test_detail_shows_comment_form_for_authenticated(self):
+        user = UserFactory(password=self.password)
+        self.client.login(username=user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert "comment_form" in response.context
+        assert "Publier le commentaire" in response.content.decode()
+
+    def test_detail_shows_login_link_for_anonymous(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "Connectez-vous" in content
+        assert "comment_form" not in response.context
+
+    def test_detail_seo_title(self):
+        response = self.client.get(self.url)
+        assert f"<title>{self.post.title}</title>" in response.content.decode()
+
+    def test_detail_seo_meta_description(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "Contenu de test" in content
+
+
+@pytest.mark.django_db
+class TestCommentCreateView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+        self.post = PostFactory()
+        self.url = f"/articles/{self.post.slug}/commenter/"
+
+    def test_comment_redirects_anonymous_to_login(self):
+        response = self.client.post(
+            self.url, {"content": "Un commentaire"}
+        )
+        assert response.status_code == 302
+        assert LOGIN_URL in response.url
+
+    def test_comment_creates_with_is_approved_false(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self.client.post(self.url, {"content": "Mon commentaire"})
+        comment = Comment.objects.get(content="Mon commentaire")
+        assert comment.is_approved is False
+
+    def test_comment_assigns_author(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self.client.post(self.url, {"content": "Mon commentaire"})
+        comment = Comment.objects.get(content="Mon commentaire")
+        assert comment.author == self.user
+
+    def test_comment_redirects_to_detail(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(
+            self.url, {"content": "Mon commentaire"}
+        )
+        assert response.status_code == 302
+        assert response.url == f"/articles/{self.post.slug}/"
+
+    def test_comment_empty_content_fails(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(self.url, {"content": ""})
+        assert Comment.objects.count() == 0
