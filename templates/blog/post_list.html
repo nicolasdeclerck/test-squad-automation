@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load markdown_extras %}
 
 {% block title %}Tous les articles{% endblock %}
 
@@ -39,7 +40,13 @@
                 </div>
                 {% endif %}
             </div>
-            <p class="text-gray-600 mt-3 leading-relaxed">{{ post.content|truncatewords:50 }}</p>
+            <p class="text-gray-600 mt-3 leading-relaxed">
+                {% if post.excerpt %}
+                    {{ post.excerpt|truncatewords:50 }}
+                {% else %}
+                    {{ post.content|render_markdown|striptags|truncatewords:50 }}
+                {% endif %}
+            </p>
         </article>
         {% endfor %}
     </div>

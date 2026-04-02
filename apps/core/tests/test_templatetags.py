@@ -45,3 +45,7 @@ class TestRenderMarkdownFilter:
     def test_empty_string(self):
         result = self._render("")
         assert result.strip() == ""
+
+    def test_none_value(self):
+        result = self._render(None)
+        assert result.strip() == ""

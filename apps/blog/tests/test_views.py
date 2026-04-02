@@ -2,6 +2,7 @@ import re
 
 import pytest
 from django.test import Client
+from django.utils import timezone
 
 from apps.accounts.tests.factories import UserFactory
 from apps.blog.models import Comment, Post
@@ -463,6 +464,16 @@ class TestPostDetailView:
         content = response.content.decode()
         comments_section = content.split('id="comments-section"')[1]
         assert "Connectez-vous" in comments_section
+
+    def test_post_detail_renders_markdown_as_html(self):
+        post = PostFactory(
+            content="**bold text** and *italic*",
+        )
+        url = f"/articles/{post.slug}/"
+        response = self.client.get(url)
+        content = response.content.decode()
+        assert "<strong>bold text</strong>" in content
+        assert "<em>italic</em>" in content
 
 
 @pytest.mark.django_db

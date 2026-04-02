@@ -4,10 +4,12 @@
 
 {% block meta_description %}{{ meta_description }}{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css"
       integrity="sha384-Uw+ry/KtbmFNRGJd+U+hpfJou1QMHCAQc8k8OdZkclgUySjn8aJJcVTkkCeSwP6H" crossorigin="anonymous">
+{% endblock %}
 
+{% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
     <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ title }}</h1>
 

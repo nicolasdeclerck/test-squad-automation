@@ -22,6 +22,8 @@ ALLOWED_ATTRIBUTES = {
 
 @register.filter(name="render_markdown")
 def render_markdown(value):
+    if not value:
+        return ""
     html = markdown.markdown(
         value,
         extensions=["extra", "codehilite", "nl2br"],
