@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
+import requests as requests_lib
 from django.test import Client
 from django.urls import reverse
 
@@ -183,3 +186,101 @@ class TestAvatarDropdown:
         assert "Se connecter" in desktop_section
         assert "Créer un compte" in desktop_section
         assert 'id="avatar-dropdown-toggle"' not in desktop_section
+
+
+def _mock_github_response(status_code=200, json_data=None):
+    mock = MagicMock()
+    mock.status_code = status_code
+    mock.json.return_value = json_data or []
+    return mock
+
+
+MOCK_ISSUES = [
+    {
+        "title": "Bug: fix login",
+        "labels": [
+            {"name": "bug", "color": "d73a4a"},
+            {"name": "priority", "color": "0075ca"},
+        ],
+    },
+    {
+        "title": "Feature: add search",
+        "labels": [],
+    },
+]
+
+
+@pytest.mark.django_db
+class TestDevTrackingView:
+    def test_dev_tracking_requires_login(self, client: Client):
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 302
+        assert "/comptes/connexion/" in response.url
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_authenticated_access(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        assert "core/dev_tracking.html" in [
+            t.name for t in response.templates
+        ]
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_displays_issues(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Bug: fix login" in content
+        assert "Feature: add search" in content
+        assert "bug" in content
+        assert "priority" in content
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_api_error_handling(self, mock_get, client: Client):
+        mock_get.side_effect = requests_lib.ConnectionError("Connection error")
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Impossible de" in content
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_api_non_200(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(500)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Impossible de" in content
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_empty_issues(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Aucune issue ouverte" in content
+
+
+@pytest.mark.django_db
+class TestFooterDevTrackingLink:
+    def test_footer_link_visible_authenticated(self, client: Client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        assert "Suivi des devs" in content
+        assert "/suivi-des-devs/" in content
+
+    def test_footer_link_hidden_anonymous(self, client: Client):
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        assert "Suivi des devs" not in content

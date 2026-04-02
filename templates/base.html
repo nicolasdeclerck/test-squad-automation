@@ -149,6 +149,11 @@
 
     <footer class="border-t border-gray-200">
         <div class="max-w-3xl mx-auto px-4 py-6">
+            {% if user.is_authenticated %}
+            <p class="text-sm text-gray-400 text-center mb-2">
+                <a href="{% url 'dev_tracking' %}" class="hover:text-gray-600">Suivi des devs</a>
+            </p>
+            {% endif %}
             <p class="text-sm text-gray-400 text-center">&copy; {{ now|date:"Y" }} NICKORP</p>
         </div>
     </footer>
