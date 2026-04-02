@@ -11,6 +11,7 @@ SIGNUP_URL = "/comptes/inscription/"
 LOGIN_URL = "/comptes/connexion/"
 LOGOUT_URL = "/comptes/deconnexion/"
 PROFILE_EDIT_URL = "/comptes/profil/modifier/"
+AVATAR_DELETE_URL = "/comptes/profil/avatar/supprimer/"
 
 
 @pytest.mark.django_db
@@ -364,3 +365,72 @@ class TestProfileUpdateView:
         response = self.client.get("/")
         content = response.content.decode()
         assert "/comptes/profil/modifier/" not in content
+
+
+@pytest.mark.django_db
+class TestAvatarDeleteView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="avatar@example.com", password=self.password)
+
+    def _upload_avatar(self):
+        from io import BytesIO
+
+        from PIL import Image
+
+        img = Image.new("RGB", (100, 100), "red")
+        buf = BytesIO()
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        avatar = SimpleUploadedFile(
+            "avatar.jpg", buf.read(), content_type="image/jpeg"
+        )
+        self.client.post(
+            PROFILE_EDIT_URL,
+            {"first_name": "", "last_name": "", "avatar": avatar},
+        )
+        self.user.profile.refresh_from_db()
+
+    def test_delete_avatar_success(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self._upload_avatar()
+        assert self.user.profile.avatar
+        avatar_path = self.user.profile.avatar.path
+
+        self.client.post(AVATAR_DELETE_URL)
+
+        self.user.profile.refresh_from_db()
+        assert not self.user.profile.avatar
+        import os
+
+        assert not os.path.exists(avatar_path)
+
+    def test_delete_avatar_redirects_to_profile_edit(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self._upload_avatar()
+        response = self.client.post(AVATAR_DELETE_URL)
+        assert response.status_code == 302
+        assert response.url == PROFILE_EDIT_URL
+
+    def test_delete_avatar_shows_success_message(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self._upload_avatar()
+        response = self.client.post(AVATAR_DELETE_URL, follow=True)
+        content = response.content.decode()
+        assert "avatar a été supprimé" in content
+
+    def test_delete_avatar_without_avatar(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(AVATAR_DELETE_URL)
+        assert response.status_code == 302
+
+    def test_delete_avatar_requires_authentication(self):
+        response = self.client.post(AVATAR_DELETE_URL)
+        assert response.status_code == 302
+        assert "/comptes/connexion/" in response.url
+
+    def test_delete_avatar_only_post_allowed(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(AVATAR_DELETE_URL)
+        assert response.status_code == 405

@@ -62,7 +62,7 @@
                 Avatar
             </label>
             {% if profile_form.instance.avatar %}
-            <div class="mb-2">
+            <div class="mb-2 flex items-center gap-4">
                 <img src="{{ profile_form.instance.avatar.url }}"
                      alt="Avatar actuel"
                      class="w-20 h-20 rounded-full object-cover">
@@ -87,6 +87,17 @@
             Enregistrer
         </button>
     </form>
+
+    {% if profile_form.instance.avatar %}
+    <form method="post" action="{% url 'accounts:avatar_delete' %}" class="mt-4 text-center">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-sm text-red-600 hover:text-red-800 underline"
+                onclick="return confirm('Êtes-vous sûr de vouloir supprimer votre avatar ?')">
+            Supprimer l'avatar
+        </button>
+    </form>
+    {% endif %}
 
     <div class="mt-6 text-center">
         <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black">Retour</a>
