@@ -10,6 +10,17 @@ from django.views.generic import CreateView
 from .forms import LoginForm, ProfileForm, SignUpForm, UserForm
 
 
+class AvatarDeleteView(LoginRequiredMixin, View):
+    def post(self, request):
+        profile = request.user.profile
+        if profile.avatar:
+            profile.avatar.delete(save=False)
+            profile.avatar = ""
+            profile.save()
+            messages.success(request, "Votre avatar a été supprimé.")
+        return redirect("accounts:profile_edit")
+
+
 class SignUpView(CreateView):
     form_class = SignUpForm
     template_name = "accounts/signup.html"
