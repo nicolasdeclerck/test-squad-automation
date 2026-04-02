@@ -434,3 +434,65 @@ class TestAvatarDeleteView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get(AVATAR_DELETE_URL)
         assert response.status_code == 405
+
+
+@pytest.mark.django_db
+class TestProfileEditAvatarPosition:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="avatarpos@example.com", password=self.password)
+
+    def _upload_avatar(self):
+        from io import BytesIO
+
+        from PIL import Image
+
+        img = Image.new("RGB", (100, 100), "red")
+        buf = BytesIO()
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        avatar = SimpleUploadedFile(
+            "avatar.jpg", buf.read(), content_type="image/jpeg"
+        )
+        self.client.post(
+            PROFILE_EDIT_URL,
+            {"first_name": "", "last_name": "", "avatar": avatar},
+        )
+        self.user.profile.refresh_from_db()
+
+    def test_profile_edit_avatar_displayed_at_top(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self._upload_avatar()
+        response = self.client.get(PROFILE_EDIT_URL)
+        content = response.content.decode()
+        avatar_pos = content.find('alt="Avatar actuel"')
+        h1_pos = content.find("<h1")
+        assert avatar_pos != -1
+        assert h1_pos != -1
+        assert avatar_pos < h1_pos
+
+    def test_profile_edit_no_avatar_no_empty_space(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(PROFILE_EDIT_URL)
+        content = response.content.decode()
+        assert 'alt="Avatar actuel"' not in content
+
+    def test_profile_edit_avatar_centered(self):
+        self.client.login(username=self.user.username, password=self.password)
+        self._upload_avatar()
+        response = self.client.get(PROFILE_EDIT_URL)
+        content = response.content.decode()
+        avatar_img_pos = content.find('alt="Avatar actuel"')
+        # Find the parent div with centering classes
+        preceding = content[:avatar_img_pos]
+        last_div = preceding.rfind("<div")
+        parent_div = preceding[last_div:]
+        assert "flex" in parent_div
+        assert "justify-center" in parent_div
+
+    def test_profile_edit_form_still_has_file_input(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(PROFILE_EDIT_URL)
+        content = response.content.decode()
+        assert 'type="file"' in content
