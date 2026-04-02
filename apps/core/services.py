@@ -20,6 +20,16 @@ def text_color_for_bg(hex_color: str) -> str:
         return "#1f2937"
 
 
+def _parse_label(label: dict) -> dict:
+    raw_color = label.get("color", "")
+    safe_color = raw_color if re.match(r"^[0-9a-fA-F]{6}$", raw_color) else "cccccc"
+    return {
+        "name": label.get("name", ""),
+        "color": safe_color,
+        "text_color": text_color_for_bg(safe_color),
+    }
+
+
 def fetch_github_issues() -> tuple[list[dict], bool]:
     """Recupere les issues GitHub depuis le cache ou l'API.
 
@@ -42,24 +52,14 @@ def fetch_github_issues() -> tuple[list[dict], bool]:
         if response.status_code == 200:
             issues = [
                 {
-                    "title": issue["title"],
+                    "title": issue.get("title", "Sans titre"),
                     "labels": [
-                        {
-                            "name": label["name"],
-                            "color": label["color"]
-                            if re.match(
-                                r"^[0-9a-fA-F]{6}$",
-                                label.get("color", ""),
-                            )
-                            else "cccccc",
-                            "text_color": text_color_for_bg(
-                                label.get("color", "")
-                            ),
-                        }
+                        _parse_label(label)
                         for label in issue.get("labels", [])
                     ],
                 }
                 for issue in response.json()
+                if "pull_request" not in issue
             ]
             cache.set("github_issues", issues, timeout=300)
         else:
@@ -70,5 +70,8 @@ def fetch_github_issues() -> tuple[list[dict], bool]:
     except requests.RequestException as exc:
         logger.warning("GitHub API request failed: %s", exc)
         api_error = True
+
+    if api_error:
+        cache.set("github_issues", [], timeout=60)
 
     return issues or [], api_error

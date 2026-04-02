@@ -417,6 +417,77 @@ class TestDevTrackingView:
         assert "Précédent" not in content
 
 
+@pytest.mark.django_db
+class TestDevTrackingCorrections:
+    def setup_method(self):
+        cache.clear()
+
+    @patch("apps.core.services.requests.get")
+    def test_text_color_uses_validated_color(self, mock_get, client: Client):
+        """text_color_for_bg doit etre appele avec la couleur validee, pas la brute."""
+        issues_with_invalid_color = [
+            {
+                "title": "Test",
+                "labels": [{"name": "bad", "color": "zzzzzz"}],
+            }
+        ]
+        mock_get.return_value = _mock_github_response(200, issues_with_invalid_color)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "#cccccc" in content
+        assert text_color_for_bg("cccccc") == "#1f2937"
+        assert "#1f2937" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_issues_exclude_pull_requests(self, mock_get, client: Client):
+        """Les PRs doivent etre filtrees de la liste des issues."""
+        mixed_data = [
+            {"title": "Real issue", "labels": []},
+            {"title": "A pull request", "labels": [], "pull_request": {"url": "..."}},
+        ]
+        mock_get.return_value = _mock_github_response(200, mixed_data)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Real issue" in content
+        assert "A pull request" not in content
+
+    @patch("apps.core.services.requests.get")
+    def test_negative_cache_on_api_error(self, mock_get):
+        """Apres une erreur API, un second appel ne doit pas retenter immediatement."""
+        from apps.core.services import fetch_github_issues
+
+        mock_get.side_effect = requests_lib.ConnectionError("fail")
+        fetch_github_issues()
+        assert mock_get.call_count == 1
+        # Second call should hit negative cache
+        mock_get.side_effect = None
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        issues, api_error = fetch_github_issues()
+        assert mock_get.call_count == 1
+        assert issues == []
+        assert api_error is False
+
+    @patch("apps.core.services.requests.get")
+    def test_keyerror_safe_on_malformed_issue(self, mock_get, client: Client):
+        """Une issue sans title ne doit pas provoquer de crash."""
+        malformed = [
+            {"labels": [{"name": "bug", "color": "d73a4a"}]},
+            {"title": "Normal issue", "labels": []},
+        ]
+        mock_get.return_value = _mock_github_response(200, malformed)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Sans titre" in content
+        assert "Normal issue" in content
+
+
 class TestTextColorForBg:
     def test_light_background_returns_dark_text(self):
         assert text_color_for_bg("ffffff") == "#1f2937"
