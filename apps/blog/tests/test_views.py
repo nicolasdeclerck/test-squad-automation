@@ -412,6 +412,46 @@ class TestPostDetailView:
         content = response.content.decode()
         assert "Contenu de test" in content
 
+    def test_post_detail_shows_comment_count(self):
+        CommentFactory(post=self.post, is_approved=True)
+        CommentFactory(post=self.post, is_approved=True)
+        CommentFactory(post=self.post, is_approved=False)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "2 commentaires" in content
+
+    def test_post_detail_shows_comment_count_singular(self):
+        CommentFactory(post=self.post, is_approved=True)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "1 commentaire" in content
+        assert "1 commentaires" not in content
+
+    def test_post_detail_comments_section_hidden_by_default(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert 'id="comments-section" class="hidden' in content
+
+    def test_post_detail_toggle_button_present(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "Voir les commentaires" in content
+        assert 'id="toggle-comments"' in content
+
+    def test_post_detail_comment_form_in_dropdown(self):
+        user = UserFactory(password=self.password)
+        self.client.login(username=user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        comments_section = content.split('id="comments-section"')[1]
+        assert "Publier le commentaire" in comments_section
+
+    def test_post_detail_login_prompt_in_dropdown(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        comments_section = content.split('id="comments-section"')[1]
+        assert "Connectez-vous" in comments_section
+
 
 @pytest.mark.django_db
 class TestCommentCreateView:

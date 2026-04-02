@@ -30,45 +30,50 @@
         <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
     </article>
 
-    <hr class="my-10 border-gray-200">
+    {% if messages %}
+    <div class="mt-6">
+        {% for message in messages %}
+        <div class="p-4 rounded-md {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
-    <section>
-        <h2 class="text-xl font-semibold text-gray-900 mb-6">
-            Commentaires ({{ approved_comments|length }})
-        </h2>
+    <div class="mt-10 border-t border-gray-200 pt-4">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-500">
+                {{ approved_comments|length }} commentaire{{ approved_comments|length|pluralize }}
+            </span>
+            <button id="toggle-comments" type="button"
+                    class="btn btn-secondary text-sm">
+                Voir les commentaires
+            </button>
+        </div>
+    </div>
 
+    <div id="comments-section" class="hidden mt-4 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
         {% if approved_comments %}
-        <div class="space-y-6">
+        <div class="divide-y divide-gray-100">
             {% for comment in approved_comments %}
-            <div class="card">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="font-medium text-gray-900">{{ comment.author.email }}</span>
-                    <span class="text-sm text-gray-500">{{ comment.created_at|date:"d/m/Y H:i" }}</span>
+            <div class="py-3 {% if forloop.first %}pt-0{% endif %}">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-sm text-gray-900">{{ comment.author.email }}</span>
+                    <span class="text-xs text-gray-400">{{ comment.created_at|date:"d/m/Y H:i" }}</span>
                 </div>
-                <p class="text-gray-700">{{ comment.content }}</p>
+                <p class="text-sm text-gray-700">{{ comment.content }}</p>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-gray-500">Aucun commentaire pour le moment.</p>
-        {% endif %}
-
-        {% if messages %}
-        <div class="mt-6">
-            {% for message in messages %}
-            <div class="p-4 rounded-md {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
+        <p class="text-sm text-gray-500">Aucun commentaire pour le moment.</p>
         {% endif %}
 
         {% if user.is_authenticated %}
-        <div class="mt-8">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Ajouter un commentaire</h3>
+        <div class="mt-4 pt-4 border-t border-gray-200">
             <form method="post" action="{% url 'comment_create' post.slug %}">
                 {% csrf_token %}
-                <div class="mb-4">
+                <div class="mb-3">
                     {{ comment_form.content }}
                     {% if comment_form.content.errors %}
                     <p class="text-red-600 text-sm mt-1">{{ comment_form.content.errors.0 }}</p>
@@ -80,16 +85,25 @@
             </form>
         </div>
         {% else %}
-        <div class="mt-8 p-4 bg-gray-50 rounded-md text-center">
-            <p class="text-gray-600">
+        <div class="mt-4 pt-4 border-t border-gray-200 text-center">
+            <p class="text-sm text-gray-600">
                 <a href="{% url 'accounts:login' %}" class="text-gray-900 font-medium hover:underline">Connectez-vous</a> pour poster un commentaire.
             </p>
         </div>
         {% endif %}
-    </section>
+    </div>
 
     <div class="mt-10">
         <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black transition-colors">&larr; Retour aux articles</a>
     </div>
 </div>
+
+<script>
+document.getElementById('toggle-comments').addEventListener('click', function() {
+    var section = document.getElementById('comments-section');
+    var isHidden = section.classList.contains('hidden');
+    section.classList.toggle('hidden');
+    this.textContent = isHidden ? 'Masquer les commentaires' : 'Voir les commentaires';
+});
+</script>
 {% endblock %}
