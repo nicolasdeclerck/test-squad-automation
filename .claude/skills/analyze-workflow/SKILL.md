@@ -15,6 +15,23 @@ Ce skill s'inspire de deux skills communautaires éprouvés :
 
 ---
 
+## 0. Création du worktree isolé
+
+Crée un répertoire de travail isolé pour ce ticket afin de permettre l'exécution parallèle.
+
+```bash
+WORKTREE_PATH="/workspace/test-squad-automation-issue-{ISSUE_NUMBER}"
+git -C /workspace/test-squad-automation worktree add "$WORKTREE_PATH" origin/main 2>/dev/null \
+  || echo "Worktree déjà existant, réutilisation de $WORKTREE_PATH"
+cd "$WORKTREE_PATH"
+```
+
+**✅ Critère de sortie :** `git worktree list` affiche le nouveau répertoire.
+
+> **Toutes les commandes suivantes du skill doivent être exécutées depuis `$WORKTREE_PATH`.**
+
+---
+
 ## 1. Lecture du ticket et de son historique
 
 Lis le ticket et **tous** ses commentaires dans l'ordre chronologique :
@@ -125,7 +142,20 @@ gh label create 'go for dev' --color '#0075ca'
 
 ---
 
-## 6. Mode suivi (second passage en analyse)
+## 6. Nettoyage du worktree
+
+Une fois l'analyse terminée, supprime le worktree isolé.
+
+```bash
+cd /workspace/test-squad-automation
+git worktree remove "$WORKTREE_PATH" --force
+```
+
+**✅ Critère de sortie :** `git worktree list` ne contient plus `$WORKTREE_PATH`.
+
+---
+
+## 7. Mode suivi (second passage en analyse)
 
 Si un commentaire `## 🔍 Analyse` existe déjà sur le ticket, tu es en mode suivi.
 Dans ce cas, **ne reposte pas une analyse complète**. À la place :

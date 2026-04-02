@@ -45,7 +45,36 @@ et `## Questions bloquantes` (signature d'une analyse complete).
 
 ---
 
-## 3. Implementation
+## 3. Creation du worktree isole
+
+Cree un repertoire de travail isole sur une nouvelle branche pour ce ticket.
+
+```bash
+BRANCH_NAME="feat/issue-{ISSUE_NUMBER}-{slug-du-titre}"
+WORKTREE_PATH="/workspace/test-squad-automation-issue-{ISSUE_NUMBER}"
+
+git -C /workspace/test-squad-automation worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" origin/main 2>/dev/null \
+  || git -C /workspace/test-squad-automation worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
+
+cd "$WORKTREE_PATH"
+```
+
+Le slug du titre est le titre du ticket en minuscules, avec les caracteres non
+alphanumeriques remplaces par des tirets, tronque a 40 caracteres.
+
+**Critere de sortie :** `git worktree list` affiche bien le nouveau repertoire
+avec la bonne branche.
+
+**Gestion d'erreur :** si le worktree existe deja (reprise), ne pas recreer la
+branche -- utiliser `git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"` sans le
+flag `-b`.
+
+> **Toutes les etapes suivantes (implementation, tests, commit, push, PR) doivent
+> etre executees depuis `$WORKTREE_PATH`.**
+
+---
+
+## 4. Implementation
 
 Implemente le ticket en suivant exactement les consignes recuperees a l'etape 2 :
 - Cree ou modifie les fichiers necessaires
@@ -58,11 +87,11 @@ ou modifies. Les tests demandes existent dans le code.
 **Gestion d'erreur :** si une consigne est ambigue ou contradictoire avec le code
 existant, applique le principe de moindre surprise -- choisis l'interpretation la plus
 coherente avec le reste du projet et documente ton choix dans le commentaire de review
-(etape 6).
+(etape 7).
 
 ---
 
-## 4. Tests
+## 5. Tests
 
 Lance les tests et verifie qu'ils passent tous.
 
@@ -89,34 +118,31 @@ gh api repos/nicolasdeclerck/test-squad-automation/issues/{ISSUE_NUMBER}/labels 
 
 ---
 
-## 5. Commit et push
+## 6. Commit et push
 
-Cree une branche dediee et commite le travail.
+Commite le travail et pousse la branche. La branche a deja ete creee via le
+worktree a l'etape 3.
 
 ```bash
 git config --global user.email "claude-worker@squad-automation.fr"
 git config --global user.name "Claude Worker"
-git checkout -b feat/issue-{ISSUE_NUMBER}-{slug-du-titre}
 git add -A
-git commit -m "feat: close #{ISSUE_NUMBER} - {titre du ticket}"
-git push origin feat/issue-{ISSUE_NUMBER}-{slug-du-titre}
+git diff --cached --quiet || git commit -m "feat: close #{ISSUE_NUMBER} - {titre du ticket}"
+git push origin "$BRANCH_NAME"
 ```
-
-Le slug du titre est le titre du ticket en minuscules, avec les caracteres non
-alphanumeriques remplaces par des tirets, tronque a 40 caracteres.
 
 **Critere de sortie :** le push retourne un code 0 et la branche est visible
 sur le remote (`git ls-remote --heads origin feat/issue-{ISSUE_NUMBER}-*`).
 
 **Gestion d'erreur :**
-- Si la branche existe deja sur le remote (push rejete), utilise `--force` uniquement
-  si la branche porte exactement le meme nom (reprise d'une execution precedente).
+- Si la branche existe deja sur le remote (push rejete), utilise `--force-with-lease`
+  (reprise d'une execution precedente).
 - Si le depot distant est inaccessible, attends 10 secondes et reessaie une fois.
 - Ne force jamais le push sur `main` ou `master`.
 
 ---
 
-## 6. Commentaire de documentation
+## 7. Commentaire de documentation
 
 Poste un commentaire sur le ticket qui documente le travail realise.
 
@@ -140,7 +166,7 @@ gh issue comment {ISSUE_NUMBER} --body "## Documentation de l'implementation
 
 ---
 
-## 7. Pull Request
+## 8. Pull Request
 
 Cree la PR vers `main` en reutilisant le contenu du commentaire de documentation.
 
@@ -170,7 +196,7 @@ Closes #{ISSUE_NUMBER}
 
 ---
 
-## 8. Cloture
+## 9. Cloture
 
 Mets a jour les labels pour signaler que le ticket est pret pour review.
 
@@ -183,3 +209,16 @@ gh api repos/nicolasdeclerck/test-squad-automation/issues/{ISSUE_NUMBER}/labels 
 
 **Gestion d'erreur :** si le label `in progress` n'existe plus sur le ticket,
 ignore l'erreur 404 et continue avec l'ajout de `to review`.
+
+---
+
+## 10. Nettoyage du worktree
+
+Une fois le ticket termine, supprime le worktree isole.
+
+```bash
+cd /workspace/test-squad-automation
+git worktree remove "$WORKTREE_PATH" --force
+```
+
+**Critere de sortie :** `git worktree list` ne contient plus `$WORKTREE_PATH`.
