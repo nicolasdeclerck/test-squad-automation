@@ -102,7 +102,7 @@ class PostDetailView(DetailView):
         return (
             Post.objects.filter(status=Post.STATUS_PUBLISHED)
             .select_related("author")
-            .prefetch_related("comments__author")
+            .prefetch_related("comments__author__profile")
         )
 
     def get_context_data(self, **kwargs):
@@ -113,7 +113,7 @@ class PostDetailView(DetailView):
         )
         context["approved_comments"] = (
             self.object.comments.filter(is_approved=True)
-            .select_related("author")
+            .select_related("author__profile")
             .order_by("-created_at")
         )
         if self.request.user.is_authenticated:
@@ -149,6 +149,24 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse("post_detail", kwargs={"slug": self.kwargs["slug"]})
+
+
+class CommentDeleteView(LoginRequiredMixin, DeleteView):
+    model = Comment
+
+    def get_queryset(self):
+        return Comment.objects.filter(author=self.request.user)
+
+    def get_success_url(self):
+        return reverse("post_detail", kwargs={"slug": self.kwargs["slug"]})
+
+    def delete(self, request, *args, **kwargs):
+        response = super().delete(request, *args, **kwargs)
+        messages.success(request, "Votre commentaire a été supprimé.")
+        return response
+
+    def get(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
 
 
 class PostListView(ListView):

@@ -427,18 +427,112 @@ class TestPostDetailView:
         assert "1 commentaire" in content
         assert "1 commentaires" not in content
 
-    def test_post_detail_comments_section_hidden_by_default(self):
+    def test_comments_not_scrollable(self):
         response = self.client.get(self.url)
         content = response.content.decode()
-        assert 'id="comments-section" class="hidden' in content
+        assert "max-h-96" not in content
+        assert "overflow-y-auto" not in content
 
-    def test_post_detail_toggle_button_present(self):
+    def test_comment_displays_author_name_when_available(self):
+        user_with_name = UserFactory(
+            first_name="Jean", last_name="Dupont", password=self.password
+        )
+        CommentFactory(
+            post=self.post,
+            author=user_with_name,
+            is_approved=True,
+        )
         response = self.client.get(self.url)
         content = response.content.decode()
-        assert "Voir les commentaires" in content
-        assert 'id="toggle-comments"' in content
+        assert "Jean Dupont" in content
 
-    def test_post_detail_comment_form_in_dropdown(self):
+    def test_comment_displays_email_when_no_name(self):
+        user_no_name = UserFactory(
+            first_name="", last_name="", password=self.password
+        )
+        CommentFactory(
+            post=self.post,
+            author=user_no_name,
+            is_approved=True,
+        )
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert user_no_name.email in content
+
+    def test_comment_avatar_displayed(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        user_with_avatar = UserFactory(password=self.password)
+        user_with_avatar.profile.avatar = SimpleUploadedFile(
+            "avatar.jpg", b"\xff\xd8\xff\xe0", content_type="image/jpeg"
+        )
+        user_with_avatar.profile.save()
+        CommentFactory(
+            post=self.post,
+            author=user_with_avatar,
+            is_approved=True,
+        )
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "<img" in content
+        assert "rounded-full" in content
+
+    def test_comment_avatar_fallback_initial(self):
+        user_no_avatar = UserFactory(
+            email="alice@example.com", password=self.password
+        )
+        CommentFactory(
+            post=self.post,
+            author=user_no_avatar,
+            is_approved=True,
+        )
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "bg-gray-300" in content
+        # Check the initial letter is present in the fallback avatar div
+        import re
+
+        match = re.search(
+            r'bg-gray-300[^>]*>\s*([A-Z])\s*<', content
+        )
+        assert match is not None
+        assert match.group(1) == "A"
+
+    def test_delete_button_visible_for_author(self):
+        user = UserFactory(password=self.password)
+        comment = CommentFactory(
+            post=self.post,
+            author=user,
+            is_approved=True,
+        )
+        self.client.login(username=user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert f"/commentaire/{comment.pk}/supprimer/" in content
+
+    def test_delete_button_hidden_for_other_user(self):
+        author = UserFactory(password=self.password)
+        other = UserFactory(password=self.password)
+        comment = CommentFactory(
+            post=self.post,
+            author=author,
+            is_approved=True,
+        )
+        self.client.login(username=other.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert f"/commentaire/{comment.pk}/supprimer/" not in content
+
+    def test_pagination_data_comment_attributes(self):
+        for _ in range(12):
+            CommentFactory(post=self.post, is_approved=True)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        # Each comment div has data-comment attribute; JS also references it
+        assert content.count("data-comment>") == 12
+        assert "load-more-comments" in content
+
+    def test_post_detail_comment_form_in_section(self):
         user = UserFactory(password=self.password)
         self.client.login(username=user.username, password=self.password)
         response = self.client.get(self.url)
@@ -446,7 +540,7 @@ class TestPostDetailView:
         comments_section = content.split('id="comments-section"')[1]
         assert "Publier le commentaire" in comments_section
 
-    def test_post_detail_login_prompt_in_dropdown(self):
+    def test_post_detail_login_prompt_in_section(self):
         response = self.client.get(self.url)
         content = response.content.decode()
         comments_section = content.split('id="comments-section"')[1]
@@ -493,3 +587,38 @@ class TestCommentCreateView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(self.url, {"content": ""})
         assert Comment.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestCommentDeleteView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+        self.post = PostFactory()
+        self.comment = CommentFactory(
+            post=self.post, author=self.user, is_approved=True
+        )
+        self.url = (
+            f"/articles/{self.post.slug}"
+            f"/commentaire/{self.comment.pk}/supprimer/"
+        )
+
+    def test_comment_delete_by_author(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(self.url)
+        assert response.status_code == 302
+        assert not Comment.objects.filter(pk=self.comment.pk).exists()
+
+    def test_comment_delete_by_other_user(self):
+        other = UserFactory(password=self.password)
+        self.client.login(username=other.username, password=self.password)
+        response = self.client.post(self.url)
+        assert response.status_code == 404
+        assert Comment.objects.filter(pk=self.comment.pk).exists()
+
+    def test_comment_delete_anonymous(self):
+        response = self.client.post(self.url)
+        assert response.status_code == 302
+        assert LOGIN_URL in response.url
+        assert Comment.objects.filter(pk=self.comment.pk).exists()
