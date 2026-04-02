@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% load markdown_extras %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
-{% block meta_description %}{{ post.content|truncatewords:30 }}{% endblock %}
+{% block meta_description %}{{ post.content|render_markdown|striptags|truncatewords:30 }}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-12">
@@ -27,7 +28,7 @@
         <p class="text-sm text-gray-500 mb-8">
             Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
         </p>
-        <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
+        <div class="prose text-gray-700 leading-relaxed">{{ post.content|render_markdown }}</div>
     </article>
 
     {% if messages %}

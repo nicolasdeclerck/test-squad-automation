@@ -76,4 +76,20 @@
   .nav-link {
     @apply text-sm text-gray-500 hover:text-black transition-colors;
   }
+
+  .prose h1 { @apply text-2xl font-bold mt-6 mb-3; }
+  .prose h2 { @apply text-xl font-bold mt-5 mb-2; }
+  .prose h3 { @apply text-lg font-semibold mt-4 mb-2; }
+  .prose p { @apply mb-4; }
+  .prose ul { @apply list-disc pl-6 mb-4; }
+  .prose ol { @apply list-decimal pl-6 mb-4; }
+  .prose blockquote { @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4; }
+  .prose pre { @apply bg-gray-100 rounded p-4 overflow-x-auto mb-4; }
+  .prose code { @apply bg-gray-100 px-1 py-0.5 rounded text-sm; }
+  .prose pre code { @apply bg-transparent p-0; }
+  .prose a { @apply text-blue-600 underline hover:text-blue-800; }
+  .prose img { @apply max-w-full rounded my-4; }
+  .prose table { @apply w-full border-collapse mb-4; }
+  .prose th, .prose td { @apply border border-gray-300 px-3 py-2 text-sm; }
+  .prose th { @apply bg-gray-50 font-medium; }
 }
