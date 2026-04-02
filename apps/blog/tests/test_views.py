@@ -493,3 +493,59 @@ class TestCommentCreateView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(self.url, {"content": ""})
         assert Comment.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestMarkdownIntegration:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+
+    def test_post_create_with_markdown_content(self):
+        self.client.login(username=self.user.username, password=self.password)
+        md_content = "# Titre\n\n**bold** text"
+        self.client.post(
+            CREATE_URL,
+            {"title": "Article markdown", "content": md_content},
+        )
+        post = Post.objects.get(title="Article markdown")
+        assert post.content == md_content
+
+    def test_post_detail_renders_markdown_as_html(self):
+        post = PostFactory(
+            content="**bold** and *italic*",
+        )
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "<strong>bold</strong>" in content
+        assert "<em>italic</em>" in content
+
+    def test_post_detail_loads_toastui_css(self):
+        post = PostFactory()
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "toastui-editor.min.css" in content
+
+    def test_post_form_loads_toastui_js(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(CREATE_URL)
+        content = response.content.decode()
+        assert "toastui-editor-all.min.js" in content
+
+    def test_post_form_has_editor_container(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(CREATE_URL)
+        content = response.content.decode()
+        assert 'id="editor"' in content
+
+    def test_comment_markdown_rendered_in_detail(self):
+        post = PostFactory()
+        CommentFactory(
+            post=post,
+            is_approved=True,
+            content="**comment bold**",
+        )
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "<strong>comment bold</strong>" in content
