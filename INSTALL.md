@@ -153,6 +153,29 @@ pytest --cov=apps
 | `redis` | Cache + broker Celery | 6380 |
 | `celery` | Worker asynchrone | — |
 
+## Mise a jour
+
+### Avec Docker
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+docker compose exec django python manage.py migrate
+npm install
+npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
+```
+
+### En local
+
+```bash
+git pull
+pip install -r requirements/development.txt
+python manage.py migrate
+npm install
+npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
+```
+
 ## Commandes utiles
 
 ```bash
