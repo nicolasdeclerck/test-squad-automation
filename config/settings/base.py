@@ -76,6 +76,7 @@ GITHUB_REPO_API_URL = os.environ.get(
     "GITHUB_REPO_API_URL",
     "https://api.github.com/repos/nicolasdeclerck/test-squad-automation",
 )
+GITHUB_API_TOKEN = os.environ.get("GITHUB_API_TOKEN", "")
 
 AUTH_PASSWORD_VALIDATORS = [
     {

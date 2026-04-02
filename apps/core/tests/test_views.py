@@ -293,6 +293,70 @@ class TestDevTrackingView:
         called_url = mock_get.call_args[0][0]
         assert "test/repo" in called_url
 
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_logs_api_error(self, mock_get, client: Client, caplog):
+        mock_get.side_effect = requests_lib.ConnectionError("timeout")
+        user = UserFactory()
+        client.force_login(user)
+        with caplog.at_level("WARNING", logger="apps.core.views"):
+            client.get(reverse("dev_tracking"))
+        assert "GitHub API request failed" in caplog.text
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_logs_non_200(self, mock_get, client: Client, caplog):
+        mock_get.return_value = _mock_github_response(503)
+        user = UserFactory()
+        client.force_login(user)
+        with caplog.at_level("WARNING", logger="apps.core.views"):
+            client.get(reverse("dev_tracking"))
+        assert "GitHub API returned status 503" in caplog.text
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_with_github_token(
+        self, mock_get, client: Client, settings
+    ):
+        settings.GITHUB_API_TOKEN = "ghp_testtoken123"
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        called_headers = mock_get.call_args[1]["headers"]
+        assert called_headers["Authorization"] == "Bearer ghp_testtoken123"
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_no_token_no_auth_header(
+        self, mock_get, client: Client, settings
+    ):
+        settings.GITHUB_API_TOKEN = ""
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        called_headers = mock_get.call_args[1]["headers"]
+        assert "Authorization" not in called_headers
+
+    @patch("apps.core.views.requests.get")
+    def test_label_color_validation(self, mock_get, client: Client):
+        issues_with_bad_color = [
+            {
+                "title": "Test issue",
+                "labels": [
+                    {"name": "good", "color": "d73a4a"},
+                    {"name": "bad", "color": "not-a-color"},
+                    {"name": "xss", "color": "red;injection"},
+                ],
+            }
+        ]
+        mock_get.return_value = _mock_github_response(200, issues_with_bad_color)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "#d73a4a" in content
+        assert "#cccccc" in content
+        assert "not-a-color" not in content
+        assert "injection" not in content
+
 
 class TestTextColorForBg:
     def test_light_background_returns_dark_text(self):
@@ -306,6 +370,11 @@ class TestTextColorForBg:
 
     def test_dark_red_returns_white_text(self):
         assert text_color_for_bg("d73a4a") == "#ffffff"
+
+    def test_text_color_for_bg_invalid_input(self):
+        assert text_color_for_bg("xyz") == "#1f2937"
+        assert text_color_for_bg("") == "#1f2937"
+        assert text_color_for_bg("gg0000") == "#1f2937"
 
 
 @pytest.mark.django_db
