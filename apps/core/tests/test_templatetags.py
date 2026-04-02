@@ -2,7 +2,6 @@ import pytest
 from django.template import Context, Template
 
 
-@pytest.mark.django_db
 class TestRenderMarkdownFilter:
     def _render(self, value):
         template = Template("{% load markdown_extras %}{{ content|render_markdown }}")

@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from django.test import Client
 
@@ -191,8 +193,6 @@ class TestPostCreateView:
         content = response.content.decode()
         assert 'id="id_content"' in content
         # The textarea must not have 'hidden' class in its server-rendered HTML
-        import re
-
         textarea_match = re.search(r"<textarea[^>]*id=\"id_content\"[^>]*>", content)
         assert textarea_match is not None
         assert "hidden" not in textarea_match.group(0)
