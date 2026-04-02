@@ -72,6 +72,11 @@ LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/comptes/connexion/"
 LOGOUT_REDIRECT_URL = "/"
 
+GITHUB_REPO_API_URL = os.environ.get(
+    "GITHUB_REPO_API_URL",
+    "https://api.github.com/repos/nicolasdeclerck/test-squad-automation",
+)
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",

@@ -1,10 +1,17 @@
 import requests
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.views.generic import TemplateView
 
-GITHUB_ISSUES_URL = (
-    "https://api.github.com/repos/nicolasdeclerck/test-squad-automation/issues"
-)
+
+def text_color_for_bg(hex_color):
+    """Retourne '#1f2937' (dark) ou '#ffffff' (white) selon la luminance du fond."""
+    r = int(hex_color[:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return "#1f2937" if luminance > 0.5 else "#ffffff"
 
 
 class ComingSoonView(TemplateView):
@@ -36,30 +43,40 @@ class DevTrackingView(LoginRequiredMixin, TemplateView):
         context["meta_description"] = (
             "Suivez l'avancement des développements en cours."
         )
-        issues = []
+        issues = cache.get("github_issues")
         api_error = False
-        try:
-            response = requests.get(
-                GITHUB_ISSUES_URL,
-                params={"state": "open"},
-                headers={"Accept": "application/vnd.github.v3+json"},
-                timeout=10,
-            )
-            if response.status_code == 200:
-                issues = [
-                    {
-                        "title": issue["title"],
-                        "labels": [
-                            {"name": label["name"], "color": label["color"]}
-                            for label in issue.get("labels", [])
-                        ],
-                    }
-                    for issue in response.json()
-                ]
-            else:
+        if issues is None:
+            try:
+                url = f"{settings.GITHUB_REPO_API_URL}/issues?state=open"
+                response = requests.get(
+                    url,
+                    headers={"Accept": "application/vnd.github.v3+json"},
+                    timeout=10,
+                )
+                if response.status_code == 200:
+                    issues = [
+                        {
+                            "title": issue["title"],
+                            "labels": [
+                                {
+                                    "name": label["name"],
+                                    "color": label["color"],
+                                    "text_color": text_color_for_bg(
+                                        label["color"]
+                                    ),
+                                }
+                                for label in issue.get("labels", [])
+                            ],
+                        }
+                        for issue in response.json()
+                    ]
+                    cache.set("github_issues", issues, timeout=300)
+                else:
+                    api_error = True
+            except requests.RequestException:
                 api_error = True
-        except requests.RequestException:
-            api_error = True
+            if issues is None:
+                issues = []
         context["issues"] = issues
         context["api_error"] = api_error
         return context

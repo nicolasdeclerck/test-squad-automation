@@ -2,10 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests as requests_lib
+from django.core.cache import cache
 from django.test import Client
 from django.urls import reverse
 
 from apps.accounts.tests.factories import UserFactory
+from apps.core.views import text_color_for_bg
 
 
 @pytest.mark.django_db
@@ -212,6 +214,9 @@ MOCK_ISSUES = [
 
 @pytest.mark.django_db
 class TestDevTrackingView:
+    def setup_method(self):
+        cache.clear()
+
     def test_dev_tracking_requires_login(self, client: Client):
         response = client.get(reverse("dev_tracking"))
         assert response.status_code == 302
@@ -268,6 +273,39 @@ class TestDevTrackingView:
         response = client.get(reverse("dev_tracking"))
         content = response.content.decode()
         assert "Aucune issue ouverte" in content
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_uses_cache(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        client.get(reverse("dev_tracking"))
+        assert mock_get.call_count == 1
+
+    @patch("apps.core.views.requests.get")
+    def test_dev_tracking_uses_settings_url(self, mock_get, client: Client, settings):
+        settings.GITHUB_REPO_API_URL = "https://api.github.com/repos/test/repo"
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        called_url = mock_get.call_args[0][0]
+        assert "test/repo" in called_url
+
+
+class TestTextColorForBg:
+    def test_light_background_returns_dark_text(self):
+        assert text_color_for_bg("ffffff") == "#1f2937"
+
+    def test_dark_background_returns_white_text(self):
+        assert text_color_for_bg("000000") == "#ffffff"
+
+    def test_yellow_returns_dark_text(self):
+        assert text_color_for_bg("ffff00") == "#1f2937"
+
+    def test_dark_red_returns_white_text(self):
+        assert text_color_for_bg("d73a4a") == "#ffffff"
 
 
 @pytest.mark.django_db
