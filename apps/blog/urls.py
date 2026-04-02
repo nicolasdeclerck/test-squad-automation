@@ -1,9 +1,11 @@
 from django.urls import path
 
 from .views import (
+    CommentCreateView,
     HomeView,
     PostCreateView,
     PostDeleteView,
+    PostDetailView,
     PostListView,
     PostUpdateView,
 )
@@ -21,5 +23,15 @@ urlpatterns = [
         "articles/<slug:slug>/supprimer/",
         PostDeleteView.as_view(),
         name="post_delete",
+    ),
+    path(
+        "articles/<slug:slug>/",
+        PostDetailView.as_view(),
+        name="post_detail",
+    ),
+    path(
+        "articles/<slug:slug>/commenter/",
+        CommentCreateView.as_view(),
+        name="comment_create",
     ),
 ]

@@ -1,9 +1,17 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 
-from .forms import PostForm
-from .models import Post
+from .forms import CommentForm, PostForm
+from .models import Comment, Post
 
 
 class HomeView(ListView):
@@ -83,6 +91,64 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
             "Confirmez la suppression de votre article."
         )
         return context
+
+
+class PostDetailView(DetailView):
+    model = Post
+    template_name = "blog/post_detail.html"
+    context_object_name = "post"
+
+    def get_queryset(self):
+        return (
+            Post.objects.filter(status=Post.STATUS_PUBLISHED)
+            .select_related("author")
+            .prefetch_related("comments__author")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.object.title
+        context["meta_description"] = (
+            self.object.content[:160]
+        )
+        context["approved_comments"] = (
+            self.object.comments.filter(is_approved=True)
+            .select_related("author")
+            .order_by("-created_at")
+        )
+        if self.request.user.is_authenticated:
+            context["comment_form"] = CommentForm()
+        return context
+
+
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    model = Comment
+    form_class = CommentForm
+
+    def form_valid(self, form):
+        post = get_object_or_404(
+            Post, slug=self.kwargs["slug"], status=Post.STATUS_PUBLISHED
+        )
+        form.instance.author = self.request.user
+        form.instance.post = post
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            "Votre commentaire a été soumis et est en attente de modération.",
+        )
+        return response
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Le commentaire n'a pas pu être soumis. Veuillez corriger les erreurs.",
+        )
+        return redirect(
+            reverse("post_detail", kwargs={"slug": self.kwargs["slug"]})
+        )
+
+    def get_success_url(self):
+        return reverse("post_detail", kwargs={"slug": self.kwargs["slug"]})
 
 
 class PostListView(ListView):
