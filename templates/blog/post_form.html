@@ -5,6 +5,9 @@
 {% block meta_description %}{{ meta_description }}{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css"
+      integrity="sha384-Uw+ry/KtbmFNRGJd+U+hpfJou1QMHCAQc8k8OdZkclgUySjn8aJJcVTkkCeSwP6H" crossorigin="anonymous">
+
 <div class="max-w-2xl mx-auto px-4 py-12">
     <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ title }}</h1>
 
@@ -46,7 +49,7 @@
                       id="{{ form.content.id_for_label }}"
                       rows="10"
                       required
-                      class="form-input{% if form.content.errors %} border-red-500{% endif %}">{{ form.content.value|default:'' }}</textarea>
+                      class="w-full border rounded p-2{% if form.content.errors %} border-red-500{% endif %}">{{ form.content.value|default:'' }}</textarea>
             {% if form.content.errors %}
             <ul class="errorlist mt-1">
                 {% for error in form.content.errors %}
@@ -54,6 +57,7 @@
                 {% endfor %}
             </ul>
             {% endif %}
+            <div id="toastui-editor" class="mt-2"></div>
         </div>
 
         <button type="submit" class="btn-primary w-full py-3">
@@ -65,4 +69,28 @@
         <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black transition-colors">Retour</a>
     </div>
 </div>
+
+<script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"
+        integrity="sha384-FF8a/n4tsDcp0oRDFHNNygVDoaTZfIGmaSzvbL8wMqj/8R5sD+JKKKqfQmwJQAQY" crossorigin="anonymous"></script>
+<script>
+(function() {
+    var textarea = document.querySelector('#id_content');
+    var editorEl = document.getElementById('toastui-editor');
+    if (!textarea || !editorEl || typeof toastui === 'undefined') return;
+
+    var editor = new toastui.Editor({
+        el: editorEl,
+        height: '400px',
+        initialEditType: 'markdown',
+        previewStyle: 'vertical',
+        initialValue: textarea.value || ''
+    });
+
+    textarea.classList.add('hidden');
+
+    textarea.closest('form').addEventListener('submit', function() {
+        textarea.value = editor.getMarkdown();
+    });
+})();
+</script>
 {% endblock %}

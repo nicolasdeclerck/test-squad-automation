@@ -185,6 +185,18 @@ class TestPostCreateView:
         content = response.content.decode()
         assert "Créez un nouvel article sur le blog." in content
 
+    def test_post_form_textarea_visible_without_js(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(CREATE_URL)
+        content = response.content.decode()
+        assert 'id="id_content"' in content
+        # The textarea must not have 'hidden' class in its server-rendered HTML
+        import re
+
+        textarea_match = re.search(r"<textarea[^>]*id=\"id_content\"[^>]*>", content)
+        assert textarea_match is not None
+        assert "hidden" not in textarea_match.group(0)
+
 
 @pytest.mark.django_db
 class TestPostUpdateView:

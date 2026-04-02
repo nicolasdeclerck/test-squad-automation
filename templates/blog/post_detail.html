@@ -1,10 +1,14 @@
 {% extends "base.html" %}
+{% load markdown_extras %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
 {% block meta_description %}{{ post.content|truncatewords:30 }}{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css"
+      integrity="sha384-Uw+ry/KtbmFNRGJd+U+hpfJou1QMHCAQc8k8OdZkclgUySjn8aJJcVTkkCeSwP6H" crossorigin="anonymous">
+
 <div class="max-w-3xl mx-auto px-4 py-12">
     <article>
         <div class="flex items-start justify-between mb-4">
@@ -27,7 +31,8 @@
         <p class="text-sm text-gray-500 mb-8">
             Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
         </p>
-        <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
+        <div class="text-gray-700 leading-relaxed">{{ post.content|render_markdown }}</div>
+        <div id="toastui-viewer" class="hidden"></div>
     </article>
 
     {% if messages %}
@@ -105,5 +110,25 @@ document.getElementById('toggle-comments').addEventListener('click', function() 
     section.classList.toggle('hidden');
     this.textContent = isHidden ? 'Masquer les commentaires' : 'Voir les commentaires';
 });
+</script>
+<script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"
+        integrity="sha384-FF8a/n4tsDcp0oRDFHNNygVDoaTZfIGmaSzvbL8wMqj/8R5sD+JKKKqfQmwJQAQY" crossorigin="anonymous"></script>
+<script>
+(function() {
+    var viewerEl = document.getElementById('toastui-viewer');
+    if (!viewerEl || typeof toastui === 'undefined') return;
+
+    var contentEl = viewerEl.previousElementSibling;
+    var markdownContent = contentEl.textContent;
+
+    new toastui.Editor.factory({
+        el: viewerEl,
+        viewer: true,
+        initialValue: markdownContent
+    });
+
+    viewerEl.classList.remove('hidden');
+    contentEl.classList.add('hidden');
+})();
 </script>
 {% endblock %}
