@@ -6,6 +6,14 @@
 
 {% block content %}
 <div class="max-w-sm mx-auto px-4 py-16">
+    {% if profile_form.instance.avatar %}
+    <div class="mb-6 flex justify-center">
+        <img src="{{ profile_form.instance.avatar.url }}"
+             alt="Avatar actuel"
+             class="w-20 h-20 rounded-full object-cover">
+    </div>
+    {% endif %}
+
     <h1 class="text-2xl font-bold text-gray-900 text-center mb-8">Modifier mon profil</h1>
 
     {% if messages %}
@@ -61,13 +69,6 @@
             <label for="{{ profile_form.avatar.id_for_label }}" class="form-label">
                 Avatar
             </label>
-            {% if profile_form.instance.avatar %}
-            <div class="mb-2 flex items-center gap-4">
-                <img src="{{ profile_form.instance.avatar.url }}"
-                     alt="Avatar actuel"
-                     class="w-20 h-20 rounded-full object-cover">
-            </div>
-            {% endif %}
             <input type="file"
                    name="{{ profile_form.avatar.html_name }}"
                    id="{{ profile_form.avatar.id_for_label }}"
