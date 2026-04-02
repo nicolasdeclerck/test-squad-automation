@@ -3,3 +3,4 @@ dj-database-url>=2.0
 psycopg2-binary>=2.9
 redis>=5.0
 celery>=5.3
+Pillow>=10.0

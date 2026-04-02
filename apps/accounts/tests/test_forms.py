@@ -1,8 +1,9 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory
 
-from apps.accounts.forms import LoginForm, SignUpForm
+from apps.accounts.forms import LoginForm, ProfileForm, SignUpForm, UserForm
 
 from .factories import UserFactory
 
@@ -132,3 +133,50 @@ class TestLoginForm:
         form.is_valid()
         errors = form.non_field_errors()
         assert any("incorrect" in str(e).lower() for e in errors)
+
+
+@pytest.mark.django_db
+class TestUserForm:
+    def test_valid_data(self):
+        form = UserForm(data={"first_name": "Jean", "last_name": "Dupont"})
+        assert form.is_valid()
+
+    def test_empty_fields_allowed(self):
+        form = UserForm(data={"first_name": "", "last_name": ""})
+        assert form.is_valid()
+
+    def test_labels(self):
+        form = UserForm()
+        assert form.fields["first_name"].label == "Prénom"
+        assert form.fields["last_name"].label == "Nom"
+
+
+@pytest.mark.django_db
+class TestProfileForm:
+    def test_valid_avatar(self):
+        from io import BytesIO
+
+        from PIL import Image
+
+        img = Image.new("RGB", (100, 100), "red")
+        buf = BytesIO()
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        file = SimpleUploadedFile("avatar.jpg", buf.read(), content_type="image/jpeg")
+        form = ProfileForm(data={}, files={"avatar": file})
+        assert form.is_valid()
+
+    def test_rejects_invalid_mime_type(self):
+        file = SimpleUploadedFile(
+            "test.txt", b"not an image", content_type="text/plain"
+        )
+        form = ProfileForm(data={}, files={"avatar": file})
+        assert not form.is_valid()
+        assert "avatar" in form.errors
+
+    def test_rejects_oversized_file(self):
+        data = b"x" * (5 * 1024 * 1024 + 1)
+        file = SimpleUploadedFile("large.jpg", data, content_type="image/jpeg")
+        form = ProfileForm(data={}, files={"avatar": file})
+        assert not form.is_valid()
+        assert "avatar" in form.errors

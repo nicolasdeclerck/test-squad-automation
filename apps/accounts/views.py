@@ -1,10 +1,13 @@
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView
 
-from .forms import LoginForm, SignUpForm
+from .forms import LoginForm, ProfileForm, SignUpForm, UserForm
 
 
 class SignUpView(CreateView):
@@ -30,3 +33,33 @@ class LoginView(auth_views.LoginView):
 
 class LogoutView(auth_views.LogoutView):
     pass
+
+
+class ProfileUpdateView(LoginRequiredMixin, View):
+    template_name = "accounts/profile_edit.html"
+
+    def get(self, request):
+        user_form = UserForm(instance=request.user)
+        profile_form = ProfileForm(instance=request.user.profile)
+        return self._render(request, user_form, profile_form)
+
+    def post(self, request):
+        user_form = UserForm(request.POST, instance=request.user)
+        profile_form = ProfileForm(
+            request.POST, request.FILES, instance=request.user.profile
+        )
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, "Votre profil a été mis à jour.")
+            return redirect("accounts:profile_edit")
+        return self._render(request, user_form, profile_form)
+
+    def _render(self, request, user_form, profile_form):
+        from django.template.response import TemplateResponse
+
+        return TemplateResponse(
+            request,
+            self.template_name,
+            {"user_form": user_form, "profile_form": profile_form},
+        )

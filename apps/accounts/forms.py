@@ -4,6 +4,8 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
+from .models import Profile
+
 User = get_user_model()
 
 
@@ -61,3 +63,22 @@ class LoginForm(AuthenticationForm):
                 self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
+
+
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name")
+        labels = {
+            "first_name": "Prénom",
+            "last_name": "Nom",
+        }
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ("avatar",)
+        labels = {
+            "avatar": "Avatar",
+        }
