@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -166,7 +167,7 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
         return response
 
     def get(self, request, *args, **kwargs):
-        return self.post(request, *args, **kwargs)
+        return HttpResponseNotAllowed(["POST"])
 
 
 class PostListView(ListView):

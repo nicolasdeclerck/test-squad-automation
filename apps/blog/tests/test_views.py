@@ -622,3 +622,9 @@ class TestCommentDeleteView:
         assert response.status_code == 302
         assert LOGIN_URL in response.url
         assert Comment.objects.filter(pk=self.comment.pk).exists()
+
+    def test_comment_delete_get_not_allowed(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert response.status_code == 405
+        assert Comment.objects.filter(pk=self.comment.pk).exists()
