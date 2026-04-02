@@ -128,3 +128,58 @@ class TestResponsiveMenu:
         content = response.content.decode()
         assert 'class="hidden md:flex items-center gap-6"' in content
         assert 'class="hidden md:flex items-center gap-3"' in content
+
+
+@pytest.mark.django_db
+class TestAvatarDropdown:
+    def test_navbar_shows_avatar_for_authenticated_user(self, client: Client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        assert 'id="avatar-dropdown-toggle"' in content
+
+    def test_navbar_shows_initials_when_no_avatar(self, client: Client):
+        user = UserFactory(username="alice")
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        dropdown = content.split('id="avatar-dropdown-toggle"')[1].split("</button>")[0]
+        assert "A" in dropdown
+
+    def test_dropdown_contains_profile_link(self, client: Client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        dropdown_menu = content.split('id="avatar-dropdown-menu"')[1].split("</div>")[0]
+        assert reverse("accounts:profile_edit") in dropdown_menu
+        assert "Mon profil" in dropdown_menu
+
+    def test_dropdown_contains_logout_form(self, client: Client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        dropdown_menu = content.split('id="avatar-dropdown-menu"')[1].split("</div>")[0]
+        assert 'method="post"' in dropdown_menu
+        assert reverse("accounts:logout") in dropdown_menu
+        assert "Se déconnecter" in dropdown_menu
+
+    def test_add_article_button_outside_dropdown(self, client: Client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        desktop_section = content.split('class="hidden md:flex items-center gap-3"')[1].split("</div>")[0]
+        assert "Ajouter un article" in desktop_section
+        dropdown_menu = content.split('id="avatar-dropdown-menu"')[1].split("</div>")[0]
+        assert "Ajouter un article" not in dropdown_menu
+
+    def test_navbar_desktop_no_auth_unchanged(self, client: Client):
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        desktop_section = content.split('class="hidden md:flex items-center gap-3"')[1].split("</header>")[0]
+        assert "Se connecter" in desktop_section
+        assert "Créer un compte" in desktop_section
+        assert 'id="avatar-dropdown-toggle"' not in desktop_section
