@@ -34,6 +34,27 @@
         </li>
         {% endfor %}
     </ul>
+
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex items-center justify-center gap-4">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           class="text-sm text-gray-500 hover:text-black transition-colors">
+            &larr; Précédent
+        </a>
+        {% endif %}
+        <span class="text-sm text-gray-400">
+            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           class="text-sm text-gray-500 hover:text-black transition-colors">
+            Suivant &rarr;
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% elif not api_error %}
     <p class="text-gray-500">Aucune issue ouverte.</p>
     {% endif %}
