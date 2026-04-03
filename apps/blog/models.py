@@ -1,6 +1,18 @@
+import re
+
+import nh3
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
+
+ALLOWED_TAGS = {
+    "p", "h1", "h2", "h3", "ul", "ol", "li", "strong", "em",
+    "a", "img", "blockquote", "code", "pre", "br", "span", "div",
+}
+ALLOWED_ATTRIBUTES = {
+    "a": {"href", "title"},
+    "img": {"src", "alt"},
+}
 
 
 class Post(models.Model):
@@ -28,6 +40,20 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_html_content(self):
+        """Détecte si le contenu est du HTML (vs texte brut legacy)."""
+        return bool(re.search(r"<[a-z][\s\S]*>", self.content))
+
+    @property
+    def content_sanitized(self):
+        return nh3.clean(
+            self.content,
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+            url_schemes={"http", "https"},
+        )
 
     def save(self, *args, **kwargs):
         if not self.slug:

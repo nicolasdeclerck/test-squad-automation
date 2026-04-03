@@ -1,8 +1,14 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'js/dist/blocknote-editor.css' %}">
+<script src="{% static 'js/dist/blocknote-editor.iife.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
@@ -39,14 +45,10 @@
         </div>
 
         <div class="mb-6">
-            <label for="{{ form.content.id_for_label }}" class="form-label">
+            <label class="form-label">
                 Contenu
             </label>
-            <textarea name="{{ form.content.html_name }}"
-                      id="{{ form.content.id_for_label }}"
-                      rows="10"
-                      required
-                      class="form-input{% if form.content.errors %} border-red-500{% endif %}">{{ form.content.value|default:'' }}</textarea>
+            {{ form.content }}
             {% if form.content.errors %}
             <ul class="errorlist mt-1">
                 {% for error in form.content.errors %}
@@ -56,10 +58,30 @@
             {% endif %}
         </div>
 
+        <noscript>
+            <p class="text-red-600">JavaScript est requis pour l'éditeur de contenu.</p>
+        </noscript>
+
         <button type="submit" class="btn-primary w-full py-3">
             {% if form.instance.pk %}Modifier{% else %}Publier{% endif %}
         </button>
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.initBlockNoteEditor === 'undefined') {
+                var container = document.getElementById('blocknote-container');
+                if (container) {
+                    container.innerHTML = '<p class="text-red-600 p-4">Erreur : le fichier JS de l\'éditeur n\'a pas été trouvé. Exécutez <code>npm run build:js</code>.</p>';
+                }
+            } else {
+                var container = document.getElementById('blocknote-container');
+                var hiddenInput = document.getElementById('{{ form.content.id_for_label }}');
+                var initialHTML = hiddenInput ? hiddenInput.value : '';
+                window.initBlockNoteEditor(container, hiddenInput, initialHTML);
+            }
+        });
+    </script>
 
     <div class="mt-6 text-center">
         <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black transition-colors">Retour</a>
