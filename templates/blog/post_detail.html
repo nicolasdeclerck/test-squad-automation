@@ -40,31 +40,58 @@
     </div>
     {% endif %}
 
-    <div class="mt-10 border-t border-gray-200 pt-4">
-        <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-500">
-                {{ approved_comments|length }} commentaire{{ approved_comments|length|pluralize }}
-            </span>
-            <button id="toggle-comments" type="button"
-                    class="btn btn-secondary text-sm">
-                Voir les commentaires
-            </button>
-        </div>
-    </div>
+    <div id="comments-section" class="mt-10 border-t border-gray-200 pt-4">
+        <h2 class="text-sm text-gray-500 mb-4">
+            {{ approved_comments|length }} commentaire{{ approved_comments|length|pluralize }}
+        </h2>
 
-    <div id="comments-section" class="hidden mt-4 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
         {% if approved_comments %}
         <div class="divide-y divide-gray-100">
             {% for comment in approved_comments %}
-            <div class="py-3 {% if forloop.first %}pt-0{% endif %}">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="font-medium text-sm text-gray-900">{{ comment.author.email }}</span>
-                    <span class="text-xs text-gray-400">{{ comment.created_at|date:"d/m/Y H:i" }}</span>
+            <div class="py-3 {% if forloop.first %}pt-0{% endif %}" data-comment>
+                <div class="flex items-start gap-3">
+                    {% if comment.author.profile.avatar %}
+                    <img src="{{ comment.author.profile.avatar.url }}" alt="" class="w-8 h-8 rounded-full object-cover shrink-0">
+                    {% else %}
+                    <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-medium shrink-0">
+                        {{ comment.author.email|first|upper }}
+                    </div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-medium text-sm text-gray-900">
+                                {% if comment.author.first_name and comment.author.last_name %}
+                                    {{ comment.author.first_name }} {{ comment.author.last_name }}
+                                {% else %}
+                                    {{ comment.author.email }}
+                                {% endif %}
+                            </span>
+                            <span class="text-xs text-gray-400">{{ comment.created_at|date:"d/m/Y H:i" }}</span>
+                            {% if user == comment.author %}
+                            <form method="post" action="{% url 'comment_delete' post.slug comment.pk %}" class="ml-auto">
+                                {% csrf_token %}
+                                <button type="submit" class="text-gray-400 hover:text-red-500 transition-colors" title="Supprimer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-gray-700">{{ comment.content }}</p>
+                    </div>
                 </div>
-                <p class="text-sm text-gray-700">{{ comment.content }}</p>
             </div>
             {% endfor %}
         </div>
+
+        {% if approved_comments|length > 10 %}
+        <div class="mt-4 text-center">
+            <button id="load-more-comments" type="button" class="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                Voir les 10 commentaires suivants
+            </button>
+        </div>
+        {% endif %}
         {% else %}
         <p class="text-sm text-gray-500">Aucun commentaire pour le moment.</p>
         {% endif %}
@@ -99,11 +126,28 @@
 </div>
 
 <script>
-document.getElementById('toggle-comments').addEventListener('click', function() {
-    var section = document.getElementById('comments-section');
-    var isHidden = section.classList.contains('hidden');
-    section.classList.toggle('hidden');
-    this.textContent = isHidden ? 'Masquer les commentaires' : 'Voir les commentaires';
-});
+(function() {
+    var comments = document.querySelectorAll('[data-comment]');
+    var visibleCount = 10;
+    var loadMoreBtn = document.getElementById('load-more-comments');
+
+    function updateVisibility() {
+        comments.forEach(function(comment, index) {
+            comment.style.display = index < visibleCount ? '' : 'none';
+        });
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display = visibleCount >= comments.length ? 'none' : '';
+        }
+    }
+
+    updateVisibility();
+
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            visibleCount += 10;
+            updateVisibility();
+        });
+    }
+})();
 </script>
 {% endblock %}
