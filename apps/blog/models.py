@@ -1,6 +1,17 @@
+import bleach
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
+
+ALLOWED_TAGS = [
+    "p", "h1", "h2", "h3", "ul", "ol", "li",
+    "strong", "em", "a", "img", "blockquote", "code", "pre",
+    "br", "span", "div",
+]
+ALLOWED_ATTRIBUTES = {
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "title", "width", "height"],
+}
 
 
 class Post(models.Model):
@@ -28,6 +39,15 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def content_sanitized(self):
+        return bleach.clean(
+            self.content,
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+            strip=True,
+        )
 
     def save(self, *args, **kwargs):
         if not self.slug:

@@ -1,6 +1,6 @@
 import pytest
 
-from apps.blog.forms import CommentForm, PostForm
+from apps.blog.forms import BlockNoteWidget, CommentForm, PostForm
 
 
 @pytest.mark.django_db
@@ -18,6 +18,20 @@ class TestPostForm:
         form = PostForm(data={"title": "Un titre", "content": ""})
         assert not form.is_valid()
         assert "content" in form.errors
+
+
+@pytest.mark.django_db
+class TestBlockNoteWidget:
+    def test_post_form_widget_renders_blocknote_container(self):
+        form = PostForm()
+        rendered = form.as_p()
+        assert "blocknote-container" in rendered
+        assert 'id="blocknote-editor-content"' in rendered
+
+    def test_post_form_widget_is_hidden_input(self):
+        form = PostForm()
+        widget = form.fields["content"].widget
+        assert isinstance(widget, BlockNoteWidget)
 
 
 @pytest.mark.django_db

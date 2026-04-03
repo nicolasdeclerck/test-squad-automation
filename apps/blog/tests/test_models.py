@@ -40,6 +40,30 @@ class TestPostModel:
 
 
 @pytest.mark.django_db
+class TestPostContentSanitization:
+    def test_html_sanitization_strips_script(self):
+        post = PostFactory(content='<p>Hello</p><script>alert("xss")</script>')
+        assert "<script>" not in post.content_sanitized
+        assert "<p>Hello</p>" in post.content_sanitized
+
+    def test_html_sanitization_allows_safe_tags(self):
+        html = "<p><strong>Bold</strong> and <em>italic</em></p>"
+        post = PostFactory(content=html)
+        assert post.content_sanitized == html
+
+    def test_html_sanitization_allows_links(self):
+        html = '<p><a href="https://example.com">Link</a></p>'
+        post = PostFactory(content=html)
+        assert 'href="https://example.com"' in post.content_sanitized
+
+    def test_html_sanitization_strips_onclick(self):
+        html = '<p onclick="alert(1)">Text</p>'
+        post = PostFactory(content=html)
+        assert "onclick" not in post.content_sanitized
+        assert "<p>Text</p>" in post.content_sanitized
+
+
+@pytest.mark.django_db
 class TestCommentModel:
     def test_is_approved_false_by_default(self):
         comment = CommentFactory()

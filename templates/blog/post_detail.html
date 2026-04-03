@@ -27,7 +27,13 @@
         <p class="text-sm text-gray-500 mb-8">
             Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
         </p>
+        {% with first_char=post.content|make_list|first %}
+        {% if first_char == "<" %}
+        <div class="text-gray-700 leading-relaxed prose prose-gray max-w-none">{{ post.content_sanitized|safe }}</div>
+        {% else %}
         <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
+        {% endif %}
+        {% endwith %}
     </article>
 
     {% if messages %}

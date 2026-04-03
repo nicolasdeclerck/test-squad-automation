@@ -185,6 +185,23 @@ class TestPostCreateView:
         content = response.content.decode()
         assert "Créez un nouvel article sur le blog." in content
 
+    def test_post_create_with_html_content(self):
+        self.client.login(username=self.user.username, password=self.password)
+        html_content = "<p>Contenu <strong>riche</strong> de l'article</p>"
+        self.client.post(
+            CREATE_URL,
+            {"title": "Article HTML", "content": html_content},
+        )
+        post = Post.objects.get(title="Article HTML")
+        assert post.content == html_content
+
+    def test_create_form_renders_blocknote_container(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(CREATE_URL)
+        content = response.content.decode()
+        assert "blocknote-container" in content
+        assert "blocknote-editor.iife.js" in content
+
 
 @pytest.mark.django_db
 class TestPostUpdateView:
@@ -261,6 +278,14 @@ class TestPostUpdateView:
         response = self.client.get(self.url)
         content = response.content.decode()
         assert "Modifiez votre article sur le blog." in content
+
+    def test_post_update_loads_existing_html(self):
+        self.post.content = "<p>Contenu HTML existant</p>"
+        self.post.save()
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "&lt;p&gt;Contenu HTML existant&lt;/p&gt;" in content or "Contenu HTML existant" in content
 
 
 @pytest.mark.django_db
@@ -545,6 +570,31 @@ class TestPostDetailView:
         content = response.content.decode()
         comments_section = content.split('id="comments-section"')[1]
         assert "Connectez-vous" in comments_section
+
+    def test_post_detail_html_content_rendered(self):
+        post = PostFactory(content="<p>Contenu <strong>riche</strong></p>")
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "<p>Contenu <strong>riche</strong></p>" in content
+        assert "whitespace-pre-line" not in content.split("leading-relaxed")[1].split("</div>")[0]
+
+    def test_legacy_plain_text_display(self):
+        post = PostFactory(content="Ceci est du texte brut sans HTML.")
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "Ceci est du texte brut sans HTML." in content
+        assert "whitespace-pre-line" in content
+
+    def test_html_sanitization_in_detail(self):
+        post = PostFactory(
+            content='<p>Safe</p><script>alert("xss")</script>'
+        )
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        # Extract the article content area (between <article> tags)
+        article_section = content.split("<article>")[1].split("</article>")[0]
+        assert "<script>" not in article_section
+        assert "<p>Safe</p>" in article_section
 
 
 @pytest.mark.django_db
