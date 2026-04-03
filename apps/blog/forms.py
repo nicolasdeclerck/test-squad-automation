@@ -1,3 +1,5 @@
+import json
+
 from django import forms
 
 from .models import Comment, Post
@@ -7,6 +9,17 @@ class PostForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = ("title", "content")
+        widgets = {
+            "content": forms.HiddenInput,
+        }
+
+    def clean_content(self):
+        content = self.cleaned_data.get("content")
+        if not content:
+            raise forms.ValidationError("Ce champ est obligatoire.")
+        if isinstance(content, list) and len(content) == 0:
+            raise forms.ValidationError("Ce champ est obligatoire.")
+        return content
 
 
 class CommentForm(forms.ModelForm):

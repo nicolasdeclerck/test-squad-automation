@@ -1,8 +1,13 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
-{% block meta_description %}{{ post.content|truncatewords:30 }}{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'js/editor.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-12">
@@ -27,7 +32,10 @@
         <p class="text-sm text-gray-500 mb-8">
             Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
         </p>
-        <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
+        <div data-blocknote-editor
+             data-initial-content="{{ content_json|escapejs }}"
+             data-readonly>
+        </div>
     </article>
 
     {% if messages %}
@@ -150,4 +158,8 @@
     }
 })();
 </script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/editor.js' %}"></script>
 {% endblock %}

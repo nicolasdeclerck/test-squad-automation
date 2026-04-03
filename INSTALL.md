@@ -3,7 +3,7 @@
 ## Prerequis
 
 - [Docker](https://docs.docker.com/get-docker/) et Docker Compose (v2+)
-- [Node.js](https://nodejs.org/) (v18+) et npm — pour la compilation Tailwind CSS
+- [Node.js](https://nodejs.org/) (v20+) et npm — pour la compilation Tailwind CSS et le build des assets React/BlockNote
 
 ## Installation avec Docker (recommande)
 
@@ -54,17 +54,22 @@ docker compose exec django python manage.py migrate
 docker compose exec django python manage.py createsuperuser
 ```
 
-### 6. Installer et compiler Tailwind CSS
+### 6. Installer les dependances et compiler les assets
 
 ```bash
 npm install
+npm run build
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
 ```
 
 Pour le developpement avec recompilation automatique :
 
 ```bash
-npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch
+# Terminal 1 — Build des assets React/BlockNote (watch mode)
+npm run dev
+
+# Terminal 2 — Compilation Tailwind CSS (watch mode)
+npm run tailwind
 ```
 
 ### 7. Acceder a l'application
@@ -92,6 +97,7 @@ source venv/bin/activate  # Linux/macOS
 ```bash
 pip install -r requirements/development.txt
 npm install
+npm run build
 ```
 
 ### 3. Configurer les variables d'environnement
@@ -120,10 +126,24 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 6. Compiler Tailwind CSS
+### 6. Compiler les assets
 
 ```bash
-npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch
+# Build des assets React/BlockNote (une seule fois)
+npm run build
+
+# Compiler Tailwind CSS
+npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
+```
+
+Pour le developpement avec recompilation automatique :
+
+```bash
+# Terminal 1 — Build React/BlockNote (watch mode)
+npm run dev
+
+# Terminal 2 — Compilation Tailwind CSS (watch mode)
+npm run tailwind
 ```
 
 ### 7. Lancer le serveur
@@ -163,6 +183,7 @@ docker compose build
 docker compose up -d
 docker compose exec django python manage.py migrate
 npm install
+npm run build
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
 ```
 
@@ -173,6 +194,7 @@ git pull
 pip install -r requirements/development.txt
 python manage.py migrate
 npm install
+npm run build
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
 ```
 

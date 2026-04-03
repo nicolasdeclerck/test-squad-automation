@@ -9,12 +9,17 @@
 | Cache / Queue broker | Redis | 7 |
 | Worker asynchrone | Celery | 5.x |
 | CSS | Tailwind CSS | 3.x |
+| Éditeur riche | BlockNote.js | 0.28.x |
+| Frontend (éditeur) | React | 18.x |
+| Bundler JS | Vite | 6.x |
 | Déploiement | Docker + Docker Compose | - |
 
 ## Architecture du projet
 
 ```
 project/
+├── frontend/                # Composants React (éditeur BlockNote.js)
+│   └── editor.jsx           # Point d'entrée React — éditeur riche
 ├── config/                  # Paramètres Django (settings, urls, wsgi, asgi)
 │   ├── settings/
 │   │   ├── base.py

@@ -1,8 +1,13 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'js/editor.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
@@ -39,14 +44,15 @@
         </div>
 
         <div class="mb-6">
-            <label for="{{ form.content.id_for_label }}" class="form-label">
+            <label class="form-label">
                 Contenu
             </label>
-            <textarea name="{{ form.content.html_name }}"
-                      id="{{ form.content.id_for_label }}"
-                      rows="10"
-                      required
-                      class="form-input{% if form.content.errors %} border-red-500{% endif %}">{{ form.content.value|default:'' }}</textarea>
+            {{ form.content }}
+            <div data-blocknote-editor
+                 data-initial-content="{{ initial_content|escapejs }}"
+                 data-hidden-input="content"
+                 class="border border-gray-300 rounded-md{% if form.content.errors %} border-red-500{% endif %}">
+            </div>
             {% if form.content.errors %}
             <ul class="errorlist mt-1">
                 {% for error in form.content.errors %}
@@ -65,4 +71,8 @@
         <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black transition-colors">Retour</a>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/editor.js' %}"></script>
 {% endblock %}

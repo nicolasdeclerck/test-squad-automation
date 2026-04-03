@@ -2,7 +2,7 @@ import pytest
 
 from apps.blog.models import Comment, Post
 
-from .factories import CommentFactory, PostFactory
+from .factories import CommentFactory, PostFactory, SAMPLE_BLOCKNOTE_CONTENT
 
 
 @pytest.mark.django_db
@@ -37,6 +37,18 @@ class TestPostModel:
     def test_str_returns_title(self):
         post = PostFactory(title="Test titre")
         assert str(post) == "Test titre"
+
+    def test_content_stores_json(self):
+        post = PostFactory(content=SAMPLE_BLOCKNOTE_CONTENT)
+        post.refresh_from_db()
+        assert isinstance(post.content, list)
+        assert len(post.content) == 1
+        assert post.content[0]["type"] == "paragraph"
+
+    def test_content_default_is_empty_list(self):
+        post = PostFactory(content=[])
+        post.refresh_from_db()
+        assert post.content == []
 
 
 @pytest.mark.django_db

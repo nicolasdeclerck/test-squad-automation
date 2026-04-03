@@ -1,15 +1,19 @@
+import json
+
 import pytest
 from django.test import Client
 
 from apps.accounts.tests.factories import UserFactory
 from apps.blog.models import Comment, Post
 
-from .factories import CommentFactory, PostFactory
+from .factories import CommentFactory, PostFactory, SAMPLE_BLOCKNOTE_CONTENT
 
 HOME_URL = "/"
 CREATE_URL = "/articles/creer/"
 LIST_URL = "/articles/"
 LOGIN_URL = "/comptes/connexion/"
+
+CONTENT_JSON = json.dumps(SAMPLE_BLOCKNOTE_CONTENT)
 
 
 @pytest.mark.django_db
@@ -135,7 +139,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             CREATE_URL,
-            {"title": "Nouvel article", "content": "Contenu de l'article"},
+            {"title": "Nouvel article", "content": CONTENT_JSON},
         )
         assert Post.objects.filter(title="Nouvel article").exists()
 
@@ -143,7 +147,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         self.client.post(
             CREATE_URL,
-            {"title": "Mon article", "content": "Contenu"},
+            {"title": "Mon article", "content": CONTENT_JSON},
         )
         post = Post.objects.get(title="Mon article")
         assert post.author == self.user
@@ -152,7 +156,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             CREATE_URL,
-            {"title": "Article", "content": "Contenu"},
+            {"title": "Article", "content": CONTENT_JSON},
         )
         assert response.status_code == 302
         assert response.url == "/"
@@ -169,7 +173,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         self.client.post(
             CREATE_URL,
-            {"title": "Mon super article", "content": "Contenu"},
+            {"title": "Mon super article", "content": CONTENT_JSON},
         )
         post = Post.objects.get(title="Mon super article")
         assert post.slug == "mon-super-article"
@@ -184,6 +188,11 @@ class TestPostCreateView:
         response = self.client.get(CREATE_URL)
         content = response.content.decode()
         assert "Créez un nouvel article sur le blog." in content
+
+    def test_create_context_has_initial_content(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(CREATE_URL)
+        assert response.context["initial_content"] == "[]"
 
 
 @pytest.mark.django_db
@@ -215,29 +224,46 @@ class TestPostUpdateView:
 
     def test_update_post_success(self):
         self.client.login(username=self.user.username, password=self.password)
+        new_content = [
+            {
+                "id": "2",
+                "type": "paragraph",
+                "props": {
+                    "textColor": "default",
+                    "backgroundColor": "default",
+                    "textAlignment": "left",
+                },
+                "content": [
+                    {"type": "text", "text": "Contenu modifié", "styles": {}}
+                ],
+                "children": [],
+            }
+        ]
         response = self.client.post(
             self.url,
-            {"title": "Titre modifié", "content": "Contenu modifié"},
+            {
+                "title": "Titre modifié",
+                "content": json.dumps(new_content),
+            },
         )
         assert response.status_code == 302
         assert response.url == "/"
         self.post.refresh_from_db()
         assert self.post.title == "Titre modifié"
-        assert self.post.content == "Contenu modifié"
+        assert self.post.content == new_content
 
-    def test_update_form_is_prefilled(self):
+    def test_update_context_has_initial_content(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get(self.url)
-        content = response.content.decode()
-        assert self.post.title in content
-        assert response.context["form"].initial["content"] == self.post.content
+        initial = json.loads(response.context["initial_content"])
+        assert isinstance(initial, list)
 
     def test_update_slug_does_not_change(self):
         original_slug = self.post.slug
         self.client.login(username=self.user.username, password=self.password)
         self.client.post(
             self.url,
-            {"title": "Un tout nouveau titre", "content": "Contenu"},
+            {"title": "Un tout nouveau titre", "content": CONTENT_JSON},
         )
         self.post.refresh_from_db()
         assert self.post.slug == original_slug
@@ -359,7 +385,25 @@ class TestPostDetailView:
         self.password = "testpass123"
         self.post = PostFactory(
             title="Article test",
-            content="Contenu de test pour l'article",
+            content=[
+                {
+                    "id": "1",
+                    "type": "paragraph",
+                    "props": {
+                        "textColor": "default",
+                        "backgroundColor": "default",
+                        "textAlignment": "left",
+                    },
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Contenu de test pour l'article",
+                            "styles": {},
+                        }
+                    ],
+                    "children": [],
+                }
+            ],
         )
         self.url = f"/articles/{self.post.slug}/"
 
@@ -411,6 +455,12 @@ class TestPostDetailView:
         response = self.client.get(self.url)
         content = response.content.decode()
         assert "Contenu de test" in content
+
+    def test_detail_context_has_content_json(self):
+        response = self.client.get(self.url)
+        content_json = json.loads(response.context["content_json"])
+        assert isinstance(content_json, list)
+        assert content_json[0]["type"] == "paragraph"
 
     def test_post_detail_shows_comment_count(self):
         CommentFactory(post=self.post, is_approved=True)

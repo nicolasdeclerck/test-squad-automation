@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseNotAllowed
@@ -13,6 +15,24 @@ from django.views.generic import (
 
 from .forms import CommentForm, PostForm
 from .models import Comment, Post
+
+
+def _extract_text_from_blocknote(content):
+    if not content:
+        return ""
+    blocks = content if isinstance(content, list) else []
+    texts = []
+
+    def _extract(blocks):
+        for block in blocks:
+            if isinstance(block, dict):
+                for inline in block.get("content", []):
+                    if isinstance(inline, dict):
+                        texts.append(inline.get("text", ""))
+                _extract(block.get("children", []))
+
+    _extract(blocks)
+    return " ".join(texts)
 
 
 class HomeView(ListView):
@@ -54,6 +74,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         context["meta_description"] = (
             "Créez un nouvel article sur le blog."
         )
+        context["initial_content"] = "[]"
         return context
 
 
@@ -73,6 +94,7 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         context["meta_description"] = (
             "Modifiez votre article sur le blog."
         )
+        context["initial_content"] = json.dumps(self.object.content)
         return context
 
 
@@ -109,9 +131,9 @@ class PostDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.object.title
-        context["meta_description"] = (
-            self.object.content[:160]
-        )
+        plain_text = _extract_text_from_blocknote(self.object.content)
+        context["meta_description"] = plain_text[:160]
+        context["content_json"] = json.dumps(self.object.content)
         context["approved_comments"] = (
             self.object.comments.filter(is_approved=True)
             .select_related("author__profile")

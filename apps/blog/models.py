@@ -16,7 +16,7 @@ class Post(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
-    content = models.TextField()
+    content = models.JSONField(default=list)
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default=STATUS_PUBLISHED
     )
