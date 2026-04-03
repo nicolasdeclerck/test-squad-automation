@@ -6,19 +6,16 @@ from .models import Comment, Post
 
 class BlockNoteWidget(forms.HiddenInput):
     def render(self, name, value, attrs=None, renderer=None):
-        if attrs is None:
-            attrs = {}
-        widget_id = attrs.get("id", f"id_{name}")
-        return format_html(
-            '<input type="hidden" name="{}" id="{}" value="{}">'
+        hidden_html = super().render(name, value, attrs, renderer)
+        final_attrs = self.build_attrs(attrs, extra_attrs={"id": (attrs or {}).get("id", f"id_{name}")})
+        widget_id = final_attrs["id"]
+        container = format_html(
             '<div id="blocknote-{}" class="border border-gray-300'
             " rounded min-h-[300px] focus-within:ring-1 focus-within:ring-black"
             ' focus-within:border-black"></div>',
-            name,
-            widget_id,
-            value or "",
             widget_id,
         )
+        return hidden_html + container
 
 
 class PostForm(forms.ModelForm):

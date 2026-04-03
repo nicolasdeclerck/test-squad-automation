@@ -1,5 +1,6 @@
 import pytest
 from django.test import Client
+from django.urls import reverse
 
 from apps.accounts.tests.factories import UserFactory
 from apps.blog.forms import PostForm
@@ -28,7 +29,7 @@ class TestPostCreateWithHTML:
         self.client.login(username=self.user.username, password=self.password)
         html_content = "<p>Contenu <strong>riche</strong> de l'article</p>"
         response = self.client.post(
-            "/articles/creer/",
+            reverse("post_create"),
             {"title": "Article HTML", "content": html_content},
         )
         post = Post.objects.get(title="Article HTML")
@@ -40,7 +41,7 @@ class TestPostCreateWithHTML:
             content="<p>Contenu existant</p>",
         )
         self.client.login(username=self.user.username, password=self.password)
-        response = self.client.get(f"/articles/{post.slug}/modifier/")
+        response = self.client.get(reverse("post_update", kwargs={"slug": post.slug}))
         assert response.status_code == 200
         content = response.content.decode()
         assert "&lt;p&gt;Contenu existant&lt;/p&gt;" in content
@@ -53,14 +54,14 @@ class TestLegacyPlainTextDisplay:
 
     def test_legacy_plain_text_display(self):
         post = PostFactory(content="Ceci est du texte brut sans HTML.")
-        response = self.client.get(f"/articles/{post.slug}/")
+        response = self.client.get(reverse("post_detail", kwargs={"slug": post.slug}))
         content = response.content.decode()
         assert "whitespace-pre-line" in content
         assert "Ceci est du texte brut sans HTML." in content
 
     def test_html_content_uses_prose(self):
         post = PostFactory(content="<p>Contenu HTML</p>")
-        response = self.client.get(f"/articles/{post.slug}/")
+        response = self.client.get(reverse("post_detail", kwargs={"slug": post.slug}))
         content = response.content.decode()
         assert "prose" in content
 
