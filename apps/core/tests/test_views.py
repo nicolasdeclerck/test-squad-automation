@@ -1,8 +1,13 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
+import requests as requests_lib
+from django.core.cache import cache
 from django.test import Client
 from django.urls import reverse
 
 from apps.accounts.tests.factories import UserFactory
+from apps.core.services import text_color_for_bg
 
 
 @pytest.mark.django_db
@@ -183,3 +188,370 @@ class TestAvatarDropdown:
         assert "Se connecter" in desktop_section
         assert "Créer un compte" in desktop_section
         assert 'id="avatar-dropdown-toggle"' not in desktop_section
+
+
+def _mock_github_response(status_code=200, json_data=None):
+    mock = MagicMock()
+    mock.status_code = status_code
+    mock.json.return_value = json_data or []
+    return mock
+
+
+MOCK_ISSUES = [
+    {
+        "title": "Bug: fix login",
+        "labels": [
+            {"name": "bug", "color": "d73a4a"},
+            {"name": "priority", "color": "0075ca"},
+        ],
+    },
+    {
+        "title": "Feature: add search",
+        "labels": [],
+    },
+]
+
+
+@pytest.mark.django_db
+class TestDevTrackingView:
+    def setup_method(self):
+        cache.clear()
+
+    def test_dev_tracking_requires_login(self, client: Client):
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 302
+        assert "/comptes/connexion/" in response.url
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_authenticated_access(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        assert "core/dev_tracking.html" in [
+            t.name for t in response.templates
+        ]
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_displays_issues(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Bug: fix login" in content
+        assert "Feature: add search" in content
+        assert "bug" in content
+        assert "priority" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_api_error_handling(self, mock_get, client: Client):
+        mock_get.side_effect = requests_lib.ConnectionError("Connection error")
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Impossible de" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_api_non_200(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(500)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Impossible de" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_empty_issues(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Aucune issue ouverte" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_uses_cache(self, mock_get, client: Client):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        client.get(reverse("dev_tracking"))
+        assert mock_get.call_count == 1
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_uses_settings_url(
+        self, mock_get, client: Client, settings
+    ):
+        settings.GITHUB_REPO_API_URL = "https://api.github.com/repos/test/repo"
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        called_url = mock_get.call_args[0][0]
+        assert "test/repo" in called_url
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_logs_api_error(
+        self, mock_get, client: Client, caplog
+    ):
+        mock_get.side_effect = requests_lib.ConnectionError("timeout")
+        user = UserFactory()
+        client.force_login(user)
+        with caplog.at_level("WARNING", logger="apps.core.services"):
+            client.get(reverse("dev_tracking"))
+        assert "GitHub API request failed" in caplog.text
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_logs_non_200(
+        self, mock_get, client: Client, caplog
+    ):
+        mock_get.return_value = _mock_github_response(503)
+        user = UserFactory()
+        client.force_login(user)
+        with caplog.at_level("WARNING", logger="apps.core.services"):
+            client.get(reverse("dev_tracking"))
+        assert "GitHub API returned status 503" in caplog.text
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_with_github_token(
+        self, mock_get, client: Client, settings
+    ):
+        settings.GITHUB_API_TOKEN = "ghp_testtoken123"
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        called_headers = mock_get.call_args[1]["headers"]
+        assert called_headers["Authorization"] == "Bearer ghp_testtoken123"
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_no_token_no_auth_header(
+        self, mock_get, client: Client, settings
+    ):
+        settings.GITHUB_API_TOKEN = ""
+        mock_get.return_value = _mock_github_response(200, [])
+        user = UserFactory()
+        client.force_login(user)
+        client.get(reverse("dev_tracking"))
+        called_headers = mock_get.call_args[1]["headers"]
+        assert "Authorization" not in called_headers
+
+    @patch("apps.core.services.requests.get")
+    def test_label_color_validation(self, mock_get, client: Client):
+        issues_with_bad_color = [
+            {
+                "title": "Test issue",
+                "labels": [
+                    {"name": "good", "color": "d73a4a"},
+                    {"name": "bad", "color": "not-a-color"},
+                    {"name": "xss", "color": "red;injection"},
+                ],
+            }
+        ]
+        mock_get.return_value = _mock_github_response(200, issues_with_bad_color)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "#d73a4a" in content
+        assert "#cccccc" in content
+        assert "not-a-color" not in content
+        assert "injection" not in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_pagination_first_page(
+        self, mock_get, client: Client
+    ):
+        many_issues = [
+            {"title": f"Issue {i}", "labels": []}
+            for i in range(15)
+        ]
+        mock_get.return_value = _mock_github_response(200, many_issues)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Issue 0" in content
+        assert "Issue 9" in content
+        assert "Issue 10" not in content
+        assert "Suivant" in content
+        assert "Page 1 sur 2" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_pagination_second_page(
+        self, mock_get, client: Client
+    ):
+        many_issues = [
+            {"title": f"Issue {i}", "labels": []}
+            for i in range(15)
+        ]
+        mock_get.return_value = _mock_github_response(200, many_issues)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking") + "?page=2")
+        content = response.content.decode()
+        assert "Issue 10" in content
+        assert "Issue 14" in content
+        assert "Issue 9" not in content
+        assert "Précédent" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_dev_tracking_no_pagination_when_few_issues(
+        self, mock_get, client: Client
+    ):
+        few_issues = [
+            {"title": f"Issue {i}", "labels": []}
+            for i in range(5)
+        ]
+        mock_get.return_value = _mock_github_response(200, few_issues)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Suivant" not in content
+        assert "Précédent" not in content
+
+
+@pytest.mark.django_db
+class TestDevTrackingCorrections:
+    def setup_method(self):
+        cache.clear()
+
+    @patch("apps.core.services.requests.get")
+    def test_text_color_uses_validated_color(self, mock_get, client: Client):
+        """text_color_for_bg doit etre appele avec la couleur validee, pas la brute."""
+        issues_with_invalid_color = [
+            {
+                "title": "Test",
+                "labels": [{"name": "bad", "color": "zzzzzz"}],
+            }
+        ]
+        mock_get.return_value = _mock_github_response(200, issues_with_invalid_color)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "#cccccc" in content
+        assert text_color_for_bg("cccccc") == "#1f2937"
+        assert "#1f2937" in content
+
+    @patch("apps.core.services.requests.get")
+    def test_issues_exclude_pull_requests(self, mock_get, client: Client):
+        """Les PRs doivent etre filtrees de la liste des issues."""
+        mixed_data = [
+            {"title": "Real issue", "labels": []},
+            {"title": "A pull request", "labels": [], "pull_request": {"url": "..."}},
+        ]
+        mock_get.return_value = _mock_github_response(200, mixed_data)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        content = response.content.decode()
+        assert "Real issue" in content
+        assert "A pull request" not in content
+
+    @patch("apps.core.services.requests.get")
+    def test_negative_cache_on_api_error(self, mock_get):
+        """Apres une erreur API, un second appel ne doit pas retenter immediatement."""
+        from apps.core.services import fetch_github_issues
+
+        mock_get.side_effect = requests_lib.ConnectionError("fail")
+        fetch_github_issues()
+        assert mock_get.call_count == 1
+        # Second call should hit negative cache
+        mock_get.side_effect = None
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        issues, api_error = fetch_github_issues()
+        assert mock_get.call_count == 1
+        assert issues == []
+        assert api_error is False
+
+    @patch("apps.core.services.requests.get")
+    def test_keyerror_safe_on_malformed_issue(self, mock_get, client: Client):
+        """Une issue sans title ne doit pas provoquer de crash."""
+        malformed = [
+            {"labels": [{"name": "bug", "color": "d73a4a"}]},
+            {"title": "Normal issue", "labels": []},
+        ]
+        mock_get.return_value = _mock_github_response(200, malformed)
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("dev_tracking"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Sans titre" in content
+        assert "Normal issue" in content
+
+
+class TestTextColorForBg:
+    def test_light_background_returns_dark_text(self):
+        assert text_color_for_bg("ffffff") == "#1f2937"
+
+    def test_dark_background_returns_white_text(self):
+        assert text_color_for_bg("000000") == "#ffffff"
+
+    def test_yellow_returns_dark_text(self):
+        assert text_color_for_bg("ffff00") == "#1f2937"
+
+    def test_dark_red_returns_white_text(self):
+        assert text_color_for_bg("d73a4a") == "#ffffff"
+
+    def test_text_color_for_bg_invalid_input(self):
+        assert text_color_for_bg("xyz") == "#1f2937"
+        assert text_color_for_bg("") == "#1f2937"
+        assert text_color_for_bg("gg0000") == "#1f2937"
+
+
+@pytest.mark.django_db
+class TestFetchGithubIssuesService:
+    def setup_method(self):
+        cache.clear()
+
+    @patch("apps.core.services.requests.get")
+    def test_fetch_returns_issues(self, mock_get):
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        issues, api_error = __import__(
+            "apps.core.services", fromlist=["fetch_github_issues"]
+        ).fetch_github_issues()
+        assert len(issues) == 2
+        assert issues[0]["title"] == "Bug: fix login"
+        assert api_error is False
+
+    @patch("apps.core.services.requests.get")
+    def test_fetch_caches_result(self, mock_get):
+        from apps.core.services import fetch_github_issues
+
+        mock_get.return_value = _mock_github_response(200, MOCK_ISSUES)
+        fetch_github_issues()
+        fetch_github_issues()
+        assert mock_get.call_count == 1
+
+    @patch("apps.core.services.requests.get")
+    def test_fetch_returns_error_on_failure(self, mock_get):
+        from apps.core.services import fetch_github_issues
+
+        mock_get.side_effect = requests_lib.ConnectionError("fail")
+        issues, api_error = fetch_github_issues()
+        assert issues == []
+        assert api_error is True
+
+
+@pytest.mark.django_db
+class TestFooterDevTrackingLink:
+    def test_footer_link_visible_authenticated(self, client: Client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        assert "Suivi des devs" in content
+        assert "/suivi-des-devs/" in content
+
+    def test_footer_link_hidden_anonymous(self, client: Client):
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        assert "Suivi des devs" not in content
