@@ -38,6 +38,23 @@ class TestPostModel:
         post = PostFactory(title="Test titre")
         assert str(post) == "Test titre"
 
+    def test_content_stores_json(self):
+        content = [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Hello"}],
+            }
+        ]
+        post = PostFactory(content=content)
+        post.refresh_from_db()
+        assert post.content == content
+        assert isinstance(post.content, list)
+
+    def test_content_default_is_list(self):
+        post = PostFactory(content=[])
+        post.refresh_from_db()
+        assert post.content == []
+
 
 @pytest.mark.django_db
 class TestCommentModel:

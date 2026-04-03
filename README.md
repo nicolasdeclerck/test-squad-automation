@@ -20,6 +20,8 @@ Application de blog multi-utilisateur construite avec Django. Elle permet la pub
 | Cache / Queue broker | Redis | 7 |
 | Worker asynchrone | Celery | 5.x |
 | CSS | Tailwind CSS | 3.x |
+| Editeur riche | BlockNote.js (React) | 0.28.x |
+| Bundler JS | Vite | 6.x |
 | Deploiement | Docker + Docker Compose | — |
 
 ## Installation

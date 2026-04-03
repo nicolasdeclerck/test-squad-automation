@@ -15,6 +15,24 @@ from .forms import CommentForm, PostForm
 from .models import Comment, Post
 
 
+def _extract_text_from_blocks(blocks):
+    """Recursively extract plain text from BlockNote JSON blocks."""
+    texts = []
+    for block in blocks:
+        for item in block.get("content", []):
+            if item.get("type") == "text":
+                texts.append(item.get("text", ""))
+            if "children" in item:
+                texts.append(
+                    _extract_text_from_blocks(item["children"])
+                )
+        if "children" in block:
+            texts.append(
+                _extract_text_from_blocks(block["children"])
+            )
+    return " ".join(t for t in texts if t)
+
+
 class HomeView(ListView):
     model = Post
     template_name = "blog/home.html"
@@ -109,9 +127,10 @@ class PostDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.object.title
-        context["meta_description"] = (
-            self.object.content[:160]
+        plain_text = _extract_text_from_blocks(
+            self.object.content or []
         )
+        context["meta_description"] = plain_text[:160]
         context["approved_comments"] = (
             self.object.comments.filter(is_approved=True)
             .select_related("author__profile")

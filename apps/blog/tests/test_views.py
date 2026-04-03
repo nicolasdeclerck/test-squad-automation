@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.test import Client
 
@@ -10,6 +12,11 @@ HOME_URL = "/"
 CREATE_URL = "/articles/creer/"
 LIST_URL = "/articles/"
 LOGIN_URL = "/comptes/connexion/"
+
+SAMPLE_CONTENT = [
+    {"type": "paragraph", "content": [{"type": "text", "text": "Contenu de l'article"}]}
+]
+SAMPLE_CONTENT_JSON = json.dumps(SAMPLE_CONTENT)
 
 
 @pytest.mark.django_db
@@ -31,7 +38,7 @@ class TestHomeView:
         assert len(response.context["posts"]) == 10
 
     def test_home_displays_author_email(self):
-        post = PostFactory(author__email="auteur@example.com")
+        PostFactory(author__email="auteur@example.com")
         response = self.client.get(HOME_URL)
         assert "auteur@example.com" in response.content.decode()
 
@@ -135,7 +142,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             CREATE_URL,
-            {"title": "Nouvel article", "content": "Contenu de l'article"},
+            {"title": "Nouvel article", "content": SAMPLE_CONTENT_JSON},
         )
         assert Post.objects.filter(title="Nouvel article").exists()
 
@@ -143,7 +150,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         self.client.post(
             CREATE_URL,
-            {"title": "Mon article", "content": "Contenu"},
+            {"title": "Mon article", "content": SAMPLE_CONTENT_JSON},
         )
         post = Post.objects.get(title="Mon article")
         assert post.author == self.user
@@ -152,7 +159,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             CREATE_URL,
-            {"title": "Article", "content": "Contenu"},
+            {"title": "Article", "content": SAMPLE_CONTENT_JSON},
         )
         assert response.status_code == 302
         assert response.url == "/"
@@ -169,7 +176,7 @@ class TestPostCreateView:
         self.client.login(username=self.user.username, password=self.password)
         self.client.post(
             CREATE_URL,
-            {"title": "Mon super article", "content": "Contenu"},
+            {"title": "Mon super article", "content": SAMPLE_CONTENT_JSON},
         )
         post = Post.objects.get(title="Mon super article")
         assert post.slug == "mon-super-article"
@@ -215,29 +222,32 @@ class TestPostUpdateView:
 
     def test_update_post_success(self):
         self.client.login(username=self.user.username, password=self.password)
+        new_content = [
+            {"type": "paragraph", "content": [{"type": "text", "text": "Contenu modifié"}]}
+        ]
         response = self.client.post(
             self.url,
-            {"title": "Titre modifié", "content": "Contenu modifié"},
+            {"title": "Titre modifié", "content": json.dumps(new_content)},
         )
         assert response.status_code == 302
         assert response.url == "/"
         self.post.refresh_from_db()
         assert self.post.title == "Titre modifié"
-        assert self.post.content == "Contenu modifié"
+        assert self.post.content == new_content
 
     def test_update_form_is_prefilled(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get(self.url)
         content = response.content.decode()
         assert self.post.title in content
-        assert response.context["form"].initial["content"] == self.post.content
+        assert "data-initial-content" in content
 
     def test_update_slug_does_not_change(self):
         original_slug = self.post.slug
         self.client.login(username=self.user.username, password=self.password)
         self.client.post(
             self.url,
-            {"title": "Un tout nouveau titre", "content": "Contenu"},
+            {"title": "Un tout nouveau titre", "content": SAMPLE_CONTENT_JSON},
         )
         self.post.refresh_from_db()
         assert self.post.slug == original_slug
@@ -331,7 +341,7 @@ class TestPostListView:
         assert len(response.context["posts"]) == 10
 
     def test_list_ordered_by_date_desc(self):
-        posts = PostFactory.create_batch(3)
+        PostFactory.create_batch(3)
         response = self.client.get(LIST_URL)
         result_pks = [p.pk for p in response.context["posts"]]
         expected_pks = [
@@ -359,7 +369,14 @@ class TestPostDetailView:
         self.password = "testpass123"
         self.post = PostFactory(
             title="Article test",
-            content="Contenu de test pour l'article",
+            content=[
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "text", "text": "Contenu de test pour l'article"}
+                    ],
+                }
+            ],
         )
         self.url = f"/articles/{self.post.slug}/"
 
@@ -377,14 +394,14 @@ class TestPostDetailView:
         assert response.status_code == 404
 
     def test_detail_displays_approved_comments(self):
-        comment = CommentFactory(
+        CommentFactory(
             post=self.post, is_approved=True, content="Commentaire visible"
         )
         response = self.client.get(self.url)
         assert "Commentaire visible" in response.content.decode()
 
     def test_detail_hides_unapproved_comments(self):
-        comment = CommentFactory(
+        CommentFactory(
             post=self.post, is_approved=False, content="Commentaire masqué"
         )
         response = self.client.get(self.url)
@@ -489,7 +506,6 @@ class TestPostDetailView:
         response = self.client.get(self.url)
         content = response.content.decode()
         assert "bg-gray-300" in content
-        # Check the initial letter is present in the fallback avatar div
         import re
 
         match = re.search(
@@ -528,7 +544,6 @@ class TestPostDetailView:
             CommentFactory(post=self.post, is_approved=True)
         response = self.client.get(self.url)
         content = response.content.decode()
-        # Each comment div has data-comment attribute; JS also references it
         assert content.count("data-comment>") == 12
         assert "load-more-comments" in content
 
@@ -545,6 +560,12 @@ class TestPostDetailView:
         content = response.content.decode()
         comments_section = content.split('id="comments-section"')[1]
         assert "Connectez-vous" in comments_section
+
+    def test_detail_renders_blocknote_container(self):
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert 'id="blocknote-editor"' in content
+        assert 'data-readonly="true"' in content
 
 
 @pytest.mark.django_db

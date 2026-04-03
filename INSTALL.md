@@ -3,7 +3,7 @@
 ## Prerequis
 
 - [Docker](https://docs.docker.com/get-docker/) et Docker Compose (v2+)
-- [Node.js](https://nodejs.org/) (v18+) et npm — pour la compilation Tailwind CSS
+- [Node.js](https://nodejs.org/) (v20+) et npm — pour la compilation Tailwind CSS et le build des assets React (BlockNote.js)
 
 ## Installation avec Docker (recommande)
 
@@ -54,16 +54,18 @@ docker compose exec django python manage.py migrate
 docker compose exec django python manage.py createsuperuser
 ```
 
-### 6. Installer et compiler Tailwind CSS
+### 6. Installer les dependances JavaScript et compiler les assets
 
 ```bash
 npm install
+npm run build
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
 ```
 
 Pour le developpement avec recompilation automatique :
 
 ```bash
+npm run dev          # Watch mode pour les assets React (BlockNote)
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch
 ```
 
@@ -92,6 +94,7 @@ source venv/bin/activate  # Linux/macOS
 ```bash
 pip install -r requirements/development.txt
 npm install
+npm run build
 ```
 
 ### 3. Configurer les variables d'environnement
@@ -126,9 +129,10 @@ python manage.py createsuperuser
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch
 ```
 
-### 7. Lancer le serveur
+### 7. Lancer le serveur et le build watch
 
 ```bash
+npm run dev &        # Build watch des assets React (BlockNote)
 python manage.py runserver
 ```
 
@@ -163,6 +167,7 @@ docker compose build
 docker compose up -d
 docker compose exec django python manage.py migrate
 npm install
+npm run build
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
 ```
 
@@ -173,6 +178,7 @@ git pull
 pip install -r requirements/development.txt
 python manage.py migrate
 npm install
+npm run build
 npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css
 ```
 
