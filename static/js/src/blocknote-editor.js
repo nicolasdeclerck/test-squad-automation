@@ -15,7 +15,7 @@ function initBlockNoteEditor(containerEl, hiddenInputEl, initialHTML) {
         );
         options.initialContent = blocks;
       } catch (e) {
-        // Fallback: le contenu sera chargé comme paragraphe par défaut
+        console.warn('[BlockNote] Impossible de parser le HTML initial:', e);
       }
     }
 

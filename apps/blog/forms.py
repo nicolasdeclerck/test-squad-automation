@@ -1,6 +1,5 @@
 from django import forms
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 from .models import Comment, Post
 
@@ -10,12 +9,15 @@ class BlockNoteWidget(forms.HiddenInput):
         if attrs is None:
             attrs = {}
         widget_id = attrs.get("id", f"id_{name}")
-        value_attr = f' value="{escape(value)}"' if value else ""
-        return mark_safe(
-            f'<input type="hidden" name="{name}" id="{widget_id}"{value_attr}>'
-            f'<div id="blocknote-container" class="border border-gray-300'
-            f" rounded min-h-[300px] focus-within:ring-1 focus-within:ring-black"
-            f' focus-within:border-black"></div>'
+        return format_html(
+            '<input type="hidden" name="{}" id="{}" value="{}">'
+            '<div id="blocknote-{}" class="border border-gray-300'
+            " rounded min-h-[300px] focus-within:ring-1 focus-within:ring-black"
+            ' focus-within:border-black"></div>',
+            name,
+            widget_id,
+            value or "",
+            widget_id,
         )
 
 
@@ -24,7 +26,7 @@ class PostForm(forms.ModelForm):
         model = Post
         fields = ("title", "content")
         widgets = {
-            "content": BlockNoteWidget,
+            "content": BlockNoteWidget(),
         }
 
 

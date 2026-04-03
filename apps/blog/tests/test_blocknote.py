@@ -13,7 +13,7 @@ class TestBlockNoteWidget:
     def test_post_form_widget_renders_blocknote_container(self):
         form = PostForm()
         rendered = form.as_p()
-        assert 'id="blocknote-container"' in rendered
+        assert 'id="blocknote-id_content"' in rendered
         assert 'type="hidden"' in rendered
 
 

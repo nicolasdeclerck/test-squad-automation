@@ -7,7 +7,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'js/dist/blocknote-editor.css' %}">
-<script src="{% static 'js/dist/blocknote-editor.iife.js' %}"></script>
+<script defer src="{% static 'js/dist/blocknote-editor.iife.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -69,14 +69,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var widgetId = '{{ form.content.id_for_label }}';
+            var container = document.getElementById('blocknote-' + widgetId);
+            var hiddenInput = document.getElementById(widgetId);
             if (typeof window.initBlockNoteEditor === 'undefined') {
-                var container = document.getElementById('blocknote-container');
                 if (container) {
                     container.innerHTML = '<p class="text-red-600 p-4">Erreur : le fichier JS de l\'éditeur n\'a pas été trouvé. Exécutez <code>npm run build:js</code>.</p>';
                 }
             } else {
-                var container = document.getElementById('blocknote-container');
-                var hiddenInput = document.getElementById('{{ form.content.id_for_label }}');
                 var initialHTML = hiddenInput ? hiddenInput.value : '';
                 window.initBlockNoteEditor(container, hiddenInput, initialHTML);
             }

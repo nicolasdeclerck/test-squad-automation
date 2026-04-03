@@ -44,7 +44,7 @@ class Post(models.Model):
     @property
     def is_html_content(self):
         """Détecte si le contenu est du HTML (vs texte brut legacy)."""
-        return bool(re.search(r"<[a-z][\s\S]*>", self.content))
+        return bool(re.search(r"<[a-z][^>]*>", self.content, re.IGNORECASE))
 
     @property
     def content_sanitized(self):
