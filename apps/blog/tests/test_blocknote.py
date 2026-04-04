@@ -201,7 +201,8 @@ class TestBlockNoteDisplayInListings:
         content = response.content.decode()
         noscript_start = content.find("<noscript>")
         noscript_end = content.find("</noscript>")
-        assert noscript_start != -1, "noscript block not found"
+        assert noscript_start != -1, "noscript block not found in post_detail"
+        assert noscript_end != -1, "noscript closing tag not found"
         noscript_content = content[noscript_start:noscript_end]
         assert '"type"' not in noscript_content
         assert "Mon titre" in noscript_content
