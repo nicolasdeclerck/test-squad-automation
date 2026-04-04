@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
+{% load blog_extras %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
-{% block meta_description %}{{ post.content|truncatewords:30 }}{% endblock %}
+{% block meta_description %}{{ post.excerpt|default:post.content|blocknote_plaintext|truncatewords:30 }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://esm.sh/@blocknote/core@0.24.2/style.css">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-12">

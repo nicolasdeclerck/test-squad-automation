@@ -63,6 +63,9 @@
             {{ form.content }}
             <div id="blocknote-editor"
                  class="{% if form.content.errors %}border-red-500{% endif %}"></div>
+            <p class="text-xs text-gray-400 mt-1">
+                Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique, <kbd>/</kbd> pour les blocs (titres, listes, etc.)
+            </p>
             {% if form.content.errors %}
             <ul class="errorlist mt-1">
                 {% for error in form.content.errors %}

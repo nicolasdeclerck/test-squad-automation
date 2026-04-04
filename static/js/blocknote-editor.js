@@ -1,15 +1,9 @@
 import { BlockNoteEditor } from "https://esm.sh/@blocknote/core@0.24.2";
-import { blockNoteViewCSS } from "https://esm.sh/@blocknote/core@0.24.2/style.css?raw";
 
 (async function () {
   const container = document.getElementById("blocknote-editor");
   const hiddenInput = document.getElementById("id_content");
   if (!container || !hiddenInput) return;
-
-  // Inject BlockNote base styles
-  const style = document.createElement("style");
-  style.textContent = blockNoteViewCSS;
-  document.head.appendChild(style);
 
   // Parse initial content (JSON from hidden input, or empty)
   let initialContent;
@@ -28,7 +22,7 @@ import { blockNoteViewCSS } from "https://esm.sh/@blocknote/core@0.24.2/style.cs
   });
 
   // Mount the editor
-  const editorElement = editor.mount(container);
+  editor.mount(container);
 
   // Sync JSON to hidden input on every change
   editor.onEditorContentChange(() => {
@@ -45,8 +39,8 @@ import { blockNoteViewCSS } from "https://esm.sh/@blocknote/core@0.24.2/style.cs
     });
   }
 
-  // Initial sync if there's content
-  if (editor.document) {
+  // Initial sync only if content was loaded from hidden input
+  if (initialContent) {
     hiddenInput.value = JSON.stringify(editor.document);
   }
 })();
