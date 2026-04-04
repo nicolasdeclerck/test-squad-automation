@@ -10,3 +10,4 @@ build/
 node_modules/
 static/css/output.css
 .venv/
+.claude-state.json

@@ -1,8 +1,14 @@
 {% extends "base.html" %}
+{% load static %}
+{% load blog_extras %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
-{% block meta_description %}{{ post.content|truncatewords:30 }}{% endblock %}
+{% block meta_description %}{{ post.excerpt|default:post.content|blocknote_plaintext|truncatewords:30 }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://esm.sh/@blocknote/core@0.24.2/style.css">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-12">
@@ -27,7 +33,13 @@
         <p class="text-sm text-gray-500 mb-8">
             Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
         </p>
-        <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
+        <div id="blocknote-content"
+             class="text-gray-700 leading-relaxed"
+             data-content="{{ post.content }}">
+            <noscript>
+                <div class="whitespace-pre-line">{{ post.content }}</div>
+            </noscript>
+        </div>
     </article>
 
     {% if messages %}
@@ -150,4 +162,8 @@
     }
 })();
 </script>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/blocknote-renderer.js' %}"></script>
 {% endblock %}
