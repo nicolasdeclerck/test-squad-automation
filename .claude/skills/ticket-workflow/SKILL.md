@@ -1,14 +1,14 @@
 ---
 name: ticket-workflow
-description: Workflow complet de traitement d'un ticket GitHub pour test-squad-automation, de l'analyse initiale jusqu'à l'approbation finale. Gère N cycles de review et corrections via des marqueurs d'état dans les commentaires GitHub. Déclencher sur tout événement de label sur un ticket. Inclut : analyse, plan technique, développement, tests, PR, code review, corrections post-review.
+description: Workflow complet de traitement d'un ticket GitHub pour test-squad-automation, de l'analyse initiale jusqu'à l'approbation finale. Gère N cycles de review et corrections via un fichier d'état local (.claude-state.json). Déclencher sur tout événement de label sur un ticket. Inclut : analyse, plan technique, développement, tests, PR, code review, corrections post-review.
 allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker:*), Read, Write, Glob, LS, Edit
 ---
 
 # Skill : ticket-workflow
 
-Ce skill traite un ticket GitHub de bout en bout. Il est **stateless par design** :
-à chaque exécution il relit les commentaires du ticket, détecte la phase courante
-via des marqueurs HTML invisibles, et reprend exactement là où il s'est arrêté.
+Ce skill traite un ticket GitHub de bout en bout. Il utilise un fichier
+`.claude-state.json` dans le worktree pour persister l'état entre les phases.
+Les phases 1→2→3 s'enchaînent directement dans la même session.
 
 ---
 
@@ -33,27 +33,64 @@ gh issue view {ISSUE_NUMBER} --json title,body,comments \
 
 ### 0.3 Détermination de la phase à exécuter
 
-Analyse les marqueurs présents dans les commentaires et le label déclencheur
-pour déterminer la phase à exécuter.
+Lit le fichier d'état local pour déterminer la phase courante :
 
-**Règle de comptage pour les cycles multiples :**
-- `N_DEV` = nombre de marqueurs `STATE:DEV_DONE` dans les commentaires
-- `N_REVIEW` = nombre de marqueurs `STATE:REVIEW_DONE` dans les commentaires
-- `N_CORRECTIONS` = nombre de marqueurs `STATE:CORRECTIONS_REPORTED` dans les commentaires
+```bash
+STATE_FILE="$WORKTREE_PATH/.claude-state.json"
+
+if [ -f "$STATE_FILE" ]; then
+  PHASE=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('phase','1'))")
+  N_DEV=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_dev',0))")
+  N_REVIEW=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_review',0))")
+  N_CORRECTIONS=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_corrections',0))")
+  CURRENT_TASK=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('current_task',0))")
+  APPROVED=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('approved',False))")
+else
+  # Première exécution
+  PHASE="1"
+  N_DEV=0
+  N_REVIEW=0
+  N_CORRECTIONS=0
+  CURRENT_TASK=0
+  APPROVED="False"
+fi
+```
+
+**Fonction d'écriture d'état** (à réutiliser après chaque transition) :
+
+```bash
+write_state() {
+  python3 -c "
+import json, sys
+state = {
+  'phase': '$1',
+  'n_dev': $N_DEV,
+  'n_review': $N_REVIEW,
+  'n_corrections': $N_CORRECTIONS,
+  'current_task': $CURRENT_TASK,
+  'approved': $APPROVED,
+  'branch': '${BRANCH_NAME:-}',
+  'pr_number': '${PR_NUMBER:-}'
+}
+print(json.dumps(state, indent=2))
+" > "$STATE_FILE"
+}
+```
+
+**Table de routage** (basée sur les variables lues du fichier d'état) :
 
 | Condition | Phase à exécuter |
 |---|---|
-| Aucun marqueur | → **Phase 1** : Analyse |
-| `STATE:ANALYSIS_DONE`, pas de `STATE:PLAN_DONE` | → **Phase 2** : Plan |
-| `STATE:WAITING_FOR_ANSWERS`, pas de réponse après | → **STOP** en attente humaine |
-| `STATE:WAITING_FOR_ANSWERS`, réponse postée après | → **Phase 2** : Plan (avec réponses) |
-| `STATE:PLAN_DONE`, `N_DEV = N_CORRECTIONS` | → **Phase 3** : Développement |
-| `STATE:DEV_DONE`, label = `to review`, `N_REVIEW = N_DEV - 1` | → **Phase 4** : Code review |
-| `STATE:REVIEW_DONE`, label = `changes requested`, `N_CORRECTIONS = N_REVIEW - 1` | → **Phase 5** : Rapport corrections |
-| `STATE:CORRECTIONS_REPORTED`, `N_DEV = N_CORRECTIONS` | → **Phase 3** : Développement (cycle N+1) |
-| `STATE:REVIEW_APPROVED` présent | → **STOP** : ticket terminé |
+| Aucun fichier d'état | → **Phase 1** : Analyse |
+| `PHASE = 2` | → **Phase 2** : Plan |
+| `PHASE = waiting`, pas de réponse après | → **STOP** en attente humaine |
+| `PHASE = waiting`, réponse postée après | → **Phase 2** : Plan (avec réponses) |
+| `PHASE = 3`, `N_DEV = N_CORRECTIONS` | → **Phase 3** : Développement |
+| `PHASE = 4`, label = `to review` | → **Phase 4** : Code review |
+| `PHASE = 5`, label = `changes requested` | → **Phase 5** : Rapport corrections |
+| `APPROVED = True` | → **STOP** : ticket terminé |
 
-> **En cas d'ambiguïté**, le label déclencheur est prioritaire sur les marqueurs.
+> **En cas d'ambiguïté**, le label déclencheur est prioritaire.
 
 ### 0.4 Création du worktree
 
@@ -130,32 +167,22 @@ gh issue comment {ISSUE_NUMBER} --body "## 🔍 Analyse
 [Dépendances ou 'Aucun changement']
 
 ## ❓ Questions bloquantes
-[Liste numérotée ou 'Aucune question']
-
-<!-- STATE:ANALYSIS_DONE -->"
+[Liste numérotée ou 'Aucune question']"
 ```
 
-### 1.4 Mise à jour des labels
-
-```bash
-gh issue edit {ISSUE_NUMBER} --remove-label 'analyze'
-```
+### 1.4 Gestion des questions bloquantes et transition
 
 ```bash
 # S'il y a des questions bloquantes :
+gh issue edit {ISSUE_NUMBER} --remove-label 'analyze'
 gh issue edit {ISSUE_NUMBER} --add-label 'help wanted'
-gh issue comment {ISSUE_NUMBER} --body "<!-- STATE:WAITING_FOR_ANSWERS -->
-⏳ En attente de réponses avant de continuer."
+write_state "waiting"
+# → STOP en attente humaine
 
-# Sinon — redéclenche automatiquement en Phase 2 :
-gh issue edit {ISSUE_NUMBER} --add-label 'analyze'
-```
-
-### 1.5 Nettoyage du worktree
-
-```bash
-cd /workspace/test-squad-automation
-git worktree remove "$WORKTREE_PATH" --force
+# Sinon — enchaîner directement vers Phase 2 :
+gh issue edit {ISSUE_NUMBER} --remove-label 'analyze'
+write_state "2"
+# → Exécuter Phase 2 directement (pas de redéclenchement via label)
 ```
 
 ---
@@ -164,13 +191,10 @@ git worktree remove "$WORKTREE_PATH" --force
 
 ### 2.1 Récupération des consignes
 
-```bash
-gh issue view {ISSUE_NUMBER} --json comments \
-  --jq '.comments[] | select(.body | contains("STATE:ANALYSIS_DONE"))' | tail -1
-```
+Relit le commentaire d'analyse posté en Phase 1 depuis les commentaires GitHub.
 
 Si en reprise après réponses, récupère aussi les commentaires postés après
-`<!-- STATE:WAITING_FOR_ANSWERS -->`.
+le commentaire d'attente.
 
 ### 2.2 Analyse de l'impact
 
@@ -211,25 +235,14 @@ gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan d'implémentation
 [Risques, ordre critique, contraintes]
 
 ## 🔬 Stratégie de tests
-[Tests prioritaires, fixtures, cas limites]
-
-<!-- STATE:PLAN_DONE -->
-<!-- PLAN_TASK_COUNT:[N] -->
-<!-- PLAN_CURRENT_TASK:0 -->"
+[Tests prioritaires, fixtures, cas limites]"
 ```
 
-### 2.5 Mise à jour des labels — redéclenche Phase 3
+### 2.5 Transition vers Phase 3
 
 ```bash
-gh issue edit {ISSUE_NUMBER} --remove-label 'analyze'
-gh issue edit {ISSUE_NUMBER} --add-label 'analyze'
-```
-
-### 2.6 Nettoyage du worktree
-
-```bash
-cd /workspace/test-squad-automation
-git worktree remove "$WORKTREE_PATH" --force
+write_state "3"
+# → Exécuter Phase 3 directement (pas de redéclenchement via label)
 ```
 
 ---
@@ -238,12 +251,8 @@ git worktree remove "$WORKTREE_PATH" --force
 
 ### 3.1 Récupération du plan et de la progression
 
-```bash
-gh issue view {ISSUE_NUMBER} --json comments \
-  --jq '.comments[] | select(.body | contains("STATE:PLAN_DONE"))' | tail -1
-```
-
-Extrais `PLAN_TASK_COUNT` et `PLAN_CURRENT_TASK` pour reprendre à la bonne tâche.
+Relit le commentaire de plan depuis les commentaires GitHub et récupère
+`CURRENT_TASK` depuis le fichier d'état pour reprendre à la bonne tâche.
 
 Si un commentaire `## 🔄 Corrections demandées` existe, lis-le pour connaître
 les corrections spécifiques à apporter — elles priment sur le plan initial
@@ -261,16 +270,15 @@ gh api repos/nicolasdeclerck/test-squad-automation/issues/{ISSUE_NUMBER}/labels 
 
 ### 3.3 Exécution des tâches
 
-Pour chaque tâche depuis `PLAN_CURRENT_TASK` :
+Pour chaque tâche depuis `CURRENT_TASK` :
 
 1. Implémente en suivant le plan et les corrections éventuelles
 2. Respecte les conventions du `CLAUDE.md`
-3. Poste un marqueur de progression après chaque tâche :
+3. Met à jour la progression dans le fichier d'état :
 
 ```bash
-gh issue comment {ISSUE_NUMBER} --body "<!-- STATE:TASK_PROGRESS -->
-<!-- PLAN_CURRENT_TASK:[N+1] -->
-✅ T[N] complétée : [titre]"
+CURRENT_TASK=$((CURRENT_TASK + 1))
+write_state "3"
 ```
 
 ### 3.4 Tests
@@ -286,8 +294,7 @@ En cas d'échec : corriger le code, relancer. Maximum **3 tentatives**.
 
 Si toujours en échec après 3 tentatives :
 ```bash
-gh issue comment {ISSUE_NUMBER} --body "<!-- STATE:TESTS_FAILED -->
-## ❌ Échec des tests après 3 tentatives
+gh issue comment {ISSUE_NUMBER} --body "## ❌ Échec des tests après 3 tentatives
 [logs d'erreur]
 Intervention humaine requise."
 gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
@@ -370,13 +377,8 @@ fi
 ### 3.8 Finalisation
 
 ```bash
-# Compte les cycles précédents pour numéroter
-N_DEV=$(gh issue view {ISSUE_NUMBER} --json comments \
-  --jq '[.comments[].body | select(contains("STATE:DEV_DONE"))] | length')
-
-gh issue comment {ISSUE_NUMBER} --body "<!-- STATE:DEV_DONE -->
-<!-- DEV_CYCLE:$((N_DEV + 1)) -->
-🎉 Cycle de développement $((N_DEV + 1)) terminé."
+N_DEV=$((N_DEV + 1))
+write_state "4"
 
 # Mise à jour des labels
 gh api repos/nicolasdeclerck/test-squad-automation/issues/{ISSUE_NUMBER}/labels/in%20progress \
@@ -387,6 +389,8 @@ gh issue edit {ISSUE_NUMBER} --add-label 'to review'
 cd /workspace/test-squad-automation
 git worktree remove "$WORKTREE_PATH" --force
 ```
+
+→ **STOP** (attendre label `to review` pour déclencher Phase 4)
 
 ---
 
@@ -422,22 +426,15 @@ cd "$REVIEW_WORKTREE"
 
 ### 4.4 Analyse du résultat et mise à jour des labels
 
-```bash
-# Compte le cycle de review en cours
-N_REVIEW=$(gh issue view {ISSUE_NUMBER} --json comments \
-  --jq '[.comments[].body | select(contains("STATE:REVIEW_DONE"))] | length')
-```
-
 **Si aucun problème détecté (aucune issue de confiance ≥ 80) :**
 
 ```bash
-gh pr review "$PR_NUMBER" --approve \
-  --body "Code review automatique cycle $((N_REVIEW + 1)) : aucun problème détecté."
+N_REVIEW=$((N_REVIEW + 1))
+APPROVED="True"
+write_state "done"
 
-gh issue comment {ISSUE_NUMBER} --body "<!-- STATE:REVIEW_DONE -->
-<!-- STATE:REVIEW_APPROVED -->
-<!-- REVIEW_CYCLE:$((N_REVIEW + 1)) -->
-✅ Review cycle $((N_REVIEW + 1)) : approuvée."
+gh pr review "$PR_NUMBER" --approve \
+  --body "Code review automatique cycle $N_REVIEW : aucun problème détecté."
 
 gh issue edit {ISSUE_NUMBER} --remove-label 'to review'
 gh issue edit {ISSUE_NUMBER} --add-label 'approved'
@@ -446,12 +443,11 @@ gh issue edit {ISSUE_NUMBER} --add-label 'approved'
 **Si des problèmes sont détectés :**
 
 ```bash
-gh pr review "$PR_NUMBER" --request-changes \
-  --body "Code review automatique cycle $((N_REVIEW + 1)) : corrections nécessaires."
+N_REVIEW=$((N_REVIEW + 1))
+write_state "5"
 
-gh issue comment {ISSUE_NUMBER} --body "<!-- STATE:REVIEW_DONE -->
-<!-- REVIEW_CYCLE:$((N_REVIEW + 1)) -->
-🔍 Review cycle $((N_REVIEW + 1)) : corrections demandées."
+gh pr review "$PR_NUMBER" --request-changes \
+  --body "Code review automatique cycle $N_REVIEW : corrections nécessaires."
 
 gh issue edit {ISSUE_NUMBER} --remove-label 'to review'
 gh issue edit {ISSUE_NUMBER} --add-label 'changes requested'
@@ -464,11 +460,13 @@ cd /workspace/test-squad-automation
 git worktree remove "$REVIEW_WORKTREE" --force
 ```
 
+→ **STOP**
+
 ---
 
 ## PHASE 5 — Rapport des corrections
 
-*Exécutée quand label = `changes requested` et `N_CORRECTIONS < N_REVIEW`.*
+*Exécutée quand label = `changes requested` et `PHASE = 5`.*
 
 ### 5.1 Récupération des feedbacks de la PR
 
@@ -487,25 +485,21 @@ gh pr view "$PR_NUMBER" \
 ### 5.2 Post du commentaire de corrections sur le ticket
 
 ```bash
-N_CORRECTIONS=$(gh issue view {ISSUE_NUMBER} --json comments \
-  --jq '[.comments[].body | select(contains("STATE:CORRECTIONS_REPORTED"))] | length')
+N_CORRECTIONS=$((N_CORRECTIONS + 1))
 
-gh issue comment {ISSUE_NUMBER} --body "## 🔄 Corrections demandées — cycle $((N_CORRECTIONS + 1))
+gh issue comment {ISSUE_NUMBER} --body "## 🔄 Corrections demandées — cycle $N_CORRECTIONS
 
 [Synthèse structurée de chaque correction demandée dans la review]
-[Extraits de code concernés si mentionnés]
-
-<!-- STATE:CORRECTIONS_REPORTED -->
-<!-- CORRECTIONS_CYCLE:$((N_CORRECTIONS + 1)) -->"
+[Extraits de code concernés si mentionnés]"
 ```
 
-### 5.3 Mise à jour des labels — redéclenche Phase 3
+### 5.3 Transition vers Phase 3
 
 ```bash
 gh issue edit {ISSUE_NUMBER} --remove-label 'changes requested'
 gh issue edit {ISSUE_NUMBER} --add-label 'analyze'
-# → Le trigger relancera le skill qui détectera N_DEV = N_CORRECTIONS
-#   et démarrera un nouveau cycle de développement (Phase 3)
+write_state "3"
+# → Exécuter Phase 3 directement (nouveau cycle de développement)
 ```
 
 ### 5.4 Nettoyage du worktree
@@ -517,24 +511,32 @@ git worktree remove "$WORKTREE_PATH" --force 2>/dev/null || true
 
 ---
 
-## Résumé de la machine d'états pour N cycles
+## Résumé du flux et des interactions GitHub
 
 ```
-Phase 1 : Analyse          → STATE:ANALYSIS_DONE
-Phase 2 : Plan             → STATE:PLAN_DONE
-Phase 3 : Dev (cycle 1)    → STATE:DEV_DONE (DEV_CYCLE:1) + label "to review"
-Phase 4 : Review (cycle 1) → STATE:REVIEW_DONE (REVIEW_CYCLE:1)
-  ├── Approuvé             → STATE:REVIEW_APPROVED + label "approved" → STOP ✅
-  └── Corrections          → label "changes requested"
-Phase 5 : Corrections      → STATE:CORRECTIONS_REPORTED (CORRECTIONS_CYCLE:1)
-Phase 3 : Dev (cycle 2)    → STATE:DEV_DONE (DEV_CYCLE:2) + label "to review"
-Phase 4 : Review (cycle 2) → STATE:REVIEW_DONE (REVIEW_CYCLE:2)
-  ├── Approuvé             → STATE:REVIEW_APPROVED → STOP ✅
-  └── Corrections          → ...
+Phase 1 : Analyse          → write_state "2" → enchaîner Phase 2
+Phase 2 : Plan             → write_state "3" → enchaîner Phase 3
+Phase 3 : Dev (cycle N)    → write_state "4" + label "to review" → STOP
+Phase 4 : Review (cycle N)
+  ├── Approuvé             → write_state "done" + label "approved" → STOP ✅
+  └── Corrections          → write_state "5" + label "changes requested" → STOP
+Phase 5 : Corrections      → write_state "3" + label "analyze" → enchaîner Phase 3
 ```
+
+**Interactions GitHub par phase :**
+
+|Moment              |Interaction GitHub                                                |
+|--------------------|------------------------------------------------------------------|
+|Phase 1             |`gh issue comment` (analyse) + labels                             |
+|Phase 1 si questions|`gh issue comment` (questions) + label `help wanted`              |
+|Phase 2             |`gh issue comment` (plan)                                         |
+|Phase 3 démarrage   |label `in progress`                                               |
+|Phase 3 fin         |`gh pr create/edit` + `gh issue comment` (doc) + label `to review`|
+|Phase 4             |`/code-review --comment` + `gh pr review` + labels                |
+|Phase 5             |`gh issue comment` (corrections) + label `analyze`                |
 
 **Invariant à chaque démarrage :**
 - `N_DEV = N_CORRECTIONS` → Phase 3 (dev)
 - `N_DEV > N_REVIEW` → Phase 4 (review)
 - `N_REVIEW > N_CORRECTIONS` → Phase 5 (rapport corrections)
-- `STATE:REVIEW_APPROVED` → STOP
+- `APPROVED = True` → STOP
