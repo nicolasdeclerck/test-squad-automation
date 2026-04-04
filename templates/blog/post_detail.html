@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
@@ -27,7 +28,13 @@
         <p class="text-sm text-gray-500 mb-8">
             Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
         </p>
-        <div class="text-gray-700 leading-relaxed whitespace-pre-line">{{ post.content }}</div>
+        <div id="blocknote-content"
+             class="text-gray-700 leading-relaxed"
+             data-content="{{ post.content }}">
+            <noscript>
+                <div class="whitespace-pre-line">{{ post.content }}</div>
+            </noscript>
+        </div>
     </article>
 
     {% if messages %}
@@ -150,4 +157,8 @@
     }
 })();
 </script>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/blocknote-renderer.js' %}"></script>
 {% endblock %}
