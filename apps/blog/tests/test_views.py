@@ -53,6 +53,36 @@ class TestHomeView:
         assert response.context["show_full_list_link"] is False
         assert "Voir tous les articles" not in response.content.decode()
 
+    def test_home_displays_author_name_when_available(self):
+        post = PostFactory(
+            author__first_name="Marie",
+            author__last_name="Curie",
+        )
+        response = self.client.get(HOME_URL)
+        content = response.content.decode()
+        assert "Marie Curie" in content
+
+    def test_home_displays_author_email_fallback_when_no_name(self):
+        post = PostFactory(
+            author__email="sans-nom@example.com",
+            author__first_name="",
+            author__last_name="",
+        )
+        response = self.client.get(HOME_URL)
+        content = response.content.decode()
+        assert "sans-nom@example.com" in content
+
+    def test_home_displays_avatar_fallback_initial(self):
+        import re
+
+        post = PostFactory(author__email="bob@example.com")
+        response = self.client.get(HOME_URL)
+        content = response.content.decode()
+        assert "bg-gray-300" in content
+        match = re.search(r"bg-gray-300[^>]*>\s*([A-Z])\s*<", content)
+        assert match is not None
+        assert match.group(1) == "B"
+
     def test_home_shows_add_button_for_authenticated(self):
         user = UserFactory()
         self.client.login(username=user.username, password="testpass123")
@@ -342,6 +372,35 @@ class TestPostListView:
         ]
         assert result_pks == expected_pks
 
+    def test_list_displays_author_name_when_available(self):
+        PostFactory(
+            author__first_name="Albert",
+            author__last_name="Einstein",
+        )
+        response = self.client.get(LIST_URL)
+        content = response.content.decode()
+        assert "Albert Einstein" in content
+
+    def test_list_displays_author_email_fallback_when_no_name(self):
+        PostFactory(
+            author__email="anonyme@example.com",
+            author__first_name="",
+            author__last_name="",
+        )
+        response = self.client.get(LIST_URL)
+        content = response.content.decode()
+        assert "anonyme@example.com" in content
+
+    def test_list_displays_avatar_fallback_initial(self):
+        import re
+
+        PostFactory(author__email="charlie@example.com")
+        response = self.client.get(LIST_URL)
+        content = response.content.decode()
+        match = re.search(r"bg-gray-300[^>]*>\s*([A-Z])\s*<", content)
+        assert match is not None
+        assert match.group(1) == "C"
+
     def test_list_seo_title(self):
         response = self.client.get(LIST_URL)
         assert "<title>Tous les articles</title>" in response.content.decode()
@@ -375,6 +434,39 @@ class TestPostDetailView:
     def test_detail_returns_404_for_nonexistent_slug(self):
         response = self.client.get("/articles/slug-inexistant/")
         assert response.status_code == 404
+
+    def test_detail_displays_post_author_name(self):
+        user_with_name = UserFactory(
+            first_name="Ada", last_name="Lovelace"
+        )
+        post = PostFactory(author=user_with_name)
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "Ada Lovelace" in content
+
+    def test_detail_displays_post_author_email_fallback(self):
+        user_no_name = UserFactory(
+            email="noname@example.com", first_name="", last_name=""
+        )
+        post = PostFactory(author=user_no_name)
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert "noname@example.com" in content
+
+    def test_detail_displays_post_author_avatar_fallback(self):
+        import re
+
+        user = UserFactory(email="zoe@example.com")
+        post = PostFactory(author=user)
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        # Find the article author section (before comments section)
+        article_section = content.split('id="comments-section"')[0]
+        match = re.search(
+            r"bg-gray-300[^>]*>\s*([A-Z])\s*<", article_section
+        )
+        assert match is not None
+        assert match.group(1) == "Z"
 
     def test_detail_displays_approved_comments(self):
         comment = CommentFactory(
@@ -478,6 +570,8 @@ class TestPostDetailView:
         assert "rounded-full" in content
 
     def test_comment_avatar_fallback_initial(self):
+        import re
+
         user_no_avatar = UserFactory(
             email="alice@example.com", password=self.password
         )
@@ -488,12 +582,11 @@ class TestPostDetailView:
         )
         response = self.client.get(self.url)
         content = response.content.decode()
-        assert "bg-gray-300" in content
-        # Check the initial letter is present in the fallback avatar div
-        import re
-
+        # Search only in the comments section
+        comments_section = content.split('id="comments-section"')[1]
+        assert "bg-gray-300" in comments_section
         match = re.search(
-            r'bg-gray-300[^>]*>\s*([A-Z])\s*<', content
+            r"bg-gray-300[^>]*>\s*([A-Z])\s*<", comments_section
         )
         assert match is not None
         assert match.group(1) == "A"

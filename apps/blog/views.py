@@ -23,7 +23,7 @@ class HomeView(ListView):
     def get_queryset(self):
         return (
             Post.objects.filter(status=Post.STATUS_PUBLISHED)
-            .select_related("author")
+            .select_related("author__profile")
             .order_by("-created_at")[:10]
         )
 
@@ -102,7 +102,7 @@ class PostDetailView(DetailView):
     def get_queryset(self):
         return (
             Post.objects.filter(status=Post.STATUS_PUBLISHED)
-            .select_related("author")
+            .select_related("author__profile")
             .prefetch_related("comments__author__profile")
         )
 
@@ -179,7 +179,7 @@ class PostListView(ListView):
     def get_queryset(self):
         return (
             Post.objects.filter(status=Post.STATUS_PUBLISHED)
-            .select_related("author")
+            .select_related("author__profile")
             .order_by("-created_at")
         )
 
