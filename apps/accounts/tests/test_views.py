@@ -437,6 +437,41 @@ class TestAvatarDeleteView:
 
 
 @pytest.mark.django_db
+class TestProfileUpdateViewAvatarErrors:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "Str0ngP@ss!"
+        self.user = UserFactory(email="avatarerr@example.com", password=self.password)
+
+    def test_upload_avatar_filesystem_error_shows_message(self):
+        from io import BytesIO
+        from unittest.mock import patch
+
+        from PIL import Image
+
+        self.client.login(username=self.user.username, password=self.password)
+        img = Image.new("RGB", (100, 100), "red")
+        buf = BytesIO()
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        avatar = SimpleUploadedFile(
+            "avatar.jpg", buf.read(), content_type="image/jpeg"
+        )
+        with patch(
+            "apps.accounts.models.Profile.save",
+            side_effect=OSError("Permission denied"),
+        ):
+            response = self.client.post(
+                PROFILE_EDIT_URL,
+                {"first_name": "Test", "last_name": "User", "avatar": avatar},
+                follow=True,
+            )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Impossible" in content or "réessayer" in content
+
+
+@pytest.mark.django_db
 class TestProfileEditAvatarPosition:
     def setup_method(self):
         self.client = Client()
