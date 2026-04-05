@@ -61,7 +61,14 @@ class ProfileUpdateView(LoginRequiredMixin, View):
         )
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
-            profile_form.save()
+            try:
+                profile_form.save()
+            except OSError:
+                messages.error(
+                    request,
+                    "Impossible d'enregistrer l'avatar. Veuillez réessayer.",
+                )
+                return self._render(request, user_form, profile_form)
             messages.success(request, "Votre profil a été mis à jour.")
             return redirect("accounts:profile_edit")
         return self._render(request, user_form, profile_form)

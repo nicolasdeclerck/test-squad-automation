@@ -98,3 +98,39 @@ class TestAvatarValidation:
             with pytest.raises(ValidationError) as exc_info:
                 validate_avatar(mock_field_file)
             assert "inaccessible" in str(exc_info.value)
+
+    def test_validate_avatar_handles_value_error(self):
+        from unittest.mock import PropertyMock, patch
+
+        from django.db.models.fields.files import FieldFile
+
+        mock_field_file = FieldFile(None, Profile.avatar.field, "avatars/broken.jpg")
+        with patch.object(
+            type(mock_field_file),
+            "size",
+            new_callable=PropertyMock,
+            side_effect=ValueError("no file associated"),
+        ):
+            with pytest.raises(ValidationError) as exc_info:
+                validate_avatar(mock_field_file)
+            assert "inaccessible" in str(exc_info.value)
+
+    def test_validate_avatar_skips_empty_fieldfile(self):
+        from django.db.models.fields.files import FieldFile
+
+        empty_field_file = FieldFile(None, Profile.avatar.field, "")
+        validate_avatar(empty_field_file)
+
+    def test_validate_avatar_skips_none(self):
+        validate_avatar(None)
+
+    def test_validate_avatar_checks_mime_on_fieldfile(self):
+        from unittest.mock import MagicMock
+
+        mock_file = MagicMock()
+        mock_file.size = 1000
+        mock_file.content_type = "text/plain"
+        mock_file.__bool__ = lambda self: True
+        with pytest.raises(ValidationError) as exc_info:
+            validate_avatar(mock_file)
+        assert "Format non autorisé" in str(exc_info.value)
