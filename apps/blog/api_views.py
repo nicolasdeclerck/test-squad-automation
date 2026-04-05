@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 
@@ -59,11 +60,15 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
         return PostDetailSerializer
 
     def get_queryset(self):
-        return (
-            Post.objects.filter(status=Post.STATUS_PUBLISHED)
-            .select_related("author__profile")
+        qs = (
+            Post.objects.select_related("author__profile")
             .prefetch_related("comments__author__profile")
         )
+        if self.request.user.is_authenticated:
+            return qs.filter(
+                Q(status=Post.STATUS_PUBLISHED) | Q(author=self.request.user)
+            )
+        return qs.filter(status=Post.STATUS_PUBLISHED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)

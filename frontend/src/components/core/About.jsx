@@ -1,6 +1,12 @@
+import { Helmet } from "react-helmet-async";
+
 export default function About() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <Helmet>
+        <title>&Agrave; propos &mdash; NICKORP</title>
+        <meta name="description" content="D\u00e9couvrez NICKORP, notre histoire et notre mission." />
+      </Helmet>
       <h1 className="text-4xl font-bold text-gray-900 mb-8">
         &Agrave; propos de NICKORP
       </h1>

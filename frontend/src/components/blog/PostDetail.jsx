@@ -1,7 +1,9 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
+import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
@@ -26,7 +28,9 @@ function BlockNoteRenderer({ content }) {
 
   useEffect(() => {
     if (editor && blocks) {
-      editor.blocksToFullHTML(editor.document).then(setHtml);
+      editor.blocksToFullHTML(editor.document).then((rawHtml) => {
+        setHtml(DOMPurify.sanitize(rawHtml));
+      });
     }
   }, [editor, blocks]);
 
@@ -78,10 +82,15 @@ export default function PostDetail() {
   const authorName =
     post.author.first_name && post.author.last_name
       ? `${post.author.first_name} ${post.author.last_name}`
-      : post.author.email || post.author.username;
+      : post.author.username;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <Helmet>
+        <title>{post.title}</title>
+        <meta name="description" content={post.title} />
+      </Helmet>
+
       <article>
         <div className="flex items-start justify-between mb-4">
           <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>

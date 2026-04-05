@@ -9,7 +9,7 @@ export default function PostCard({ post }) {
   const authorName =
     post.author.first_name && post.author.last_name
       ? `${post.author.first_name} ${post.author.last_name}`
-      : post.author.email || post.author.username;
+      : post.author.username;
 
   const date = new Date(post.created_at).toLocaleDateString("fr-FR");
 

@@ -39,7 +39,12 @@ async function apiRequest(url, options = {}) {
     return { ok: true, data: null };
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    return { ok: false, errors: { detail: "Erreur serveur" }, status: response.status };
+  }
 
   if (!response.ok) {
     return { ok: false, errors: data, status: response.status };

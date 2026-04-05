@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -27,6 +28,10 @@ export default function LoginForm() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-16">
+      <Helmet>
+        <title>Se connecter</title>
+        <meta name="description" content="Connectez-vous \u00e0 votre compte pour acc\u00e9der au blog." />
+      </Helmet>
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
         Se connecter
       </h1>

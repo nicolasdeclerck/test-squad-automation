@@ -7,21 +7,34 @@ export default function PostDelete() {
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     api.get(`/api/blog/posts/${slug}/`).then((res) => {
-      if (res.ok) setPost(res.data);
+      if (res.ok) {
+        if (!res.data.is_owner) {
+          navigate("/", { replace: true });
+          return;
+        }
+        setPost(res.data);
+      }
       setLoading(false);
     });
-  }, [slug]);
+  }, [slug, navigate]);
 
   const handleDelete = async () => {
-    if (!window.confirm("\u00cates-vous s\u00fbr de vouloir supprimer cet article ?")) {
+    if (
+      !window.confirm(
+        "\u00cates-vous s\u00fbr de vouloir supprimer cet article ?"
+      )
+    ) {
       return;
     }
     const res = await api.delete(`/api/blog/posts/${slug}/`);
     if (res.ok) {
       navigate("/");
+    } else {
+      setError("Impossible de supprimer cet article.");
     }
   };
 
@@ -55,6 +68,10 @@ export default function PostDelete() {
         <p className="text-sm text-gray-500 mt-2">
           Cette action est irr\u00e9versible.
         </p>
+
+        {error && (
+          <p className="text-red-600 text-sm mt-2">{error}</p>
+        )}
 
         <div className="mt-6 flex gap-4">
           <button

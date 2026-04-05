@@ -2,9 +2,27 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
+
+function BlockNoteEditor({ initialContent, editorRef }) {
+  const editor = useCreateBlockNote({
+    initialContent: initialContent || undefined,
+  });
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor, editorRef]);
+
+  return (
+    <BlockNoteView
+      editor={editor}
+      theme="light"
+    />
+  );
+}
 
 export default function PostForm() {
   const { slug } = useParams();
@@ -13,8 +31,10 @@ export default function PostForm() {
   const [title, setTitle] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
-  const [initialContent, setInitialContent] = useState(null);
+  const [initialContent, setInitialContent] = useState(undefined);
+  const [contentReady, setContentReady] = useState(!isEdit);
   const titleRef = useRef(null);
+  const editorRef = useRef(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -27,14 +47,11 @@ export default function PostForm() {
             setInitialContent(undefined);
           }
         }
+        setContentReady(true);
         setLoading(false);
       });
     }
   }, [slug, isEdit]);
-
-  const editor = useCreateBlockNote({
-    initialContent: initialContent || undefined,
-  });
 
   const autoResize = () => {
     if (titleRef.current) {
@@ -51,7 +68,9 @@ export default function PostForm() {
     e.preventDefault();
     setErrors({});
 
-    const content = JSON.stringify(editor.document);
+    const content = editorRef.current
+      ? JSON.stringify(editorRef.current.document)
+      : "";
 
     let res;
     if (isEdit) {
@@ -75,11 +94,16 @@ export default function PostForm() {
     );
   }
 
+  const pageTitle = isEdit ? "Modifier l'article" : "Ajouter un article";
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="sr-only">
-        {isEdit ? "Modifier l'article" : "Ajouter un article"}
-      </h1>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageTitle} />
+      </Helmet>
+
+      <h1 className="sr-only">{pageTitle}</h1>
 
       {errors.non_field_errors && (
         <div className="mb-6 p-3 border border-red-200 rounded">
@@ -124,10 +148,12 @@ export default function PostForm() {
             style={{ minHeight: "300px" }}
             className={errors.content ? "border border-red-500" : ""}
           >
-            <BlockNoteView
-              editor={editor}
-              theme="light"
-            />
+            {contentReady && (
+              <BlockNoteEditor
+                initialContent={initialContent}
+                editorRef={editorRef}
+              />
+            )}
           </div>
           <p className="text-xs text-gray-400 mt-1">
             Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique,{" "}

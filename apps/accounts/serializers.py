@@ -1,4 +1,8 @@
+import random
+
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .models import Profile
@@ -71,11 +75,13 @@ class SignupSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"password2": "Les mots de passe ne correspondent pas."}
             )
+        try:
+            validate_password(data["password1"])
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"password1": list(e.messages)})
         return data
 
     def create(self, validated_data):
-        import random
-
         email = validated_data["email"]
         local_part = email.split("@")[0]
         username = local_part

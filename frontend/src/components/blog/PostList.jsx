@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import Pagination from "../ui/Pagination";
@@ -43,6 +44,17 @@ export default function PostList({ isHome = false }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <Helmet>
+        <title>{isHome ? "NICKORP" : title}</title>
+        <meta
+          name="description"
+          content={
+            isHome
+              ? "D\u00e9couvrez les derniers articles de notre blog."
+              : "Liste compl\u00e8te des articles du blog."
+          }
+        />
+      </Helmet>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
         {!isHome && (

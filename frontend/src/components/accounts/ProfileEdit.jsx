@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
@@ -56,6 +57,10 @@ export default function ProfileEdit() {
         </div>
       )}
 
+      <Helmet>
+        <title>Modifier mon profil</title>
+        <meta name="description" content="Modifiez votre profil : pr\u00e9nom, nom et avatar." />
+      </Helmet>
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
         Modifier mon profil
       </h1>

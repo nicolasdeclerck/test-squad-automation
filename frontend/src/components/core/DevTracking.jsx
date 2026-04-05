@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import Pagination from "../ui/Pagination";
@@ -33,6 +34,10 @@ export default function DevTracking() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <Helmet>
+        <title>Suivi des devs &mdash; NICKORP</title>
+        <meta name="description" content="Suivez l'avancement des d\u00e9veloppements en cours." />
+      </Helmet>
       <h1 className="text-4xl font-bold text-gray-900 mb-8">Suivi des devs</h1>
 
       {apiError && (

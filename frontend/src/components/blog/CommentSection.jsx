@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
@@ -7,6 +7,10 @@ export default function CommentSection({ comments: initialComments, slug }) {
   const { user } = useAuth();
   const [comments, setComments] = useState(initialComments || []);
   const [visibleCount, setVisibleCount] = useState(10);
+
+  useEffect(() => {
+    setComments(initialComments || []);
+  }, [initialComments]);
 
   const handleDelete = async (commentId) => {
     const res = await api.delete(`/api/blog/comments/${commentId}/`);

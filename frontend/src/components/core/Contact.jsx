@@ -1,6 +1,12 @@
+import { Helmet } from "react-helmet-async";
+
 export default function Contact() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <Helmet>
+        <title>Contact &mdash; NICKORP</title>
+        <meta name="description" content="Contactez NICKORP \u2014 retrouvez-nous sur GitHub et LinkedIn." />
+      </Helmet>
       <h1 className="text-4xl font-bold text-gray-900 mb-8">Contact</h1>
 
       <section className="mb-8">

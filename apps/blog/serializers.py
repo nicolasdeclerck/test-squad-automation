@@ -1,25 +1,8 @@
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from apps.accounts.serializers import UserSerializer as AuthorSerializer  # noqa: F401
+
 from .models import Comment, Post
-
-User = get_user_model()
-
-
-class AuthorSerializer(serializers.ModelSerializer):
-    avatar = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = ("id", "username", "first_name", "last_name", "avatar")
-
-    def get_avatar(self, obj):
-        if hasattr(obj, "profile") and obj.profile.avatar:
-            request = self.context.get("request")
-            if request:
-                return request.build_absolute_uri(obj.profile.avatar.url)
-            return obj.profile.avatar.url
-        return None
 
 
 class CommentSerializer(serializers.ModelSerializer):
