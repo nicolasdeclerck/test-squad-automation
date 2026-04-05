@@ -34,7 +34,7 @@ export default function CommentSection({ comments: initialComments, slug }) {
               const authorName =
                 comment.author.first_name && comment.author.last_name
                   ? `${comment.author.first_name} ${comment.author.last_name}`
-                  : comment.author.email || comment.author.username;
+                  : comment.author.username;
 
               return (
                 <div

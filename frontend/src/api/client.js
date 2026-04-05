@@ -33,7 +33,12 @@ async function apiRequest(url, options = {}) {
     }
   }
 
-  const response = await fetch(url, config);
+  let response;
+  try {
+    response = await fetch(url, config);
+  } catch {
+    return { ok: false, errors: { detail: "Erreur r\u00e9seau" }, status: 0 };
+  }
 
   if (response.status === 204) {
     return { ok: true, data: null };

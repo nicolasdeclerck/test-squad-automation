@@ -1,8 +1,16 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from apps.accounts.serializers import UserSerializer as AuthorSerializer  # noqa: F401
+from apps.accounts.serializers import UserSerializer
 
 from .models import Comment, Post
+
+User = get_user_model()
+
+
+class AuthorSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = ("id", "username", "first_name", "last_name", "avatar")
 
 
 class CommentSerializer(serializers.ModelSerializer):
