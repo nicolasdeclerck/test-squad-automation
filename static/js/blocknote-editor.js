@@ -19,6 +19,9 @@ import { BlockNoteEditor } from "https://esm.sh/@blocknote/core@0.24.2";
 
   const editor = BlockNoteEditor.create({
     initialContent: initialContent || undefined,
+    placeholders: {
+      default: "Commencez à écrire votre article...",
+    },
   });
 
   // Mount the editor
