@@ -172,3 +172,43 @@ class TestBlockNotePlaintext:
 
     def test_returns_value_for_invalid_json(self):
         assert blocknote_plaintext("{invalid") == "{invalid"
+
+
+@pytest.mark.django_db
+class TestBlockNoteDisplayInListings:
+    """Verify that listing pages show readable text, not raw JSON."""
+
+    def setup_method(self):
+        self.client = Client()
+        self.post = PostFactory(content=BLOCKNOTE_JSON_CONTENT)
+
+    def test_home_displays_plaintext_not_json(self):
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "Mon titre" in content
+        assert '"type"' not in content
+        assert '"heading"' not in content
+
+    def test_post_list_displays_plaintext_not_json(self):
+        response = self.client.get("/articles/")
+        content = response.content.decode()
+        assert "Mon titre" in content
+        assert '"type"' not in content
+        assert '"heading"' not in content
+
+    def test_detail_noscript_displays_plaintext(self):
+        response = self.client.get(f"/articles/{self.post.slug}/")
+        content = response.content.decode()
+        noscript_start = content.find("<noscript>")
+        noscript_end = content.find("</noscript>")
+        assert noscript_start != -1, "noscript block not found in post_detail"
+        assert noscript_end != -1, "noscript closing tag not found"
+        noscript_content = content[noscript_start:noscript_end]
+        assert '"type"' not in noscript_content
+        assert "Mon titre" in noscript_content
+
+    def test_home_displays_legacy_plaintext_content(self):
+        PostFactory(content="Contenu texte brut legacy")
+        response = self.client.get("/")
+        content = response.content.decode()
+        assert "Contenu texte brut legacy" in content

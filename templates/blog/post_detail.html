@@ -37,7 +37,7 @@
              class="text-gray-700 leading-relaxed"
              data-content="{{ post.content }}">
             <noscript>
-                <div class="whitespace-pre-line">{{ post.content }}</div>
+                <div class="whitespace-pre-line">{{ post.content|blocknote_plaintext }}</div>
             </noscript>
         </div>
     </article>
