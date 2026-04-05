@@ -63,7 +63,7 @@ class ProfileUpdateView(LoginRequiredMixin, View):
             user_form.save()
             try:
                 profile_form.save()
-            except OSError:
+            except (OSError, AttributeError):
                 messages.error(
                     request,
                     "Impossible d'enregistrer l'avatar. Veuillez réessayer.",
