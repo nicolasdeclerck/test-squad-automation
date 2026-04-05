@@ -1,0 +1,71 @@
+services:
+  django:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile.prod
+    env_file:
+      - .env.prod
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_files:/app/staticfiles:ro
+      - media_files:/app/media:ro
+    depends_on:
+      - django
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.blog.rule=Host(`blog.nickorp.com`)"
+      - "traefik.http.routers.blog.entrypoints=websecure"
+      - "traefik.http.routers.blog.tls.certresolver=myresolver"
+      - "traefik.http.routers.blog-http.rule=Host(`blog.nickorp.com`)"
+      - "traefik.http.routers.blog-http.entrypoints=web"
+      - "traefik.http.routers.blog-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.services.blog.loadbalancer.server.port=80"
+    networks:
+      - default
+      - traefik
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile.prod
+    command: celery -A config worker -l info
+    env_file:
+      - .env.prod
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_files:
+  media_files:
+
+networks:
+  traefik:
+    external: true
+    name: n8n-traefik_default

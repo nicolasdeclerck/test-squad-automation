@@ -77,3 +77,8 @@
     @apply text-sm text-gray-500 hover:text-black transition-colors;
   }
 }
+
+/* BlockNote editor overrides (outside @layer to avoid Tailwind purge) */
+.bn-editor {
+  padding-left: 0 !important;
+}
