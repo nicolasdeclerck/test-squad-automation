@@ -41,7 +41,7 @@
                    value="{{ form.title.value|default:'' }}"
                    placeholder="Titre de l'article"
                    required
-                   class="w-full text-3xl font-bold text-gray-900 border-none outline-none focus:ring-0 bg-transparent placeholder-gray-300 p-0{% if form.title.errors %} border-b-2 border-red-500{% endif %}">
+                   class="w-full text-3xl font-bold text-gray-900 border-0 outline-none focus:ring-0 bg-transparent placeholder-gray-300 p-0{% if form.title.errors %} border-b-2 border-red-500{% endif %}">
             {% if form.title.errors %}
             <ul class="errorlist mt-1">
                 {% for error in form.title.errors %}
