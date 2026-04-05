@@ -23,6 +23,15 @@ class TestProfileSignal:
         user.save()
         assert Profile.objects.filter(user=user).count() == 1
 
+    def test_signal_does_not_save_profile_on_user_update(self):
+        user = UserFactory()
+        profile = user.profile
+        original_avatar = profile.avatar.name
+        user.first_name = "Updated"
+        user.save()
+        profile.refresh_from_db()
+        assert profile.avatar.name == original_avatar
+
 
 @pytest.mark.django_db
 class TestProfileStr:
@@ -76,3 +85,16 @@ class TestAvatarValidation:
             content_type="image/webp",
         )
         validate_avatar(file)
+
+    def test_validate_avatar_handles_missing_file(self):
+        from unittest.mock import PropertyMock, patch
+
+        from django.db.models.fields.files import FieldFile
+
+        mock_field_file = FieldFile(None, Profile.avatar.field, "avatars/missing.jpg")
+        with patch.object(
+            type(mock_field_file), "size", new_callable=PropertyMock, side_effect=FileNotFoundError
+        ):
+            with pytest.raises(ValidationError) as exc_info:
+                validate_avatar(mock_field_file)
+            assert "inaccessible" in str(exc_info.value)

@@ -30,14 +30,28 @@
             </div>
             {% endif %}
         </div>
-        <p class="text-sm text-gray-500 mb-8">
-            Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
-        </p>
+        <div class="flex items-center gap-2 mb-8">
+            {% if post.author.profile.avatar %}
+            <img src="{{ post.author.profile.avatar.url }}" alt="" class="w-8 h-8 rounded-full object-cover shrink-0">
+            {% else %}
+            <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-medium shrink-0">
+                {{ post.author.email|first|upper }}
+            </div>
+            {% endif %}
+            <p class="text-sm text-gray-500">
+                {% if post.author.first_name and post.author.last_name %}
+                    {{ post.author.first_name }} {{ post.author.last_name }}
+                {% else %}
+                    {{ post.author.email }}
+                {% endif %}
+                — {{ post.created_at|date:"d/m/Y" }}
+            </p>
+        </div>
         <div id="blocknote-content"
              class="text-gray-700 leading-relaxed"
              data-content="{{ post.content }}">
             <noscript>
-                <div class="whitespace-pre-line">{{ post.content }}</div>
+                <div class="whitespace-pre-line">{{ post.content|blocknote_plaintext }}</div>
             </noscript>
         </div>
     </article>
