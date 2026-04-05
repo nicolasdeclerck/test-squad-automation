@@ -12,7 +12,7 @@ def validate_avatar(image):
     max_size = 5 * 1024 * 1024  # 5 MB
     try:
         file_size = image.size
-    except (FileNotFoundError, OSError, ValueError):
+    except (FileNotFoundError, OSError, ValueError, AttributeError):
         raise ValidationError("Le fichier image est inaccessible.")
     if file_size > max_size:
         raise ValidationError("La taille de l'image ne doit pas dépasser 5 Mo.")
@@ -34,6 +34,7 @@ class Profile(models.Model):
     avatar = models.ImageField(
         upload_to="avatars/",
         blank=True,
+        null=True,
         validators=[validate_avatar],
     )
 

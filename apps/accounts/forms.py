@@ -82,3 +82,8 @@ class ProfileForm(forms.ModelForm):
         labels = {
             "avatar": "Avatar",
         }
+
+    def save(self, commit=True):
+        if not self.files.get("avatar") and self.instance.avatar:
+            self.instance.avatar._committed = True
+        return super().save(commit=commit)
