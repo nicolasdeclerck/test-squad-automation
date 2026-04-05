@@ -7,7 +7,11 @@ from django.dispatch import receiver
 
 def validate_avatar(image):
     max_size = 5 * 1024 * 1024  # 5 MB
-    if image.size > max_size:
+    try:
+        file_size = image.size
+    except (FileNotFoundError, OSError):
+        raise ValidationError("Le fichier image est inaccessible.")
+    if file_size > max_size:
         raise ValidationError("La taille de l'image ne doit pas dépasser 5 Mo.")
 
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
@@ -44,6 +48,3 @@ class Profile(models.Model):
 def create_or_update_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
-    else:
-        if hasattr(instance, "profile"):
-            instance.profile.save()
