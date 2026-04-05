@@ -56,7 +56,7 @@
             <label class="sr-only">Contenu</label>
             {{ form.content }}
             <div id="blocknote-editor"
-                 class="border border-gray-300 rounded-md focus-within:border-gray-900 focus-within:ring-1 focus-within:ring-gray-900{% if form.content.errors %} border-red-500{% endif %}"></div>
+                 class="{% if form.content.errors %}border border-red-500{% endif %}"></div>
             <p class="text-xs text-gray-400 mt-1">
                 Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique, <kbd>/</kbd> pour les blocs (titres, listes, etc.)
             </p>
