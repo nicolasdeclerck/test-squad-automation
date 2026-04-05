@@ -21,9 +21,23 @@
                     <h2 class="text-xl font-semibold text-gray-900">
                         <a href="{% url 'post_detail' post.slug %}" class="hover:underline">{{ post.title }}</a>
                     </h2>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Par {{ post.author.email }} — {{ post.created_at|date:"d/m/Y" }}
-                    </p>
+                    <div class="flex items-center gap-2 mt-1">
+                        {% if post.author.profile.avatar %}
+                        <img src="{{ post.author.profile.avatar.url }}" alt="" class="w-6 h-6 rounded-full object-cover shrink-0">
+                        {% else %}
+                        <div class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs font-medium shrink-0">
+                            {{ post.author.email|first|upper }}
+                        </div>
+                        {% endif %}
+                        <p class="text-sm text-gray-500">
+                            {% if post.author.first_name and post.author.last_name %}
+                                {{ post.author.first_name }} {{ post.author.last_name }}
+                            {% else %}
+                                {{ post.author.email }}
+                            {% endif %}
+                            — {{ post.created_at|date:"d/m/Y" }}
+                        </p>
+                    </div>
                 </div>
                 {% if user == post.author %}
                 <div class="flex items-center gap-2 ml-4 shrink-0">
