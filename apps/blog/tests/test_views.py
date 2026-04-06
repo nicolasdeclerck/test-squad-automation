@@ -167,7 +167,9 @@ class TestPostCreateView:
             CREATE_URL,
             {"title": "Nouvel article", "content": "Contenu de l'article"},
         )
-        assert Post.objects.filter(title="Nouvel article").exists()
+        post = Post.objects.get(draft_title="Nouvel article")
+        assert post.status == Post.STATUS_DRAFT
+        assert post.has_draft is True
 
     def test_create_post_assigns_author(self):
         self.client.login(username=self.user.username, password=self.password)
@@ -175,25 +177,27 @@ class TestPostCreateView:
             CREATE_URL,
             {"title": "Mon article", "content": "Contenu"},
         )
-        post = Post.objects.get(title="Mon article")
+        post = Post.objects.get(draft_title="Mon article")
         assert post.author == self.user
 
-    def test_create_post_redirects_to_home(self):
+    def test_create_post_redirects_to_edit(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             CREATE_URL,
             {"title": "Article", "content": "Contenu"},
         )
+        post = Post.objects.get(draft_title="Article")
         assert response.status_code == 302
-        assert response.url == "/"
+        assert response.url == f"/articles/{post.slug}/modifier/"
 
-    def test_create_post_invalid_returns_200(self):
+    def test_create_post_empty_creates_draft(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             CREATE_URL,
             {"title": "", "content": ""},
         )
-        assert response.status_code == 200
+        assert response.status_code == 302
+        assert Post.objects.filter(author=self.user, status=Post.STATUS_DRAFT).exists()
 
     def test_create_post_generates_slug(self):
         self.client.login(username=self.user.username, password=self.password)
@@ -201,7 +205,7 @@ class TestPostCreateView:
             CREATE_URL,
             {"title": "Mon super article", "content": "Contenu"},
         )
-        post = Post.objects.get(title="Mon super article")
+        post = Post.objects.get(draft_title="Mon super article")
         assert post.slug == "mon-super-article"
 
     def test_create_seo_title(self):
@@ -245,22 +249,36 @@ class TestPostUpdateView:
 
     def test_update_post_success(self):
         self.client.login(username=self.user.username, password=self.password)
+        original_title = self.post.title
+        original_content = self.post.content
         response = self.client.post(
             self.url,
             {"title": "Titre modifié", "content": "Contenu modifié"},
         )
         assert response.status_code == 302
-        assert response.url == "/"
+        assert response.url == f"/articles/{self.post.slug}/modifier/"
         self.post.refresh_from_db()
-        assert self.post.title == "Titre modifié"
-        assert self.post.content == "Contenu modifié"
+        assert self.post.draft_title == "Titre modifié"
+        assert self.post.draft_content == "Contenu modifié"
+        assert self.post.has_draft is True
+        assert self.post.title == original_title
+        assert self.post.content == original_content
 
     def test_update_form_is_prefilled(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get(self.url)
         content = response.content.decode()
         assert self.post.title in content
-        assert response.context["form"].initial["content"] == self.post.content
+
+    def test_update_form_prefills_draft_when_has_draft(self):
+        self.post.draft_title = "Brouillon titre"
+        self.post.draft_content = "Brouillon contenu"
+        self.post.has_draft = True
+        self.post.save()
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert response.context["form"].initial["title"] == "Brouillon titre"
+        assert response.context["form"].initial["content"] == "Brouillon contenu"
 
     def test_update_slug_does_not_change(self):
         original_slug = self.post.slug
@@ -272,13 +290,13 @@ class TestPostUpdateView:
         self.post.refresh_from_db()
         assert self.post.slug == original_slug
 
-    def test_update_invalid_data_returns_200(self):
+    def test_update_empty_data_saves_successfully(self):
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.post(
             self.url,
             {"title": "", "content": ""},
         )
-        assert response.status_code == 200
+        assert response.status_code == 302
 
     def test_update_seo_title(self):
         self.client.login(username=self.user.username, password=self.password)
@@ -426,8 +444,26 @@ class TestPostDetailView:
         response = self.client.get(self.url)
         assert response.status_code == 200
 
-    def test_detail_returns_404_for_draft(self):
+    def test_detail_returns_404_for_draft_anonymous(self):
         draft = PostFactory(status=Post.STATUS_DRAFT)
+        response = self.client.get(f"/articles/{draft.slug}/")
+        assert response.status_code == 404
+
+    def test_detail_returns_200_for_draft_author(self):
+        user = UserFactory(password=self.password)
+        draft = PostFactory(
+            status=Post.STATUS_DRAFT,
+            author=user,
+            draft_title="Mon brouillon",
+        )
+        self.client.login(username=user.username, password=self.password)
+        response = self.client.get(f"/articles/{draft.slug}/")
+        assert response.status_code == 200
+
+    def test_detail_returns_404_for_draft_other_user(self):
+        other = UserFactory(password=self.password)
+        draft = PostFactory(status=Post.STATUS_DRAFT)
+        self.client.login(username=other.username, password=self.password)
         response = self.client.get(f"/articles/{draft.slug}/")
         assert response.status_code == 404
 
@@ -721,3 +757,153 @@ class TestCommentDeleteView:
         response = self.client.get(self.url)
         assert response.status_code == 405
         assert Comment.objects.filter(pk=self.comment.pk).exists()
+
+
+MY_POSTS_URL = "/mes-articles/"
+
+
+@pytest.mark.django_db
+class TestMyPostsListView:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+
+    def test_my_posts_requires_auth(self):
+        response = self.client.get(MY_POSTS_URL)
+        assert response.status_code == 302
+        assert LOGIN_URL in response.url
+
+    def test_my_posts_returns_200(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(MY_POSTS_URL)
+        assert response.status_code == 200
+
+    def test_my_posts_shows_all_user_posts(self):
+        PostFactory(author=self.user, status=Post.STATUS_PUBLISHED)
+        PostFactory(
+            author=self.user,
+            status=Post.STATUS_DRAFT,
+            draft_title="Brouillon",
+        )
+        PostFactory()  # another user's post
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(MY_POSTS_URL)
+        assert len(response.context["posts"]) == 2
+
+    def test_my_posts_does_not_show_others_posts(self):
+        PostFactory()  # another user's post
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(MY_POSTS_URL)
+        assert len(response.context["posts"]) == 0
+
+    def test_my_posts_shows_draft_badge(self):
+        PostFactory(
+            author=self.user,
+            status=Post.STATUS_DRAFT,
+            draft_title="Mon brouillon",
+        )
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(MY_POSTS_URL)
+        content = response.content.decode()
+        assert "Brouillon" in content
+
+    def test_my_posts_shows_published_badge(self):
+        PostFactory(author=self.user, status=Post.STATUS_PUBLISHED)
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(MY_POSTS_URL)
+        content = response.content.decode()
+        assert "Publié" in content
+
+    def test_my_posts_paginates_by_10(self):
+        PostFactory.create_batch(15, author=self.user)
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(MY_POSTS_URL)
+        assert len(response.context["posts"]) == 10
+
+
+@pytest.mark.django_db
+class TestPostDetailVersionNavigation:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+        self.post = PostFactory(
+            author=self.user,
+            title="Version publiée",
+            content="Contenu publié",
+            status=Post.STATUS_PUBLISHED,
+            has_draft=True,
+            draft_title="Version brouillon",
+            draft_content="Contenu brouillon",
+        )
+        self.url = f"/articles/{self.post.slug}/"
+
+    def test_default_shows_published_version(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        assert response.context["display_title"] == "Version publiée"
+        assert response.context["viewing_version"] == "published"
+
+    def test_draft_param_shows_draft_version(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url + "?version=draft")
+        assert response.context["display_title"] == "Version brouillon"
+        assert response.context["viewing_version"] == "draft"
+
+    def test_version_banner_visible_for_author(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "Versions" in content
+        assert "?version=draft" in content
+
+    def test_version_banner_hidden_for_non_author(self):
+        other = UserFactory(password=self.password)
+        self.client.login(username=other.username, password=self.password)
+        response = self.client.get(self.url)
+        content = response.content.decode()
+        assert "?version=draft" not in content
+
+    def test_draft_param_ignored_for_non_author(self):
+        other = UserFactory(password=self.password)
+        self.client.login(username=other.username, password=self.password)
+        response = self.client.get(self.url + "?version=draft")
+        assert response.context["display_title"] == "Version publiée"
+
+    def test_draft_banner_for_unpublished_article(self):
+        draft = PostFactory(
+            author=self.user,
+            status=Post.STATUS_DRAFT,
+            draft_title="Mon brouillon",
+        )
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(f"/articles/{draft.slug}/")
+        content = response.content.decode()
+        assert "Cet article est un brouillon" in content
+
+
+@pytest.mark.django_db
+class TestDraftVisibility:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_draft_not_in_home(self):
+        PostFactory(status=Post.STATUS_DRAFT, draft_title="Brouillon secret")
+        response = self.client.get(HOME_URL)
+        assert "Brouillon secret" not in response.content.decode()
+
+    def test_draft_not_in_public_list(self):
+        PostFactory(status=Post.STATUS_DRAFT, draft_title="Brouillon secret")
+        response = self.client.get(LIST_URL)
+        assert "Brouillon secret" not in response.content.decode()
+
+    def test_published_still_visible_in_home(self):
+        PostFactory(title="Article publié", status=Post.STATUS_PUBLISHED)
+        response = self.client.get(HOME_URL)
+        assert "Article publié" in response.content.decode()
+
+    def test_published_still_visible_in_list(self):
+        PostFactory(title="Article publié", status=Post.STATUS_PUBLISHED)
+        response = self.client.get(LIST_URL)
+        assert "Article publié" in response.content.decode()

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -42,11 +43,19 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
     form_class = PostForm
     template_name = "blog/post_form.html"
-    success_url = reverse_lazy("home")
 
     def form_valid(self, form):
         form.instance.author = self.request.user
+        form.instance.status = Post.STATUS_DRAFT
+        form.instance.draft_title = form.cleaned_data.get("title", "")
+        form.instance.draft_content = form.cleaned_data.get("content", "")
+        form.instance.has_draft = True
+        form.instance.title = ""
+        form.instance.content = ""
         return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("post_update", kwargs={"slug": self.object.slug})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -54,6 +63,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         context["meta_description"] = (
             "Créez un nouvel article sur le blog."
         )
+        context["is_new"] = True
         return context
 
 
@@ -61,11 +71,35 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     form_class = PostForm
     template_name = "blog/post_form.html"
-    success_url = reverse_lazy("home")
     slug_url_kwarg = "slug"
 
     def get_queryset(self):
         return Post.objects.filter(author=self.request.user)
+
+    def get_object(self, queryset=None):
+        if not hasattr(self, "_cached_object"):
+            self._cached_object = super().get_object(queryset)
+        return self._cached_object
+
+    def get_initial(self):
+        initial = super().get_initial()
+        obj = self.get_object()
+        if obj.has_draft:
+            initial["title"] = obj.draft_title
+            initial["content"] = obj.draft_content
+        return initial
+
+    def form_valid(self, form):
+        obj = self.get_object()
+        obj.draft_title = form.cleaned_data.get("title", "")
+        obj.draft_content = form.cleaned_data.get("content", "")
+        obj.has_draft = True
+        obj.save(update_fields=["draft_title", "draft_content", "has_draft"])
+        self.object = obj
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("post_update", kwargs={"slug": self.object.slug})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -73,6 +107,8 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         context["meta_description"] = (
             "Modifiez votre article sur le blog."
         )
+        context["is_new"] = False
+        context["post"] = self.object
         return context
 
 
@@ -100,20 +136,40 @@ class PostDetailView(DetailView):
     context_object_name = "post"
 
     def get_queryset(self):
-        return (
-            Post.objects.filter(status=Post.STATUS_PUBLISHED)
-            .select_related("author__profile")
-            .prefetch_related("comments__author__profile")
+        qs = Post.objects.select_related("author__profile").prefetch_related(
+            "comments__author__profile"
         )
+        if self.request.user.is_authenticated:
+            return qs.filter(
+                Q(status=Post.STATUS_PUBLISHED)
+                | Q(author=self.request.user)
+            )
+        return qs.filter(status=Post.STATUS_PUBLISHED)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = self.object.title
-        context["meta_description"] = (
-            self.object.content[:160]
+        post = self.object
+        is_author = self.request.user == post.author
+        viewing_draft = (
+            is_author
+            and self.request.GET.get("version") == "draft"
+            and post.has_draft
         )
+
+        if viewing_draft:
+            context["display_title"] = post.draft_title
+            context["display_content"] = post.draft_content
+            context["viewing_version"] = "draft"
+        else:
+            context["display_title"] = post.title
+            context["display_content"] = post.content
+            context["viewing_version"] = "published"
+
+        context["title"] = context["display_title"] or post.draft_title
+        context["meta_description"] = (context["display_content"] or "")[:160]
+        context["is_author"] = is_author
         context["approved_comments"] = (
-            self.object.comments.filter(is_approved=True)
+            post.comments.filter(is_approved=True)
             .select_related("author__profile")
             .order_by("-created_at")
         )
@@ -189,4 +245,24 @@ class PostListView(ListView):
         context["meta_description"] = (
             "Liste complète des articles du blog."
         )
+        return context
+
+
+class MyPostsListView(LoginRequiredMixin, ListView):
+    model = Post
+    template_name = "blog/my_posts.html"
+    context_object_name = "posts"
+    paginate_by = 10
+
+    def get_queryset(self):
+        return (
+            Post.objects.filter(author=self.request.user)
+            .select_related("author__profile")
+            .order_by("-created_at")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Mes articles"
+        context["meta_description"] = "Gérez vos articles."
         return context

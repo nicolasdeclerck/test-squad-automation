@@ -54,8 +54,8 @@ class TestBlockNotePostCreate:
             {"title": "Article BlockNote", "content": BLOCKNOTE_JSON_CONTENT},
         )
         assert response.status_code == 302
-        post = Post.objects.get(title="Article BlockNote")
-        parsed = json.loads(post.content)
+        post = Post.objects.get(draft_title="Article BlockNote")
+        parsed = json.loads(post.draft_content)
         assert isinstance(parsed, list)
         assert parsed[0]["type"] == "heading"
 
@@ -66,8 +66,8 @@ class TestBlockNotePostCreate:
             {"title": "Article texte", "content": "Du contenu simple"},
         )
         assert response.status_code == 302
-        post = Post.objects.get(title="Article texte")
-        assert post.content == "Du contenu simple"
+        post = Post.objects.get(draft_title="Article texte")
+        assert post.draft_content == "Du contenu simple"
 
 
 @pytest.mark.django_db
@@ -102,8 +102,9 @@ class TestBlockNotePostUpdate:
         )
         assert response.status_code == 302
         self.post.refresh_from_db()
-        parsed = json.loads(self.post.content)
+        parsed = json.loads(self.post.draft_content)
         assert parsed[0]["content"][0]["text"] == "Contenu modifie"
+        assert self.post.has_draft is True
 
 
 @pytest.mark.django_db

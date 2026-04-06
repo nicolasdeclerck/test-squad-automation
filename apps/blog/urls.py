@@ -4,6 +4,7 @@ from .views import (
     CommentCreateView,
     CommentDeleteView,
     HomeView,
+    MyPostsListView,
     PostCreateView,
     PostDeleteView,
     PostDetailView,
@@ -14,6 +15,7 @@ from .views import (
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
     path("articles/", PostListView.as_view(), name="post_list"),
+    path("mes-articles/", MyPostsListView.as_view(), name="my_posts"),
     path("articles/creer/", PostCreateView.as_view(), name="post_create"),
     path(
         "articles/<slug:slug>/modifier/",

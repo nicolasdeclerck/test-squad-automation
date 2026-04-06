@@ -45,7 +45,12 @@
     </div>
     {% endif %}
 
-    <form method="post" novalidate>
+    <form method="post" novalidate id="post-form"
+          data-post-slug="{% if post %}{{ post.slug }}{% endif %}"
+          data-is-new="{% if is_new %}true{% else %}false{% endif %}"
+          data-autosave-url="{% if post %}/api/blog/posts/{{ post.slug }}/autosave/{% endif %}"
+          data-publish-url="{% if post %}/api/blog/posts/{{ post.slug }}/publish/{% endif %}"
+          data-create-url="/api/blog/posts/">
         {% csrf_token %}
 
         <div class="mb-5">
@@ -84,19 +89,22 @@
             {% endif %}
         </div>
 
-        <button type="submit" class="btn-primary w-full py-3">
-            {% if form.instance.pk %}Modifier{% else %}Publier{% endif %}
-        </button>
+        <div class="flex items-center justify-between">
+            <span id="autosave-status" class="text-sm text-gray-400"></span>
+            <button type="submit" id="publish-btn" class="btn-primary py-3 px-8">
+                Publier
+            </button>
+        </div>
     </form>
 
     <div class="mt-6 text-center">
-        <a href="{% url 'home' %}" class="text-sm text-gray-500 hover:text-black transition-colors">Retour</a>
+        <a href="{% url 'my_posts' %}" class="text-sm text-gray-500 hover:text-black transition-colors">Mes articles</a>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script type="module" src="{% static 'js/blocknote-editor.js' %}?v=2"></script>
+<script type="module" src="{% static 'js/blocknote-editor.js' %}?v=3"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         var titleEl = document.getElementById("{{ form.title.id_for_label|escapejs }}");

@@ -9,15 +9,13 @@ class TestPostForm:
         form = PostForm(data={"title": "Un titre", "content": "Du contenu"})
         assert form.is_valid()
 
-    def test_title_required(self):
+    def test_empty_title_valid_for_draft(self):
         form = PostForm(data={"title": "", "content": "Du contenu"})
-        assert not form.is_valid()
-        assert "title" in form.errors
+        assert form.is_valid()
 
-    def test_content_required(self):
+    def test_empty_content_valid_for_draft(self):
         form = PostForm(data={"title": "Un titre", "content": ""})
-        assert not form.is_valid()
-        assert "content" in form.errors
+        assert form.is_valid()
 
 
 @pytest.mark.django_db

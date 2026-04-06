@@ -4,6 +4,7 @@ import pytest
 from django.test import Client
 
 from apps.accounts.tests.factories import UserFactory
+from apps.blog.models import Post
 
 from .factories import CommentFactory, PostFactory
 
@@ -12,6 +13,14 @@ API_POSTS_URL = "/api/blog/posts/"
 
 def api_post_url(slug):
     return f"/api/blog/posts/{slug}/"
+
+
+def api_autosave_url(slug):
+    return f"/api/blog/posts/{slug}/autosave/"
+
+
+def api_publish_url(slug):
+    return f"/api/blog/posts/{slug}/publish/"
 
 
 def api_comments_url(slug):
@@ -108,6 +117,35 @@ class TestPostDetailAPI:
         data = response.json()
         assert data["is_owner"] is False
 
+    def test_detail_hides_draft_data_from_non_author(self):
+        post = PostFactory(
+            draft_title="Secret draft",
+            draft_content="Secret content",
+            has_draft=True,
+        )
+        other = UserFactory()
+        self.client.force_login(other)
+        response = self.client.get(api_post_url(post.slug))
+        data = response.json()
+        assert data["draft_title"] == ""
+        assert data["draft_content"] == ""
+        assert data["has_draft"] is False
+
+    def test_detail_shows_draft_data_to_author(self):
+        user = UserFactory()
+        post = PostFactory(
+            author=user,
+            draft_title="Mon brouillon",
+            draft_content="Contenu brouillon",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.get(api_post_url(post.slug))
+        data = response.json()
+        assert data["draft_title"] == "Mon brouillon"
+        assert data["draft_content"] == "Contenu brouillon"
+        assert data["has_draft"] is True
+
     def test_detail_draft_returns_404(self):
         post = PostFactory(status="draft")
         response = self.client.get(api_post_url(post.slug))
@@ -137,8 +175,10 @@ class TestPostCreateAPI:
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["title"] == "New Post"
         assert data["slug"] == "new-post"
+        assert data["status"] == "draft"
+        assert data["has_draft"] is True
+        assert data["draft_title"] == "New Post"
 
     def test_create_post_auto_slug_dedup(self):
         user = UserFactory()
@@ -250,3 +290,151 @@ class TestCommentDeleteAPI:
         self.client.force_login(other)
         response = self.client.delete(api_comment_delete_url(comment.pk))
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestPostAutoSaveAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_autosave_requires_auth(self):
+        post = PostFactory()
+        response = self.client.patch(
+            api_autosave_url(post.slug),
+            data=json.dumps({"draft_title": "Test"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 403
+
+    def test_autosave_updates_draft_fields(self):
+        user = UserFactory()
+        post = PostFactory(author=user)
+        self.client.force_login(user)
+        response = self.client.patch(
+            api_autosave_url(post.slug),
+            data=json.dumps({
+                "draft_title": "Nouveau brouillon",
+                "draft_content": "Contenu brouillon",
+            }),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.draft_title == "Nouveau brouillon"
+        assert post.draft_content == "Contenu brouillon"
+        assert post.has_draft is True
+
+    def test_autosave_only_author(self):
+        post = PostFactory()
+        other = UserFactory()
+        self.client.force_login(other)
+        response = self.client.patch(
+            api_autosave_url(post.slug),
+            data=json.dumps({"draft_title": "Hack"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 404
+
+    def test_autosave_partial_update(self):
+        user = UserFactory()
+        post = PostFactory(author=user)
+        self.client.force_login(user)
+        response = self.client.patch(
+            api_autosave_url(post.slug),
+            data=json.dumps({"draft_title": "Titre seul"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.draft_title == "Titre seul"
+        assert post.has_draft is True
+
+
+@pytest.mark.django_db
+class TestPostPublishAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_publish_requires_auth(self):
+        post = PostFactory()
+        response = self.client.post(
+            api_publish_url(post.slug),
+            content_type="application/json",
+        )
+        assert response.status_code == 403
+
+    def test_publish_copies_draft_to_published(self):
+        user = UserFactory()
+        post = PostFactory(
+            author=user,
+            status=Post.STATUS_DRAFT,
+            draft_title="Mon article",
+            draft_content="Contenu final",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.post(
+            api_publish_url(post.slug),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.title == "Mon article"
+        assert post.content == "Contenu final"
+        assert post.status == Post.STATUS_PUBLISHED
+        assert post.has_draft is False
+        assert post.draft_title == ""
+        assert post.draft_content == ""
+        assert post.published_at is not None
+
+    def test_publish_only_author(self):
+        post = PostFactory(
+            status=Post.STATUS_DRAFT,
+            draft_title="Test",
+            has_draft=True,
+        )
+        other = UserFactory()
+        self.client.force_login(other)
+        response = self.client.post(
+            api_publish_url(post.slug),
+            content_type="application/json",
+        )
+        assert response.status_code == 404
+
+    def test_publish_fails_without_title(self):
+        user = UserFactory()
+        post = PostFactory(
+            author=user,
+            title="",
+            status=Post.STATUS_DRAFT,
+            draft_title="",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.post(
+            api_publish_url(post.slug),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    def test_publish_preserves_published_at_on_republish(self):
+        from django.utils import timezone
+
+        user = UserFactory()
+        original_date = timezone.now()
+        post = PostFactory(
+            author=user,
+            status=Post.STATUS_PUBLISHED,
+            published_at=original_date,
+            draft_title="Mise à jour",
+            draft_content="Nouveau contenu",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.post(
+            api_publish_url(post.slug),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.published_at == original_date

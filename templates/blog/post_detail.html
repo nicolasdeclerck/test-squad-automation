@@ -2,9 +2,9 @@
 {% load static %}
 {% load blog_extras %}
 
-{% block title %}{{ post.title }}{% endblock %}
+{% block title %}{{ display_title|default:post.title }}{% endblock %}
 
-{% block meta_description %}{{ post.excerpt|default:post.content|blocknote_plaintext|truncatewords:30 }}{% endblock %}
+{% block meta_description %}{{ display_content|default:post.content|blocknote_plaintext|truncatewords:30 }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://esm.sh/@blocknote/core@0.24.2/style.css">
@@ -12,9 +12,41 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-12">
+    {% if is_author and post.has_draft and post.status == 'published' %}
+    <div class="mb-6 flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-md">
+        <span class="text-sm text-gray-600">Versions :</span>
+        {% if viewing_version == 'published' %}
+        <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+            Publiée
+        </span>
+        <a href="{% url 'post_detail' post.slug %}?version=draft"
+           class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+            Brouillon
+        </a>
+        {% else %}
+        <a href="{% url 'post_detail' post.slug %}"
+           class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+            Publiée
+        </a>
+        <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+            Brouillon
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if is_author and post.status == 'draft' %}
+    <div class="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+        <p class="text-sm text-yellow-800">
+            Cet article est un brouillon. Il n'est visible que par vous.
+            <a href="{% url 'post_update' post.slug %}" class="underline font-medium">Modifier</a>
+        </p>
+    </div>
+    {% endif %}
+
     <article>
         <div class="flex items-start justify-between mb-4">
-            <h1 class="text-3xl font-bold text-gray-900">{{ post.title }}</h1>
+            <h1 class="text-3xl font-bold text-gray-900">{{ display_title }}</h1>
             {% if user == post.author %}
             <div class="flex items-center gap-2 ml-4 shrink-0">
                 <a href="{% url 'post_update' post.slug %}" class="text-gray-400 hover:text-black transition-colors" title="Modifier">
@@ -49,9 +81,9 @@
         </div>
         <div id="blocknote-content"
              class="text-gray-700 leading-relaxed"
-             data-content="{{ post.content }}">
+             data-content="{{ display_content }}">
             <noscript>
-                <div class="whitespace-pre-line">{{ post.content|blocknote_plaintext }}</div>
+                <div class="whitespace-pre-line">{{ display_content|blocknote_plaintext }}</div>
             </noscript>
         </div>
     </article>
