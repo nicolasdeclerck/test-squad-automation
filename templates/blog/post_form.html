@@ -15,7 +15,8 @@
     "react/jsx-runtime": "https://esm.sh/react@18/jsx-runtime",
     "@blocknote/core": "https://esm.sh/@blocknote/core@0.24.2?external=react,react-dom",
     "@blocknote/react": "https://esm.sh/@blocknote/react@0.24.2?external=react,react-dom",
-    "@blocknote/mantine": "https://esm.sh/@blocknote/mantine@0.24.2?external=react,react-dom"
+    "@blocknote/mantine": "https://esm.sh/@blocknote/mantine@0.24.2?external=react,react-dom",
+    "mermaid": "https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs"
   }
 }
 </script>
@@ -73,7 +74,7 @@
             <div id="blocknote-editor"
                  class="{% if form.content.errors %}border border-red-500{% endif %}"></div>
             <p class="text-xs text-gray-400 mt-1">
-                Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique, <kbd>/</kbd> pour les blocs (titres, listes, etc.)
+                Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique, <kbd>/</kbd> pour les blocs (titres, listes, mermaid, etc.)
             </p>
             {% if form.content.errors %}
             <ul class="errorlist mt-1">

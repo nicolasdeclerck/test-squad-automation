@@ -1,14 +1,144 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote } from "@blocknote/react";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCreateBlockNote,
+  createReactBlockSpec,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
+} from "@blocknote/react";
+import {
+  BlockNoteSchema,
+  defaultBlockSpecs,
+  insertOrUpdateBlock,
+  filterSuggestionItems,
+} from "@blocknote/core";
+import mermaid from "mermaid";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "strict",
+});
+
+function MermaidPreview({ code, blockId }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !code || !code.trim()) return;
+
+    const id = "mermaid-" + blockId.replace(/[^a-zA-Z0-9]/g, "");
+    mermaid
+      .render(id, code.trim())
+      .then(({ svg }) => {
+        if (containerRef.current) containerRef.current.innerHTML = svg;
+      })
+      .catch(() => {
+        if (containerRef.current)
+          containerRef.current.textContent = "Syntaxe mermaid invalide";
+      });
+  }, [code, blockId]);
+
+  if (!code || !code.trim()) {
+    return (
+      <p style={{ color: "#999", fontStyle: "italic" }}>
+        Écrivez votre code mermaid ci-dessus...
+      </p>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ display: "flex", justifyContent: "center", width: "100%" }}
+    />
+  );
+}
+
+const MermaidBlock = createReactBlockSpec(
+  {
+    type: "mermaid",
+    propSchema: {
+      data: { default: "" },
+    },
+    content: "none",
+  },
+  {
+    render: ({ block, editor }) => {
+      const isEditable = editor.isEditable;
+      const data = block.props.data || "";
+
+      const onChange = useCallback(
+        (e) => {
+          editor.updateBlock(block, {
+            props: { ...block.props, data: e.target.value },
+          });
+        },
+        [editor, block]
+      );
+
+      return (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5em",
+            border: isEditable ? "1px solid #e0e0e0" : "none",
+            borderRadius: "6px",
+            padding: isEditable ? "12px" : "0",
+            width: "100%",
+          }}
+        >
+          {isEditable && (
+            <textarea
+              value={data}
+              onChange={onChange}
+              placeholder={"graph TD\n    A[Début] --> B[Fin]"}
+              rows={6}
+              style={{
+                width: "100%",
+                fontFamily: "monospace",
+                fontSize: "13px",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                padding: "8px",
+                resize: "vertical",
+                outline: "none",
+                backgroundColor: "#f8f9fa",
+              }}
+            />
+          )}
+          <MermaidPreview code={data} blockId={block.id} />
+        </div>
+      );
+    },
+  }
+);
+
+const schema = BlockNoteSchema.create({
+  blockSpecs: {
+    ...defaultBlockSpecs,
+    mermaid: MermaidBlock,
+  },
+});
+
+const insertMermaid = () => ({
+  title: "Mermaid",
+  group: "Autre",
+  onItemClick: (editor) => {
+    insertOrUpdateBlock(editor, { type: "mermaid" });
+  },
+  aliases: ["mermaid", "diagram", "diagramme", "chart", "graphique"],
+  subtext: "Insérer un diagramme Mermaid",
+});
+
 function BlockNoteEditor({ initialContent, editorRef }) {
   const editor = useCreateBlockNote({
+    schema,
     initialContent: initialContent || undefined,
   });
 
@@ -17,10 +147,17 @@ function BlockNoteEditor({ initialContent, editorRef }) {
   }, [editor, editorRef]);
 
   return (
-    <BlockNoteView
-      editor={editor}
-      theme="light"
-    />
+    <BlockNoteView editor={editor} theme="light" slashMenu={false}>
+      <SuggestionMenuController
+        triggerCharacter="/"
+        getItems={async (query) =>
+          filterSuggestionItems(
+            [...getDefaultReactSlashMenuItems(editor), insertMermaid()],
+            query
+          )
+        }
+      />
+    </BlockNoteView>
   );
 }
 
@@ -157,7 +294,7 @@ export default function PostForm() {
           </div>
           <p className="text-xs text-gray-400 mt-1">
             Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique,{" "}
-            <kbd>/</kbd> pour les blocs (titres, listes, etc.)
+            <kbd>/</kbd> pour les blocs (titres, listes, mermaid, etc.)
           </p>
           {errors.content &&
             errors.content.map((err, i) => (

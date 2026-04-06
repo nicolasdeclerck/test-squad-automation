@@ -29,6 +29,13 @@ def _extract_text(blocks):
     parts = []
     for block in blocks:
         if isinstance(block, dict):
+            block_type = block.get("type", "")
+            # Handle mermaid blocks: extract code from props
+            if block_type == "mermaid":
+                data = block.get("props", {}).get("data", "")
+                if data:
+                    parts.append("[Diagramme Mermaid]")
+                continue
             # Extract from inline content array
             for inline in block.get("content", []):
                 if isinstance(inline, dict):

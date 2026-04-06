@@ -36,6 +36,32 @@ BLOCKNOTE_JSON_CONTENT = json.dumps(
     ]
 )
 
+BLOCKNOTE_MERMAID_CONTENT = json.dumps(
+    [
+        {
+            "id": "1",
+            "type": "paragraph",
+            "props": {},
+            "content": [{"type": "text", "text": "Voici un diagramme :"}],
+            "children": [],
+        },
+        {
+            "id": "2",
+            "type": "mermaid",
+            "props": {"data": "graph TD\n    A[Début] --> B[Fin]"},
+            "content": [],
+            "children": [],
+        },
+        {
+            "id": "3",
+            "type": "paragraph",
+            "props": {},
+            "content": [{"type": "text", "text": "Fin de l'article."}],
+            "children": [],
+        },
+    ]
+)
+
 CREATE_URL = "/articles/creer/"
 LOGIN_URL = "/comptes/connexion/"
 
@@ -212,3 +238,66 @@ class TestBlockNoteDisplayInListings:
         response = self.client.get("/")
         content = response.content.decode()
         assert "Contenu texte brut legacy" in content
+
+
+@pytest.mark.django_db
+class TestBlockNoteMermaidCreate:
+    def setup_method(self):
+        self.client = Client()
+        self.password = "testpass123"
+        self.user = UserFactory(password=self.password)
+
+    def test_create_post_with_mermaid_content(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.post(
+            CREATE_URL,
+            {"title": "Article Mermaid", "content": BLOCKNOTE_MERMAID_CONTENT},
+        )
+        assert response.status_code == 302
+        post = Post.objects.get(title="Article Mermaid")
+        parsed = json.loads(post.content)
+        assert isinstance(parsed, list)
+        mermaid_blocks = [b for b in parsed if b.get("type") == "mermaid"]
+        assert len(mermaid_blocks) == 1
+        assert "graph TD" in mermaid_blocks[0]["props"]["data"]
+
+
+class TestBlockNoteMermaidPlaintext:
+    def test_mermaid_plaintext_extraction(self):
+        result = blocknote_plaintext(BLOCKNOTE_MERMAID_CONTENT)
+        assert "Voici un diagramme :" in result
+        assert "[Diagramme Mermaid]" in result
+        assert "Fin de l'article." in result
+
+    def test_mermaid_empty_data_excluded(self):
+        content = json.dumps(
+            [
+                {
+                    "id": "1",
+                    "type": "mermaid",
+                    "props": {"data": ""},
+                    "content": [],
+                    "children": [],
+                }
+            ]
+        )
+        result = blocknote_plaintext(content)
+        assert "[Diagramme Mermaid]" not in result
+
+    def test_mermaid_block_does_not_leak_raw_code(self):
+        result = blocknote_plaintext(BLOCKNOTE_MERMAID_CONTENT)
+        assert "graph TD" not in result
+
+
+@pytest.mark.django_db
+class TestBlockNoteMermaidDetail:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_detail_renders_mermaid_content_in_data_attribute(self):
+        post = PostFactory(content=BLOCKNOTE_MERMAID_CONTENT)
+        response = self.client.get(f"/articles/{post.slug}/")
+        content = response.content.decode()
+        assert 'id="blocknote-content"' in content
+        assert "data-content" in content
+        assert "mermaid" in content
