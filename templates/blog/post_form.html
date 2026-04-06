@@ -6,7 +6,22 @@
 {% block meta_description %}{{ meta_description }}{% endblock %}
 
 {% block extra_css %}
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18",
+    "react-dom": "https://esm.sh/react-dom@18",
+    "react-dom/client": "https://esm.sh/react-dom@18/client",
+    "react/jsx-runtime": "https://esm.sh/react@18/jsx-runtime",
+    "@blocknote/core": "https://esm.sh/@blocknote/core@0.24.2?external=react,react-dom",
+    "@blocknote/react": "https://esm.sh/@blocknote/react@0.24.2?external=react,react-dom",
+    "@blocknote/mantine": "https://esm.sh/@blocknote/mantine@0.24.2?external=react,react-dom"
+  }
+}
+</script>
 <link rel="stylesheet" href="https://esm.sh/@blocknote/core@0.24.2/style.css">
+<link rel="stylesheet" href="https://esm.sh/@blocknote/mantine@0.24.2/style.css">
+<link rel="stylesheet" href="https://esm.sh/@mantine/core@7/styles.css">
 <style>
     #blocknote-editor {
         min-height: 300px;
@@ -81,7 +96,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script type="module" src="{% static 'js/blocknote-editor.js' %}"></script>
+<script type="module" src="{% static 'js/blocknote-editor.js' %}?v=2"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         var titleEl = document.getElementById("{{ form.title.id_for_label|escapejs }}");

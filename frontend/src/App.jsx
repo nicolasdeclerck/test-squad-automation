@@ -1,3 +1,4 @@
+import { MantineProvider } from "@mantine/core";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import LoginForm from "./components/accounts/LoginForm";
@@ -78,12 +79,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </HelmetProvider>
+    <MantineProvider>
+      <HelmetProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </HelmetProvider>
+    </MantineProvider>
   );
 }
