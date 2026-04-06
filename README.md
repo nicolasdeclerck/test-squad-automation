@@ -1,6 +1,6 @@
 # Test Squad Automation — Blog Django
 
-Application de blog multi-utilisateur construite avec Django. Elle permet la publication d'articles avec moderation des commentaires, gestion des profils utilisateurs et pages statiques.
+Application de blog multi-utilisateur avec un backend Django (API REST) et un frontend React (Vite). Elle permet la publication d'articles avec moderation des commentaires, gestion des profils utilisateurs et pages statiques.
 
 ## Fonctionnalites principales
 
@@ -9,13 +9,14 @@ Application de blog multi-utilisateur construite avec Django. Elle permet la pub
 - **Profils utilisateurs** : inscription, connexion, gestion de profil avec avatar
 - **Pages statiques** : a propos, contact, coming soon
 - **Taches asynchrones** : envoi de notifications via Celery
-- **Interface responsive** : stylisee avec Tailwind CSS
+- **Interface responsive** : frontend React avec Tailwind CSS
 
 ## Stack technique
 
 | Composant | Technologie | Version |
 |-----------|-------------|---------|
-| Backend | Django | 5.x |
+| Frontend | React + Vite | 18.x / 6.x |
+| Backend / API | Django + DRF | 5.x |
 | Base de donnees | PostgreSQL | 16 |
 | Cache / Queue broker | Redis | 7 |
 | Worker asynchrone | Celery | 5.x |
@@ -41,15 +42,23 @@ project/
 ├── config/              # Configuration Django (settings, urls, celery)
 │   └── settings/        # Settings par environnement (base, dev, prod)
 ├── apps/
-│   ├── accounts/        # Authentification et profils utilisateurs
-│   ├── blog/            # Articles, categories, tags, commentaires
-│   └── core/            # Pages statiques et utilitaires partages
-├── templates/           # Templates HTML (Tailwind CSS)
-├── static/              # Fichiers statiques (CSS, JS)
+│   ├── accounts/        # Authentification et profils utilisateurs (API REST)
+│   ├── blog/            # Articles, categories, tags, commentaires (API REST)
+│   └── core/            # Pages statiques et utilitaires partages (API REST)
+├── frontend/            # Application React (Vite)
+│   ├── src/
+│   │   ├── components/  # Composants React (blog, accounts, layout, ui)
+│   │   ├── contexts/    # Contextes React (authentification)
+│   │   └── api/         # Client API (fetch + CSRF)
+│   ├── package.json
+│   └── vite.config.js
+├── templates/           # Templates HTML Django (admin, fallback)
+├── static/              # Fichiers statiques Django
 ├── media/               # Uploads utilisateurs (images, avatars)
-├── docker/              # Dockerfiles
+├── docker/              # Dockerfiles et config Nginx
 ├── requirements/        # Dependances Python par environnement
 ├── docker-compose.yml
+├── docker-compose.prod.yml
 └── manage.py
 ```
 
