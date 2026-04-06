@@ -50,6 +50,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         form.instance.draft_title = form.cleaned_data.get("title", "")
         form.instance.draft_content = form.cleaned_data.get("content", "")
         form.instance.has_draft = True
+        form.instance.title = ""
+        form.instance.content = ""
         return super().form_valid(form)
 
     def get_success_url(self):
