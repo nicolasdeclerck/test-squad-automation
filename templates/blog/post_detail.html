@@ -7,23 +7,7 @@
 {% block meta_description %}{{ post.excerpt|default:post.content|blocknote_plaintext|truncatewords:30 }}{% endblock %}
 
 {% block extra_css %}
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18",
-    "react-dom": "https://esm.sh/react-dom@18",
-    "react-dom/client": "https://esm.sh/react-dom@18/client",
-    "react/jsx-runtime": "https://esm.sh/react@18/jsx-runtime",
-    "@blocknote/core": "https://esm.sh/@blocknote/core@0.24.2?external=react,react-dom",
-    "@blocknote/react": "https://esm.sh/@blocknote/react@0.24.2?external=react,react-dom",
-    "@blocknote/mantine": "https://esm.sh/@blocknote/mantine@0.24.2?external=react,react-dom",
-    "mermaid": "https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs"
-  }
-}
-</script>
-<link rel="stylesheet" href="https://esm.sh/@blocknote/core@0.24.2/style.css">
-<link rel="stylesheet" href="https://esm.sh/@blocknote/mantine@0.24.2/style.css">
-<link rel="stylesheet" href="https://esm.sh/@mantine/core@7/styles.css">
+{% include "blog/_blocknote_imports.html" %}
 <style>
     #blocknote-content .bn-editor {
         padding: 0;
@@ -71,9 +55,9 @@
                 — {{ post.created_at|date:"d/m/Y" }}
             </p>
         </div>
+        <script id="blocknote-data" type="application/json">{{ post.content|escapejs }}</script>
         <div id="blocknote-content"
-             class="text-gray-700 leading-relaxed"
-             data-content="{{ post.content }}">
+             class="text-gray-700 leading-relaxed">
             <noscript>
                 <div class="whitespace-pre-line">{{ post.content|blocknote_plaintext }}</div>
             </noscript>

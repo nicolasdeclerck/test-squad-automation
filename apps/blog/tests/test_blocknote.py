@@ -137,12 +137,13 @@ class TestBlockNotePostDetail:
     def setup_method(self):
         self.client = Client()
 
-    def test_detail_renders_json_content_in_data_attribute(self):
+    def test_detail_renders_json_content_in_script_tag(self):
         post = PostFactory(content=BLOCKNOTE_JSON_CONTENT)
         response = self.client.get(f"/articles/{post.slug}/")
         content = response.content.decode()
         assert 'id="blocknote-content"' in content
-        assert "data-content" in content
+        assert 'id="blocknote-data"' in content
+        assert 'type="application/json"' in content
 
     def test_detail_renders_plain_text_fallback(self):
         post = PostFactory(content="Contenu texte brut simple")
@@ -288,16 +289,34 @@ class TestBlockNoteMermaidPlaintext:
         result = blocknote_plaintext(BLOCKNOTE_MERMAID_CONTENT)
         assert "graph TD" not in result
 
+    def test_mermaid_xss_in_data_not_rendered(self):
+        content = json.dumps(
+            [
+                {
+                    "id": "1",
+                    "type": "mermaid",
+                    "props": {"data": "<script>alert('xss')</script>"},
+                    "content": [],
+                    "children": [],
+                }
+            ]
+        )
+        result = blocknote_plaintext(content)
+        assert "<script>" not in result
+        assert "alert" not in result
+        assert "[Diagramme Mermaid]" in result
+
 
 @pytest.mark.django_db
 class TestBlockNoteMermaidDetail:
     def setup_method(self):
         self.client = Client()
 
-    def test_detail_renders_mermaid_content_in_data_attribute(self):
+    def test_detail_renders_mermaid_content_in_script_tag(self):
         post = PostFactory(content=BLOCKNOTE_MERMAID_CONTENT)
         response = self.client.get(f"/articles/{post.slug}/")
         content = response.content.decode()
         assert 'id="blocknote-content"' in content
-        assert "data-content" in content
+        assert 'id="blocknote-data"' in content
+        assert 'type="application/json"' in content
         assert "mermaid" in content

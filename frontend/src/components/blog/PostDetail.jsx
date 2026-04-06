@@ -1,13 +1,8 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import {
-  useCreateBlockNote,
-  createReactBlockSpec,
-} from "@blocknote/react";
-import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
+import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import mermaid from "mermaid";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
@@ -15,67 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
 import CommentForm from "./CommentForm";
 import CommentSection from "./CommentSection";
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: "default",
-  securityLevel: "strict",
-});
-
-function MermaidPreview({ code, blockId }) {
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !code || !code.trim()) return;
-
-    const id = "mermaid-" + blockId.replace(/[^a-zA-Z0-9]/g, "");
-    mermaid
-      .render(id, code.trim())
-      .then(({ svg }) => {
-        if (containerRef.current) containerRef.current.innerHTML = svg;
-      })
-      .catch(() => {
-        if (containerRef.current)
-          containerRef.current.textContent = "Diagramme invalide";
-      });
-  }, [code, blockId]);
-
-  if (!code || !code.trim()) return null;
-
-  return (
-    <div
-      ref={containerRef}
-      style={{ display: "flex", justifyContent: "center", width: "100%" }}
-    />
-  );
-}
-
-const MermaidBlock = createReactBlockSpec(
-  {
-    type: "mermaid",
-    propSchema: {
-      data: { default: "" },
-    },
-    content: "none",
-  },
-  {
-    render: ({ block }) => {
-      const data = block.props.data || "";
-      return (
-        <div style={{ width: "100%", padding: "8px 0" }}>
-          <MermaidPreview code={data} blockId={block.id} />
-        </div>
-      );
-    },
-  }
-);
-
-const schema = BlockNoteSchema.create({
-  blockSpecs: {
-    ...defaultBlockSpecs,
-    mermaid: MermaidBlock,
-  },
-});
+import { schema } from "./mermaid-block";
 
 function BlockNoteRenderer({ content }) {
   const blocks = useMemo(() => {
