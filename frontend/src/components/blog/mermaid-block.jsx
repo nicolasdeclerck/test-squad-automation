@@ -5,7 +5,7 @@ import {
   insertOrUpdateBlock,
 } from "@blocknote/core";
 import mermaid from "mermaid";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 mermaid.initialize({
   startOnLoad: false,
