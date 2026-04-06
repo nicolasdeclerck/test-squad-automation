@@ -3,8 +3,10 @@ from django.urls import path
 from .api_views import (
     CommentCreateAPIView,
     CommentDeleteAPIView,
+    PostAutoSaveView,
     PostDetailAPIView,
     PostListCreateAPIView,
+    PostPublishView,
 )
 
 urlpatterns = [
@@ -13,6 +15,16 @@ urlpatterns = [
         "posts/<slug:slug>/",
         PostDetailAPIView.as_view(),
         name="api_post_detail",
+    ),
+    path(
+        "posts/<slug:slug>/autosave/",
+        PostAutoSaveView.as_view(),
+        name="api_post_autosave",
+    ),
+    path(
+        "posts/<slug:slug>/publish/",
+        PostPublishView.as_view(),
+        name="api_post_publish",
     ),
     path(
         "posts/<slug:slug>/comments/",

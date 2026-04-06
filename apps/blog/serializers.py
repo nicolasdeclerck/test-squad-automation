@@ -90,6 +90,9 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "status",
             "is_owner",
             "approved_comments",
+            "has_draft",
+            "draft_title",
+            "draft_content",
             "published_at",
             "created_at",
         )
@@ -115,3 +118,9 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ("title", "content")
+
+
+class PostAutoSaveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ("draft_title", "draft_content")

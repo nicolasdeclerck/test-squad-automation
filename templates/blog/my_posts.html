@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load blog_extras %}
+
+{% block title %}Mes articles{% endblock %}
+
+{% block meta_description %}Gérez vos articles.{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-12">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Mes articles</h1>
+        <a href="{% url 'post_create' %}" class="btn-primary">Nouvel article</a>
+    </div>
+
+    {% if posts %}
+    <div>
+        {% for post in posts %}
+        <article class="card">
+            <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-xl font-semibold text-gray-900">
+                            {% if post.status == 'published' %}
+                            <a href="{% url 'post_detail' post.slug %}" class="hover:underline">{{ post.title }}</a>
+                            {% else %}
+                            <a href="{% url 'post_update' post.slug %}" class="hover:underline">{{ post.draft_title|default:"(sans titre)" }}</a>
+                            {% endif %}
+                        </h2>
+                        {% if post.status == 'draft' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Brouillon
+                        </span>
+                        {% elif post.has_draft %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            Brouillon non publié
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            Publié
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ post.created_at|date:"d/m/Y" }}
+                        {% if post.published_at %} — Publié le {{ post.published_at|date:"d/m/Y" }}{% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 ml-4 shrink-0">
+                    <a href="{% url 'post_update' post.slug %}" class="text-gray-400 hover:text-black transition-colors" title="Modifier">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                        </svg>
+                    </a>
+                    <a href="{% url 'post_delete' post.slug %}" class="text-gray-400 hover:text-black transition-colors" title="Supprimer">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            {% if post.status == 'published' %}
+            <p class="text-gray-600 mt-3 leading-relaxed">{{ post.content|blocknote_plaintext|truncatewords:50 }}</p>
+            {% elif post.draft_content %}
+            <p class="text-gray-600 mt-3 leading-relaxed">{{ post.draft_content|blocknote_plaintext|truncatewords:50 }}</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex items-center justify-center gap-4">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           class="text-sm text-gray-500 hover:text-black transition-colors">
+            &larr; Précédent
+        </a>
+        {% endif %}
+        <span class="text-sm text-gray-400">
+            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           class="text-sm text-gray-500 hover:text-black transition-colors">
+            Suivant &rarr;
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center mt-12">
+        <p class="text-gray-500 mb-4">Vous n'avez pas encore d'articles.</p>
+        <a href="{% url 'post_create' %}" class="btn-primary">Créer votre premier article</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

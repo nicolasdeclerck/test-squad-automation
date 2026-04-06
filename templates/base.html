@@ -44,6 +44,10 @@
 
                     <div id="avatar-dropdown-menu"
                          class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg py-1 z-50">
+                        <a href="{% url 'my_posts' %}"
+                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            Mes articles
+                        </a>
                         <a href="{% url 'accounts:profile_edit' %}"
                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                             Mon profil
@@ -83,6 +87,7 @@
             </nav>
             <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-3">
                 {% if user.is_authenticated %}
+                <a href="{% url 'my_posts' %}" class="btn-secondary text-center">Mes articles</a>
                 <a href="{% url 'accounts:profile_edit' %}" class="btn-secondary text-center">Mon profil</a>
                 <a href="{% url 'post_create' %}" class="btn-primary text-center">Ajouter un article</a>
                 <form method="post" action="{% url 'accounts:logout' %}">
