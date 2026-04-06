@@ -102,8 +102,9 @@ class TestBlockNotePostUpdate:
         )
         assert response.status_code == 302
         self.post.refresh_from_db()
-        parsed = json.loads(self.post.content)
+        parsed = json.loads(self.post.draft_content)
         assert parsed[0]["content"][0]["text"] == "Contenu modifie"
+        assert self.post.has_draft is True
 
 
 @pytest.mark.django_db

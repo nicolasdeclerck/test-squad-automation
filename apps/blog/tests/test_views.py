@@ -249,6 +249,8 @@ class TestPostUpdateView:
 
     def test_update_post_success(self):
         self.client.login(username=self.user.username, password=self.password)
+        original_title = self.post.title
+        original_content = self.post.content
         response = self.client.post(
             self.url,
             {"title": "Titre modifié", "content": "Contenu modifié"},
@@ -256,8 +258,11 @@ class TestPostUpdateView:
         assert response.status_code == 302
         assert response.url == f"/articles/{self.post.slug}/modifier/"
         self.post.refresh_from_db()
-        assert self.post.title == "Titre modifié"
-        assert self.post.content == "Contenu modifié"
+        assert self.post.draft_title == "Titre modifié"
+        assert self.post.draft_content == "Contenu modifié"
+        assert self.post.has_draft is True
+        assert self.post.title == original_title
+        assert self.post.content == original_content
 
     def test_update_form_is_prefilled(self):
         self.client.login(username=self.user.username, password=self.password)

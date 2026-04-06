@@ -117,6 +117,35 @@ class TestPostDetailAPI:
         data = response.json()
         assert data["is_owner"] is False
 
+    def test_detail_hides_draft_data_from_non_author(self):
+        post = PostFactory(
+            draft_title="Secret draft",
+            draft_content="Secret content",
+            has_draft=True,
+        )
+        other = UserFactory()
+        self.client.force_login(other)
+        response = self.client.get(api_post_url(post.slug))
+        data = response.json()
+        assert data["draft_title"] == ""
+        assert data["draft_content"] == ""
+        assert data["has_draft"] is False
+
+    def test_detail_shows_draft_data_to_author(self):
+        user = UserFactory()
+        post = PostFactory(
+            author=user,
+            draft_title="Mon brouillon",
+            draft_content="Contenu brouillon",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.get(api_post_url(post.slug))
+        data = response.json()
+        assert data["draft_title"] == "Mon brouillon"
+        assert data["draft_content"] == "Contenu brouillon"
+        assert data["has_draft"] is True
+
     def test_detail_draft_returns_404(self):
         post = PostFactory(status="draft")
         response = self.client.get(api_post_url(post.slug))
@@ -354,6 +383,8 @@ class TestPostPublishAPI:
         assert post.content == "Contenu final"
         assert post.status == Post.STATUS_PUBLISHED
         assert post.has_draft is False
+        assert post.draft_title == ""
+        assert post.draft_content == ""
         assert post.published_at is not None
 
     def test_publish_only_author(self):

@@ -38,6 +38,8 @@ class Post(models.Model):
         self.content = self.draft_content
         self.status = self.STATUS_PUBLISHED
         self.has_draft = False
+        self.draft_title = ""
+        self.draft_content = ""
         if not self.published_at:
             self.published_at = timezone.now()
         self.save()

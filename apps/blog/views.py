@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -73,6 +74,11 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     def get_queryset(self):
         return Post.objects.filter(author=self.request.user)
 
+    def get_object(self, queryset=None):
+        if not hasattr(self, "_cached_object"):
+            self._cached_object = super().get_object(queryset)
+        return self._cached_object
+
     def get_initial(self):
         initial = super().get_initial()
         obj = self.get_object()
@@ -80,6 +86,15 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
             initial["title"] = obj.draft_title
             initial["content"] = obj.draft_content
         return initial
+
+    def form_valid(self, form):
+        obj = self.get_object()
+        obj.draft_title = form.cleaned_data.get("title", "")
+        obj.draft_content = form.cleaned_data.get("content", "")
+        obj.has_draft = True
+        obj.save(update_fields=["draft_title", "draft_content", "has_draft"])
+        self.object = obj
+        return redirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse("post_update", kwargs={"slug": self.object.slug})
@@ -123,8 +138,6 @@ class PostDetailView(DetailView):
             "comments__author__profile"
         )
         if self.request.user.is_authenticated:
-            from django.db.models import Q
-
             return qs.filter(
                 Q(status=Post.STATUS_PUBLISHED)
                 | Q(author=self.request.user)

@@ -45,6 +45,7 @@ function BlockNoteEditorApp({ initialContent, hiddenInput }) {
 
 let autosaveTimer = null;
 let postSlug = null;
+let isCreating = false;
 
 function getCsrfToken() {
   const cookie = document.cookie
@@ -71,10 +72,16 @@ function setStatus(text, type) {
 }
 
 async function createPost() {
+  if (isCreating) return postSlug;
+  isCreating = true;
+
   const form = document.getElementById("post-form");
   const titleEl = document.getElementById("id_title");
   const contentEl = document.getElementById("id_content");
-  if (!form || !titleEl || !contentEl) return null;
+  if (!form || !titleEl || !contentEl) {
+    isCreating = false;
+    return null;
+  }
 
   setStatus("Sauvegarde en cours...", "saving");
 
@@ -92,6 +99,7 @@ async function createPost() {
 
   if (!resp.ok) {
     setStatus("Erreur de sauvegarde", "error");
+    isCreating = false;
     return null;
   }
 
@@ -109,6 +117,7 @@ async function createPost() {
   window.history.replaceState({}, "", newUrl);
 
   setStatus("Brouillon sauvegardé", "saved");
+  isCreating = false;
   return data.slug;
 }
 
@@ -178,17 +187,26 @@ async function publish() {
   const autosaveUrl = form.dataset.autosaveUrl;
 
   if (autosaveUrl && titleEl && contentEl) {
-    await fetch(autosaveUrl, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCsrfToken(),
-      },
-      body: JSON.stringify({
-        draft_title: titleEl.value,
-        draft_content: contentEl.value,
-      }),
-    });
+    try {
+      const saveResp = await fetch(autosaveUrl, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+        },
+        body: JSON.stringify({
+          draft_title: titleEl.value,
+          draft_content: contentEl.value,
+        }),
+      });
+      if (!saveResp.ok) {
+        setStatus("Erreur de sauvegarde avant publication", "error");
+        return;
+      }
+    } catch {
+      setStatus("Erreur de sauvegarde avant publication", "error");
+      return;
+    }
   }
 
   const publishUrl = form.dataset.publishUrl;
@@ -243,10 +261,13 @@ async function publish() {
     titleEl.addEventListener("input", triggerAutosave);
   }
 
-  // Publish button
-  const publishBtn = document.getElementById("publish-btn");
-  if (publishBtn) {
-    publishBtn.addEventListener("click", publish);
+  // Intercept form submit for JS-powered publish
+  const formEl = document.getElementById("post-form");
+  if (formEl) {
+    formEl.addEventListener("submit", function (e) {
+      e.preventDefault();
+      publish();
+    });
   }
 
   // Set initial slug if editing existing post

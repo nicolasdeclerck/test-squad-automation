@@ -78,6 +78,9 @@ class PostDetailSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
     is_owner = serializers.SerializerMethodField()
     approved_comments = serializers.SerializerMethodField()
+    has_draft = serializers.SerializerMethodField()
+    draft_title = serializers.SerializerMethodField()
+    draft_content = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -97,11 +100,27 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "created_at",
         )
 
-    def get_is_owner(self, obj):
+    def _is_author(self, obj):
         request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            return obj.author_id == request.user.id
+        return request and request.user.is_authenticated and obj.author_id == request.user.id
+
+    def get_is_owner(self, obj):
+        return self._is_author(obj)
+
+    def get_has_draft(self, obj):
+        if self._is_author(obj):
+            return obj.has_draft
         return False
+
+    def get_draft_title(self, obj):
+        if self._is_author(obj):
+            return obj.draft_title
+        return ""
+
+    def get_draft_content(self, obj):
+        if self._is_author(obj):
+            return obj.draft_content
+        return ""
 
     def get_approved_comments(self, obj):
         comments = (
