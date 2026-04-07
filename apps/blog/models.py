@@ -59,6 +59,34 @@ class Post(models.Model):
         super().save(*args, **kwargs)
 
 
+class PostVersion(models.Model):
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name="versions"
+    )
+    version_number = models.PositiveIntegerField()
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    published_at = models.DateTimeField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="+",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["post", "version_number"],
+                name="unique_post_version_number",
+            )
+        ]
+        ordering = ["-version_number"]
+
+    def __str__(self):
+        return f"{self.post} — v{self.version_number}"
+
+
 class Comment(models.Model):
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE, related_name="comments"

@@ -1,8 +1,9 @@
 import pytest
+from django.db import IntegrityError
 
-from apps.blog.models import Comment, Post
+from apps.blog.models import Comment, Post, PostVersion
 
-from .factories import CommentFactory, PostFactory
+from .factories import CommentFactory, PostFactory, PostVersionFactory
 
 
 @pytest.mark.django_db
@@ -55,3 +56,37 @@ class TestCommentModel:
         post_pk = comment.post.pk
         comment.post.delete()
         assert not Comment.objects.filter(post_id=post_pk).exists()
+
+
+@pytest.mark.django_db
+class TestPostVersionModel:
+    def test_create_post_version(self):
+        version = PostVersionFactory()
+        assert PostVersion.objects.filter(pk=version.pk).exists()
+        assert version.post is not None
+        assert version.version_number >= 1
+        assert version.title
+        assert version.published_at is not None
+
+    def test_unique_version_number_per_post(self):
+        version = PostVersionFactory(version_number=1)
+        with pytest.raises(IntegrityError):
+            PostVersionFactory(post=version.post, version_number=1)
+
+    def test_ordering_by_version_number_desc(self):
+        post = PostFactory()
+        v1 = PostVersionFactory(post=post, version_number=1)
+        v2 = PostVersionFactory(post=post, version_number=2)
+        v3 = PostVersionFactory(post=post, version_number=3)
+        versions = list(PostVersion.objects.filter(post=post))
+        assert versions == [v3, v2, v1]
+
+    def test_cascade_delete_with_post(self):
+        version = PostVersionFactory()
+        post_pk = version.post.pk
+        version.post.delete()
+        assert not PostVersion.objects.filter(post_id=post_pk).exists()
+
+    def test_str_representation(self):
+        version = PostVersionFactory(version_number=2)
+        assert str(version) == f"{version.post} — v2"
