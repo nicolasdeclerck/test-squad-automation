@@ -36,7 +36,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ubuntu
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: | 
+          command_timeout: 60m
+          script: |
             docker exec claude-worker git -C /workspace/test-squad-automation pull origin main
             docker exec -i -w /workspace/test-squad-automation claude-worker \
               claude -p "Exécute le skill .claude/skills/regression-tests/SKILL.md" \
