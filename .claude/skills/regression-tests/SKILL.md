@@ -20,17 +20,38 @@ Lis le fichier `docs/browser-test-checklist.md` pour récupérer :
 - Les prérequis (URLs, utilisateurs de test)
 - La liste complète des scénarios de test organisés par section
 
-### 1.2 Vérification de l'environnement
+### 1.2 Configuration des URLs cibles
+
+Détermine les URLs à utiliser selon l'environnement. Les variables `BASE_URL`
+et `API_URL` permettent de cibler n'importe quel environnement :
+
+```bash
+BASE_URL="${BASE_URL:-https://blog.nickorp.com}"
+API_URL="${API_URL:-https://blog.nickorp.com}"
+```
+
+**Valeurs par défaut** (production) :
+- `BASE_URL=https://blog.nickorp.com`
+- `API_URL=https://blog.nickorp.com`
+
+**Développement local** :
+- `BASE_URL=http://localhost:5173`
+- `API_URL=http://localhost:8001`
+
+Toutes les URLs utilisées dans les tests sont construites à partir de
+`BASE_URL` (ex : `${BASE_URL}/comptes/connexion`).
+
+### 1.3 Vérification de l'environnement
 
 Vérifie que l'application est accessible :
 
 ```bash
-agent-browser open http://localhost:5173 && agent-browser wait --load networkidle && agent-browser snapshot -i
+agent-browser open ${BASE_URL} && agent-browser wait --load networkidle && agent-browser snapshot -i
 ```
 
 Si l'application n'est pas accessible, affiche un message d'erreur et **STOP**.
 
-### 1.3 Initialisation du rapport
+### 1.4 Initialisation du rapport
 
 Crée un fichier de rapport temporaire pour collecter les résultats :
 
@@ -72,10 +93,10 @@ Utilise des sessions nommées pour gérer les contextes d'auth :
 
 ```bash
 # Session non connectée (tests [PUBLIC])
-agent-browser --session public open http://localhost:5173
+agent-browser --session public open ${BASE_URL}
 
 # Connexion utilisateur 1 (tests [AUTH] et [OWNER])
-agent-browser --session user1 open http://localhost:5173/comptes/connexion
+agent-browser --session user1 open ${BASE_URL}/comptes/connexion
 agent-browser --session user1 snapshot -i
 agent-browser --session user1 fill @eN "testuser@example.com"
 agent-browser --session user1 fill @eM "Testpass123!"
@@ -83,7 +104,7 @@ agent-browser --session user1 click @eK
 agent-browser --session user1 wait --load networkidle
 
 # Connexion utilisateur 2 (tests inter-utilisateurs)
-agent-browser --session user2 open http://localhost:5173/comptes/connexion
+agent-browser --session user2 open ${BASE_URL}/comptes/connexion
 # ... même flow avec testuser2@example.com ...
 ```
 
