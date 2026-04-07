@@ -5,6 +5,11 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
+env:
+  # github.ref_name = branch selected in the "Use workflow from" dropdown
+  # For schedule triggers this is the default branch (main)
+  TNR_BRANCH: ${{ github.ref_name }}
+
 jobs:
   regression-tests:
     runs-on: ubuntu-latest
@@ -21,17 +26,40 @@ jobs:
             "repos/${{ github.repository }}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=100" \
             --jq "[.[] | select(.merged_at != null and .merged_at >= \"$SINCE\")] | length")
 
-          echo "merge_count=$MERGE_COUNT" >> "$GITHUB_OUTPUT"
-
-          if [ "$MERGE_COUNT" -eq 0 ]; then
-            echo "No PRs merged on main in the last 24h. Skipping regression tests."
+          # Manual dispatch always runs (skip merge check)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — skipping merge check."
+            echo "merge_count=1" >> "$GITHUB_OUTPUT"
           else
-            echo "$MERGE_COUNT PR(s) merged on main in the last 24h. Running regression tests."
+            echo "merge_count=$MERGE_COUNT" >> "$GITHUB_OUTPUT"
+            if [ "$MERGE_COUNT" -eq 0 ]; then
+              echo "No PRs merged on main in the last 24h. Skipping regression tests."
+            else
+              echo "$MERGE_COUNT PR(s) merged on main in the last 24h. Running regression tests."
+            fi
           fi
+
+      - name: Start ephemeral test environment
+        id: start-env
+        if: steps.check-merges.outputs.merge_count != '0'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd ~/test-squad-automation
+            git fetch origin "${{ env.TNR_BRANCH }}"
+            git checkout "${{ env.TNR_BRANCH }}"
+            git pull origin "${{ env.TNR_BRANCH }}"
+            ./scripts/tnr-docker.sh up
+            docker network connect blog-tnr_default claude-worker || true
 
       - name: Run regression tests on VPS
         id: run-tests
-        if: steps.check-merges.outputs.merge_count != '0'
+        if: steps.start-env.outcome == 'success'
         uses: appleboy/ssh-action@v1
         continue-on-error: true
         with:
@@ -40,10 +68,29 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           command_timeout: 60m
           script: |
-            docker exec claude-worker git -C /workspace/test-squad-automation pull origin main
-            docker exec -i -w /workspace/test-squad-automation claude-worker \
+            docker exec claude-worker git -C /workspace/test-squad-automation fetch origin "${{ env.TNR_BRANCH }}"
+            docker exec claude-worker git -C /workspace/test-squad-automation checkout "${{ env.TNR_BRANCH }}"
+            docker exec claude-worker git -C /workspace/test-squad-automation pull origin "${{ env.TNR_BRANCH }}"
+            docker exec -i -w /workspace/test-squad-automation \
+              -e BASE_URL=http://blog-tnr-nginx-1:80 \
+              -e API_URL=http://blog-tnr-nginx-1:80 \
+              claude-worker \
               claude -p "Exécute le skill .claude/skills/regression-tests/SKILL.md" \
               --dangerously-skip-permissions --output-format json
+
+      - name: Tear down test environment
+        if: always() && steps.start-env.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            docker network disconnect blog-tnr_default claude-worker || true
+            cd ~/test-squad-automation
+            ./scripts/tnr-docker.sh down
+            git checkout main || true
 
       - name: Handle failure (token quota or other error)
         if: steps.run-tests.outcome == 'failure'

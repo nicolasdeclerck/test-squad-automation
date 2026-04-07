@@ -22,21 +22,40 @@ Lis le fichier `docs/browser-test-checklist.md` pour récupérer :
 
 ### 1.2 Configuration des URLs cibles
 
-Les URLs cibles sont **toujours** les URLs de production, sauf si les
-variables d'environnement `BASE_URL` et `API_URL` sont explicitement définies :
+Les URLs cibles sont déterminées par les variables d'environnement
+`BASE_URL` et `API_URL`. Par défaut, elles pointent vers la production :
 
 ```bash
 BASE_URL="${BASE_URL:-https://blog.nickorp.com}"
 API_URL="${API_URL:-https://blog.nickorp.com}"
 ```
 
-**IMPORTANT : ne jamais utiliser `localhost` ou `127.0.0.1`.** Si aucune
-variable d'environnement n'est définie, utiliser obligatoirement :
+Si aucune variable d'environnement n'est définie, utiliser :
 - `BASE_URL=https://blog.nickorp.com`
 - `API_URL=https://blog.nickorp.com`
 
 Toutes les URLs utilisées dans les tests sont construites à partir de
 `BASE_URL` (ex : `${BASE_URL}/comptes/connexion`).
+
+#### Mode Docker local (environnement éphémère)
+
+Pour exécuter les TNR sur un environnement Docker local identique à la
+production mais accessible uniquement en localhost :
+
+```bash
+# 1. Démarrer l'environnement éphémère
+./scripts/tnr-docker.sh up
+
+# 2. Lancer les tests avec BASE_URL sur localhost
+BASE_URL=http://localhost:8080 API_URL=http://localhost:8080 /regression-tests
+
+# 3. Détruire l'environnement après les tests
+./scripts/tnr-docker.sh down
+```
+
+L'environnement Docker éphémère (`docker-compose.test.yml`) reproduit
+fidèlement la production : gunicorn, nginx, frontend buildé, PostgreSQL,
+Redis, Celery — mais sans Traefik ni certificat TLS.
 
 ### 1.3 Vérification de l'environnement
 
