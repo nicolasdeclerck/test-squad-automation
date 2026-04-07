@@ -72,6 +72,54 @@ results = {
 }
 ```
 
+### 1.5 Création de l'issue de suivi GitHub
+
+Crée une issue GitHub dédiée au suivi en temps réel de cette exécution de TNR.
+Le corps de l'issue contient la liste de tous les tests extraits du cahier,
+avec un statut initial `⏳` (en attente).
+
+```bash
+# Construire le corps de l'issue avec la liste des tests
+ISSUE_BODY="## 🧪 Tests de non-régression — $(date -u '+%Y-%m-%d %H:%M UTC')
+
+**Environnement :** ${BASE_URL}
+**Statut :** 🔄 En cours
+
+---
+
+### Progression
+
+| Statut | Test | Section |
+|--------|------|---------|"
+
+# Pour chaque test du cahier, ajouter une ligne :
+# | ⏳ | [ID] Nom du test | Section |
+# Exemple :
+# | ⏳ | [1.1] Affichage du header | Navigation et Layout |
+
+ISSUE_BODY="$ISSUE_BODY
+
+---
+
+### Légende
+- ⏳ En attente
+- ✅ Réussi (PASS)
+- ❌ Échoué (FAIL)
+- ⏭️ Ignoré (SKIP)
+
+---
+**Total :** {total} tests | ✅ 0 | ❌ 0 | ⏭️ 0"
+
+TRACKING_ISSUE=$(gh issue create \
+  --repo nicolasdeclerck/test-squad-automation \
+  --title "Tests de non-régression — $(date -u '+%Y-%m-%d')" \
+  --label "non-regression tests" \
+  --body "$ISSUE_BODY" \
+  --json number --jq '.number')
+```
+
+Conserve `TRACKING_ISSUE` (numéro de l'issue) pour la mise à jour progressive.
+
 ---
 
 ## PHASE 2 — Exécution des tests
@@ -161,6 +209,39 @@ Pour chaque test exécuté, ajoute une entrée au rapport :
   "screenshot": "/tmp/regression-fail-1.1.png si FAIL",
   "url": "URL au moment du test"
 }
+```
+
+### 2.6 Mise à jour de l'issue de suivi
+
+Après chaque test exécuté, mets à jour le **corps** de l'issue de suivi
+(pas de commentaire) pour refléter la progression en temps réel.
+
+**Actions :**
+
+1. Remplace le statut du test dans le tableau :
+   - `⏳` → `✅` si PASS
+   - `⏳` → `❌` si FAIL (ajouter le détail entre parenthèses)
+   - `⏳` → `⏭️` si SKIP
+2. Met à jour les compteurs en bas de l'issue
+3. Met à jour via `gh issue edit` :
+
+```bash
+# Reconstruire le corps complet de l'issue avec les statuts mis à jour
+gh issue edit $TRACKING_ISSUE \
+  --repo nicolasdeclerck/test-squad-automation \
+  --body "$UPDATED_BODY"
+```
+
+**Important :** Ne pas mettre à jour après chaque test individuel si cela
+ralentit trop l'exécution. Mettre à jour **par section** (après tous les
+tests d'une même section) est un bon compromis entre suivi temps réel et
+performance.
+
+**Exemple de ligne mise à jour :**
+```
+| ✅ | [1.1] Affichage du header | Navigation et Layout |
+| ❌ | [1.2] Navigation responsive (détail: menu burger ne s'ouvre pas) | Navigation et Layout |
+| ⏭️ | [2.1] Inscription utilisateur | Authentification |
 ```
 
 ---
@@ -278,7 +359,7 @@ Issues GitHub créées :
 
 ---
 
-## PHASE 5 — Nettoyage
+## PHASE 5 — Nettoyage et finalisation
 
 ### 5.1 Fermeture des sessions browser
 
@@ -286,7 +367,32 @@ Issues GitHub créées :
 agent-browser close --all
 ```
 
-### 5.2 Résumé final
+### 5.2 Finalisation de l'issue de suivi
+
+Met à jour une dernière fois le corps de l'issue de suivi pour marquer
+l'exécution comme terminée :
+
+1. Remplace `**Statut :** 🔄 En cours` par `**Statut :** ✅ Terminé` (ou
+   `**Statut :** ❌ Terminé avec échecs` si des tests ont échoué)
+2. S'assure que tous les compteurs sont à jour
+
+```bash
+gh issue edit $TRACKING_ISSUE \
+  --repo nicolasdeclerck/test-squad-automation \
+  --body "$FINAL_BODY"
+```
+
+Si tous les tests sont passés, ferme l'issue :
+
+```bash
+if [ "$FAILED_COUNT" -eq 0 ]; then
+  gh issue close $TRACKING_ISSUE \
+    --repo nicolasdeclerck/test-squad-automation \
+    --reason completed
+fi
+```
+
+### 5.3 Résumé final
 
 Affiche un résumé concis :
 
@@ -294,6 +400,7 @@ Affiche un résumé concis :
 Tests de non-régression terminés.
   {passed}/{total} tests réussis
   {failed} issues créées sur GitHub
+  Suivi : issue #{TRACKING_ISSUE}
   Rapport : {REPORT_FILE}
 ```
 
