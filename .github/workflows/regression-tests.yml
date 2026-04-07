@@ -34,7 +34,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: root
+          username: ubuntu
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             docker exec -i -w /workspace/test-squad-automation claude-worker \
