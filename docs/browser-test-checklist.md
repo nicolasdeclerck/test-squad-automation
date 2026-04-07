@@ -388,9 +388,59 @@
 
 ---
 
-## 12. Scénarios end-to-end (parcours complets)
+## 12. Historique des versions
 
-### 12.1 — Parcours complet : inscription → création article → commentaire
+### 12.1 — [AUTH/OWNER] Bouton historique des versions visible pour l'auteur
+
+- **URL** : `/articles/{slug}` (article publié par l'utilisateur connecté, ayant au moins une version)
+- **Vérifications** :
+  - Un bouton ou lien "Historique des versions" est visible
+  - Le bouton redirige vers `/articles/{slug}/versions`
+
+### 12.2 — [AUTH] Bouton historique des versions absent pour un non-auteur
+
+- **URL** : `/articles/{slug}` (article publié par un autre utilisateur)
+- **Vérifications** :
+  - Le bouton "Historique des versions" n'est PAS visible
+
+### 12.3 — [PUBLIC] Bouton historique absent pour un visiteur non connecté
+
+- **URL** : `/articles/{slug}`
+- **Vérifications** :
+  - Le bouton "Historique des versions" n'est PAS visible
+
+### 12.4 — [AUTH/OWNER] Liste des versions d'un article
+
+- **URL** : `/articles/{slug}/versions`
+- **Vérifications** :
+  - La liste des versions est affichée
+  - Chaque entrée affiche : numéro de version (badge), titre, date de publication
+  - Les versions sont triées de la plus récente à la plus ancienne
+  - Un lien de retour vers l'article est présent
+  - Le clic sur une version redirige vers `/articles/{slug}/versions/{n}`
+
+### 12.5 — [AUTH/OWNER] Détail d'une version (lecture seule)
+
+- **URL** : `/articles/{slug}/versions/{n}`
+- **Vérifications** :
+  - Le numéro de version, le titre et la date de publication sont affichés
+  - Le contenu de la version est affiché en lecture seule (rendu BlockNote)
+  - Aucun bouton d'édition ou de restauration n'est présent
+  - Un lien de retour vers la liste des versions est présent
+  - Un lien de retour vers l'article est présent
+
+### 12.6 — [AUTH/OWNER] Protection des routes versions
+
+- **Action** : Accéder à `/articles/{slug}/versions` sans être connecté
+- **Vérifications** :
+  - Redirection vers `/comptes/connexion`
+  - Même comportement pour `/articles/{slug}/versions/{n}`
+
+---
+
+## 13. Scénarios end-to-end (parcours complets)
+
+### 13.1 — Parcours complet : inscription → création article → commentaire
 
 1. Ouvrir `/comptes/inscription`
 2. Créer un compte avec `newuser@example.com` / `Testpass123!`
@@ -404,7 +454,7 @@
 10. Ajouter un commentaire "Super article !"
 11. Vérifier le message de modération
 
-### 12.2 — Parcours complet : brouillon → édition → publication
+### 13.2 — Parcours complet : brouillon → édition → publication
 
 1. Se connecter avec un utilisateur existant
 2. Naviguer vers `/articles/creer`
@@ -417,7 +467,7 @@
 9. Cliquer "Mettre à jour"
 10. Vérifier que les modifications sont appliquées
 
-### 12.3 — Parcours complet : gestion du profil
+### 13.3 — Parcours complet : gestion du profil
 
 1. Se connecter
 2. Naviguer vers `/comptes/profil/modifier`
@@ -431,7 +481,7 @@
 10. Supprimer l'avatar
 11. Vérifier que les initiales s'affichent à la place
 
-### 12.4 — Parcours complet : permissions inter-utilisateurs
+### 13.4 — Parcours complet : permissions inter-utilisateurs
 
 1. Se connecter avec l'utilisateur 1
 2. Créer et publier un article
@@ -442,3 +492,19 @@
 7. Vérifier que le formulaire de commentaire est accessible
 8. Ajouter un commentaire
 9. Vérifier le message de modération
+
+### 13.5 — Parcours complet : publication → historique des versions
+
+1. Se connecter avec l'utilisateur 1
+2. Créer un article et le publier (version 1)
+3. Modifier l'article (titre et contenu), puis re-publier (version 2)
+4. Sur la page de l'article, vérifier que le bouton "Historique des versions" est visible
+5. Cliquer sur "Historique des versions"
+6. Vérifier que 2 versions sont listées avec les bons numéros et titres
+7. Cliquer sur la version 1
+8. Vérifier que le contenu original est affiché en lecture seule
+9. Naviguer vers la liste des versions via le lien retour
+10. Se déconnecter
+11. Se connecter avec l'utilisateur 2
+12. Ouvrir l'article de l'utilisateur 1
+13. Vérifier que le bouton "Historique des versions" est ABSENT
