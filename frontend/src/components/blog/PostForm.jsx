@@ -99,7 +99,6 @@ export default function PostForm() {
         } else if (publishRes.data?.error) {
           setErrors({ non_field_errors: [publishRes.data.error] });
         }
-        navigate(`/articles/${res.data.slug}/modifier`);
         return;
       }
       navigate(`/articles/${res.data.slug}`);
