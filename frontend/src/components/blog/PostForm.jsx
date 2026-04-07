@@ -68,6 +68,11 @@ export default function PostForm() {
     e.preventDefault();
     setErrors({});
 
+    if (!title.trim()) {
+      setErrors({ title: ["Le titre est obligatoire."] });
+      return;
+    }
+
     const content = editorRef.current
       ? JSON.stringify(editorRef.current.document)
       : "";
@@ -88,6 +93,12 @@ export default function PostForm() {
           navigate(`/articles/${publishRes.data.slug}`);
           return;
         }
+        if (publishRes.errors) {
+          setErrors(publishRes.errors);
+        } else if (publishRes.data?.error) {
+          setErrors({ non_field_errors: [publishRes.data.error] });
+        }
+        return;
       }
       navigate(`/articles/${res.data.slug}`);
     } else if (res.errors) {
