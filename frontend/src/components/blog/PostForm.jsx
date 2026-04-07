@@ -73,15 +73,16 @@ export default function PostForm() {
       return;
     }
 
+    const trimmedTitle = title.trim();
     const content = editorRef.current
       ? JSON.stringify(editorRef.current.document)
       : "";
 
     let res;
     if (isEdit) {
-      res = await api.patch(`/api/blog/posts/${slug}/`, { title, content });
+      res = await api.patch(`/api/blog/posts/${slug}/`, { title: trimmedTitle, content });
     } else {
-      res = await api.post("/api/blog/posts/", { title, content });
+      res = await api.post("/api/blog/posts/", { title: trimmedTitle, content });
     }
 
     if (res.ok) {
@@ -98,6 +99,7 @@ export default function PostForm() {
         } else if (publishRes.data?.error) {
           setErrors({ non_field_errors: [publishRes.data.error] });
         }
+        navigate(`/articles/${res.data.slug}/modifier`);
         return;
       }
       navigate(`/articles/${res.data.slug}`);
