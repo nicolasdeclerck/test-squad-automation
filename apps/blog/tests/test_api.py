@@ -39,6 +39,10 @@ def api_version_detail_url(slug, version_number):
     return f"/api/blog/posts/{slug}/versions/{version_number}/"
 
 
+def api_version_restore_url(slug, version_number):
+    return f"/api/blog/posts/{slug}/versions/{version_number}/restore/"
+
+
 @pytest.mark.django_db
 class TestPostListAPI:
     def setup_method(self):
@@ -577,4 +581,73 @@ class TestPostVersionDetailAPI:
         response = self.client.get(
             api_version_detail_url("nonexistent-slug", 1)
         )
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestPostVersionRestoreAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_restore_version_as_draft(self):
+        post = PostFactory(
+            title="Current Title",
+            content="Current Content",
+            status=Post.STATUS_PUBLISHED,
+        )
+        PostVersionFactory(
+            post=post,
+            version_number=1,
+            title="Old Title",
+            content="Old Content",
+        )
+        self.client.force_login(post.author)
+        response = self.client.post(api_version_restore_url(post.slug, 1))
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.draft_title == "Old Title"
+        assert post.draft_content == "Old Content"
+
+    def test_restore_version_sets_has_draft(self):
+        post = PostFactory(
+            has_draft=False, status=Post.STATUS_PUBLISHED
+        )
+        PostVersionFactory(
+            post=post, version_number=1, title="V1", content="C1"
+        )
+        self.client.force_login(post.author)
+        self.client.post(api_version_restore_url(post.slug, 1))
+        post.refresh_from_db()
+        assert post.has_draft is True
+
+    def test_restore_version_does_not_modify_published_content(self):
+        post = PostFactory(
+            title="Published Title",
+            content="Published Content",
+            status=Post.STATUS_PUBLISHED,
+        )
+        PostVersionFactory(
+            post=post,
+            version_number=1,
+            title="Old Title",
+            content="Old Content",
+        )
+        self.client.force_login(post.author)
+        self.client.post(api_version_restore_url(post.slug, 1))
+        post.refresh_from_db()
+        assert post.title == "Published Title"
+        assert post.content == "Published Content"
+
+    def test_restore_version_forbidden_for_non_author(self):
+        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        PostVersionFactory(post=post, version_number=1)
+        other_user = UserFactory()
+        self.client.force_login(other_user)
+        response = self.client.post(api_version_restore_url(post.slug, 1))
+        assert response.status_code == 403
+
+    def test_restore_version_not_found(self):
+        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        self.client.force_login(post.author)
+        response = self.client.post(api_version_restore_url(post.slug, 999))
         assert response.status_code == 404

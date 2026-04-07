@@ -1,10 +1,12 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
+import { Button, Modal } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 
 function BlockNoteRenderer({ content }) {
@@ -44,9 +46,12 @@ function BlockNoteRenderer({ content }) {
 
 export default function VersionDetail() {
   const { slug, versionNumber } = useParams();
+  const navigate = useNavigate();
   const [version, setVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     api
@@ -60,6 +65,30 @@ export default function VersionDetail() {
         setLoading(false);
       });
   }, [slug, versionNumber]);
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    const res = await api.post(
+      `/api/blog/posts/${slug}/versions/${versionNumber}/restore/`
+    );
+    setRestoring(false);
+    if (res.ok) {
+      setRestoreModalOpen(false);
+      notifications.show({
+        title: "Version restaurée",
+        message: `Le contenu de la version ${versionNumber} a été restauré comme brouillon.`,
+        color: "green",
+      });
+      navigate(`/articles/${slug}/modifier`);
+    } else {
+      setRestoreModalOpen(false);
+      notifications.show({
+        title: "Erreur",
+        message: "Impossible de restaurer cette version.",
+        color: "red",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -114,7 +143,7 @@ export default function VersionDetail() {
 
       <BlockNoteRenderer content={version.content} />
 
-      <div className="mt-10 flex gap-4">
+      <div className="mt-10 flex items-center gap-4">
         <Link
           to={`/articles/${slug}/versions`}
           className="text-sm text-gray-500 hover:text-black transition-colors"
@@ -127,7 +156,42 @@ export default function VersionDetail() {
         >
           Voir l'article actuel
         </Link>
+        <Button
+          variant="outline"
+          color="dark"
+          size="xs"
+          onClick={() => setRestoreModalOpen(true)}
+        >
+          Restaurer cette version
+        </Button>
       </div>
+
+      <Modal
+        opened={restoreModalOpen}
+        onClose={() => setRestoreModalOpen(false)}
+        title="Restaurer cette version"
+        centered
+      >
+        <p className="text-gray-700 mb-4">
+          Cette action va remplacer votre brouillon actuel par le contenu de la
+          version {versionNumber}. Voulez-vous continuer ?
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="default"
+            onClick={() => setRestoreModalOpen(false)}
+          >
+            Annuler
+          </Button>
+          <Button
+            color="dark"
+            loading={restoring}
+            onClick={handleRestore}
+          >
+            Confirmer
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
