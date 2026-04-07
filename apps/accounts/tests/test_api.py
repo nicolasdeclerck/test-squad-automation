@@ -212,7 +212,6 @@ class TestProfileUpdateAvatarValidationAPI:
         assert "avatar" in data
 
     def test_accepts_valid_jpeg_upload(self):
-        import struct
         from io import BytesIO
 
         from django.core.files.uploadedfile import SimpleUploadedFile
