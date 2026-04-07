@@ -1,24 +1,30 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
+import Pagination from "../ui/Pagination";
 
 export default function VersionHistory() {
   const { slug } = useParams();
   const [versions, setVersions] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parseInt(searchParams.get("page") || "1", 10);
 
   useEffect(() => {
-    api.get(`/api/blog/posts/${slug}/versions/`).then((res) => {
+    setLoading(true);
+    api.get(`/api/blog/posts/${slug}/versions/?page=${page}`).then((res) => {
       if (res.ok) {
-        setVersions(res.data);
+        setVersions(res.data.results);
+        setTotalPages(Math.ceil(res.data.count / 10));
       } else {
         setError("Impossible de charger l'historique des versions.");
       }
       setLoading(false);
     });
-  }, [slug]);
+  }, [slug, page]);
 
   if (loading) {
     return (
@@ -88,6 +94,12 @@ export default function VersionHistory() {
           ))}
         </div>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        setSearchParams={setSearchParams}
+      />
 
       <div className="mt-10">
         <Link

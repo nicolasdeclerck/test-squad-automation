@@ -83,7 +83,7 @@ export default function PostDetail() {
   useEffect(() => {
     if (post?.is_owner) {
       api.get(`/api/blog/posts/${slug}/versions/`).then((res) => {
-        if (res.ok && res.data.length > 0) {
+        if (res.ok && res.data.count > 0) {
           setHasVersions(true);
         }
       });
