@@ -1,21 +1,27 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
+import Pagination from "../ui/Pagination";
 import PostCard from "./PostCard";
 
 export default function MyDrafts() {
   const [posts, setPosts] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parseInt(searchParams.get("page") || "1", 10);
 
   useEffect(() => {
-    api.get("/api/blog/posts/?status=draft").then((res) => {
+    setLoading(true);
+    api.get(`/api/blog/posts/?status=draft&page=${page}`).then((res) => {
       if (res.ok) {
         setPosts(res.data.results);
+        setTotalPages(Math.ceil(res.data.count / 10));
       }
       setLoading(false);
     });
-  }, []);
+  }, [page]);
 
   if (loading) {
     return (
@@ -42,11 +48,18 @@ export default function MyDrafts() {
       </div>
 
       {posts.length > 0 ? (
-        <div>
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        <>
+          <div>
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            setSearchParams={setSearchParams}
+          />
+        </>
       ) : (
         <p className="text-gray-500 text-center mt-12">
           Aucun brouillon pour le moment.

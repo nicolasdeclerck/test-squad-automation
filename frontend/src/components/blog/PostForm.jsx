@@ -88,10 +88,6 @@ export default function PostForm() {
           navigate(`/articles/${publishRes.data.slug}`);
           return;
         }
-        if (publishRes.errors) {
-          setErrors(publishRes.errors);
-          return;
-        }
       }
       navigate(`/articles/${res.data.slug}`);
     } else if (res.errors) {
