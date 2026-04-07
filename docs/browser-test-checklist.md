@@ -425,9 +425,28 @@
 - **Vérifications** :
   - Le numéro de version, le titre et la date de publication sont affichés
   - Le contenu de la version est affiché en lecture seule (rendu BlockNote)
-  - Aucun bouton d'édition ou de restauration n'est présent
+  - Un bouton "Restaurer cette version" est présent
   - Un lien de retour vers la liste des versions est présent
   - Un lien de retour vers l'article est présent
+
+### 12.7 — [AUTH/OWNER] Restauration d'une version comme brouillon
+
+- **URL** : `/articles/{slug}/versions/{n}`
+- **Action** : Cliquer sur le bouton "Restaurer cette version"
+- **Vérifications** :
+  - Une modale de confirmation s'affiche avec un message indiquant que le brouillon actuel sera remplacé
+  - Clic sur "Annuler" ferme la modale sans effet
+  - Clic sur "Confirmer" appelle l'API de restauration
+  - Après succès, une notification de succès s'affiche
+  - Redirection automatique vers `/articles/{slug}/modifier`
+  - L'éditeur affiche le contenu de la version restaurée (draft_title et draft_content mis à jour)
+
+### 12.8 — [AUTH] Restauration d'une version — Non-auteur
+
+- **Action** : Un utilisateur non-auteur tente d'accéder à `/articles/{slug}/versions/{n}`
+- **Vérifications** :
+  - L'accès à la page de version est refusé (403 ou message d'erreur)
+  - Le bouton "Restaurer cette version" n'est pas accessible
 
 ### 12.6 — [AUTH/OWNER] Protection des routes versions
 
@@ -508,3 +527,19 @@
 11. Se connecter avec l'utilisateur 2
 12. Ouvrir l'article de l'utilisateur 1
 13. Vérifier que le bouton "Historique des versions" est ABSENT
+
+### 13.6 — Parcours complet : publication → restauration de version → re-publication
+
+1. Se connecter avec l'utilisateur 1
+2. Créer un article avec titre "Version originale" et du contenu, le publier (version 1)
+3. Modifier le titre en "Version modifiée" et le contenu, re-publier (version 2)
+4. Vérifier que l'article affiche "Version modifiée"
+5. Naviguer vers "Historique des versions"
+6. Cliquer sur la version 1
+7. Vérifier que le contenu original "Version originale" est affiché
+8. Cliquer sur "Restaurer cette version"
+9. Confirmer dans la modale
+10. Vérifier la notification de succès
+11. Vérifier la redirection vers l'éditeur
+12. Vérifier que l'éditeur contient le titre "Version originale" et le contenu de la version 1
+13. Vérifier que l'article publié affiche toujours "Version modifiée" (non publié automatiquement)
