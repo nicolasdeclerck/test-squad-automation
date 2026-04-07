@@ -130,7 +130,7 @@ class PostPublishView(APIView):
         post = generics.get_object_or_404(
             Post, slug=slug, author=request.user
         )
-        if not post.draft_title and not post.title:
+        if not (post.draft_title or "").strip() and not (post.title or "").strip():
             return Response(
                 {"error": "Le titre est requis pour publier."},
                 status=status.HTTP_400_BAD_REQUEST,

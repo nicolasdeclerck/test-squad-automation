@@ -68,15 +68,21 @@ export default function PostForm() {
     e.preventDefault();
     setErrors({});
 
+    if (!title.trim()) {
+      setErrors({ title: ["Le titre est obligatoire."] });
+      return;
+    }
+
+    const trimmedTitle = title.trim();
     const content = editorRef.current
       ? JSON.stringify(editorRef.current.document)
       : "";
 
     let res;
     if (isEdit) {
-      res = await api.patch(`/api/blog/posts/${slug}/`, { title, content });
+      res = await api.patch(`/api/blog/posts/${slug}/`, { title: trimmedTitle, content });
     } else {
-      res = await api.post("/api/blog/posts/", { title, content });
+      res = await api.post("/api/blog/posts/", { title: trimmedTitle, content });
     }
 
     if (res.ok) {
@@ -88,6 +94,12 @@ export default function PostForm() {
           navigate(`/articles/${publishRes.data.slug}`);
           return;
         }
+        if (publishRes.errors) {
+          setErrors(publishRes.errors);
+        } else if (publishRes.data?.error) {
+          setErrors({ non_field_errors: [publishRes.data.error] });
+        }
+        return;
       }
       navigate(`/articles/${res.data.slug}`);
     } else if (res.errors) {

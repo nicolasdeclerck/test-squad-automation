@@ -138,6 +138,11 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
         model = Post
         fields = ("title", "content")
 
+    def validate_title(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Le titre est obligatoire.")
+        return value.strip()
+
 
 class PostAutoSaveSerializer(serializers.ModelSerializer):
     class Meta:
