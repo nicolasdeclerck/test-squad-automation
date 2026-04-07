@@ -1,4 +1,5 @@
 import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import LoginForm from "./components/accounts/LoginForm";
@@ -107,6 +108,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <MantineProvider>
+      <Notifications position="top-right" />
       <HelmetProvider>
         <BrowserRouter>
           <AuthProvider>

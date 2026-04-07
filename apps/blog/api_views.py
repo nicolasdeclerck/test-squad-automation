@@ -175,3 +175,22 @@ class PostVersionDetailAPIView(generics.RetrieveAPIView):
         if post.author != self.request.user:
             self.permission_denied(self.request)
         return PostVersion.objects.filter(post=post)
+
+
+class PostVersionRestoreAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug, version_number):
+        post = generics.get_object_or_404(Post, slug=slug)
+        if post.author != request.user:
+            self.permission_denied(request)
+        version = generics.get_object_or_404(
+            PostVersion, post=post, version_number=version_number
+        )
+        post.draft_title = version.title
+        post.draft_content = version.content
+        post.has_draft = True
+        post.save()
+        return Response(
+            {"status": "restored", "version_number": version.version_number}
+        )

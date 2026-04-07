@@ -9,6 +9,7 @@ from .api_views import (
     PostPublishView,
     PostVersionDetailAPIView,
     PostVersionListAPIView,
+    PostVersionRestoreAPIView,
 )
 
 urlpatterns = [
@@ -47,5 +48,10 @@ urlpatterns = [
         "posts/<slug:slug>/versions/<int:version_number>/",
         PostVersionDetailAPIView.as_view(),
         name="api_post_version_detail",
+    ),
+    path(
+        "posts/<slug:slug>/versions/<int:version_number>/restore/",
+        PostVersionRestoreAPIView.as_view(),
+        name="api_post_version_restore",
     ),
 ]
