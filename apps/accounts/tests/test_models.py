@@ -26,11 +26,10 @@ class TestProfileSignal:
     def test_signal_does_not_save_profile_on_user_update(self):
         user = UserFactory()
         profile = user.profile
-        original_avatar = profile.avatar.name
         user.first_name = "Updated"
         user.save()
         profile.refresh_from_db()
-        assert profile.avatar.name == original_avatar
+        assert not profile.avatar
 
 
 @pytest.mark.django_db
@@ -63,25 +62,43 @@ class TestAvatarValidation:
         assert "5 Mo" in str(exc_info.value)
 
     def test_accepts_valid_jpeg(self):
+        from io import BytesIO
+
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new("RGB", (10, 10), color="red").save(buf, format="JPEG")
         file = SimpleUploadedFile(
             "photo.jpg",
-            b"\xff\xd8\xff" + b"x" * 100,
+            buf.getvalue(),
             content_type="image/jpeg",
         )
         validate_avatar(file)
 
     def test_accepts_valid_png(self):
+        from io import BytesIO
+
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new("RGB", (10, 10), color="red").save(buf, format="PNG")
         file = SimpleUploadedFile(
             "photo.png",
-            b"\x89PNG" + b"x" * 100,
+            buf.getvalue(),
             content_type="image/png",
         )
         validate_avatar(file)
 
     def test_accepts_valid_webp(self):
+        from io import BytesIO
+
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new("RGB", (10, 10), color="red").save(buf, format="WEBP")
         file = SimpleUploadedFile(
             "photo.webp",
-            b"RIFF" + b"x" * 100,
+            buf.getvalue(),
             content_type="image/webp",
         )
         validate_avatar(file)
@@ -133,4 +150,37 @@ class TestAvatarValidation:
         mock_file.__bool__ = lambda self: True
         with pytest.raises(ValidationError) as exc_info:
             validate_avatar(mock_file)
+        assert "Format non autorisé" in str(exc_info.value)
+
+    def test_rejects_fake_content_type(self):
+        """Un fichier .txt avec content_type=image/jpeg doit être rejeté."""
+        file = SimpleUploadedFile(
+            "fake.jpg",
+            b"this is plain text, not an image",
+            content_type="image/jpeg",
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            validate_avatar(file)
+        assert "Format non autorisé" in str(exc_info.value)
+
+    def test_rejects_file_without_content_type(self):
+        """Un fichier sans content_type doit être rejeté."""
+        file = SimpleUploadedFile(
+            "mystery.bin",
+            b"some binary data",
+        )
+        file.content_type = None
+        with pytest.raises(ValidationError) as exc_info:
+            validate_avatar(file)
+        assert "Format non autorisé" in str(exc_info.value)
+
+    def test_rejects_pdf_file(self):
+        """Un fichier PDF doit être rejeté."""
+        file = SimpleUploadedFile(
+            "document.pdf",
+            b"%PDF-1.4 some pdf content here",
+            content_type="application/pdf",
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            validate_avatar(file)
         assert "Format non autorisé" in str(exc_info.value)
