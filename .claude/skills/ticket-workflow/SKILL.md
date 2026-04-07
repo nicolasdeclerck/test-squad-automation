@@ -313,7 +313,27 @@ git diff --cached --quiet || git commit -m "feat: close #{ISSUE_NUMBER} - {titre
 git push origin "$BRANCH_NAME"
 ```
 
-### 3.5 Commentaire de documentation
+### 3.5 Vérification de la documentation
+
+Après chaque implémentation, vérifie si les fichiers de documentation du projet
+nécessitent des mises à jour en fonction des changements réalisés :
+
+- **`CLAUDE.md`** : stack technique, modèles, endpoints API, conventions, architecture
+- **`README.md`** : fonctionnalités, stack, structure du projet
+- **`INSTALL.md`** : nouvelles dépendances, variables d'environnement, étapes d'installation
+
+Pour chaque fichier, compare le contenu actuel avec les changements apportés.
+Si une mise à jour est nécessaire, applique-la directement (pas de commentaire GitHub).
+
+Exemples de changements déclencheurs :
+- Nouveau modèle ou champ → mettre à jour la section modèles de `CLAUDE.md`
+- Nouvel endpoint API → mettre à jour la section endpoints de `CLAUDE.md`
+- Nouvelle dépendance Python/JS → mettre à jour `INSTALL.md` et la stack dans `README.md`/`CLAUDE.md`
+- Nouvelle variable d'environnement → mettre à jour `INSTALL.md` et `CLAUDE.md`
+- Nouvelle app ou dossier → mettre à jour l'arborescence dans `CLAUDE.md` et `README.md`
+- Nouvelle fonctionnalité utilisateur → mettre à jour les fonctionnalités dans `README.md`
+
+### 3.6 Commentaire de documentation
 
 ```bash
 gh issue comment {ISSUE_NUMBER} --body "## 📝 Documentation
@@ -331,7 +351,7 @@ gh issue comment {ISSUE_NUMBER} --body "## 📝 Documentation
 [Limitations, prérequis]"
 ```
 
-### 3.6 Pull Request
+### 3.7 Pull Request
 
 ```bash
 EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 2>/dev/null)
@@ -365,7 +385,7 @@ Closes #{ISSUE_NUMBER}
 fi
 ```
 
-### 3.7 Transition vers Phase 4
+### 3.8 Transition vers Phase 4
 
 ```bash
 N_DEV=$((N_DEV + 1))
