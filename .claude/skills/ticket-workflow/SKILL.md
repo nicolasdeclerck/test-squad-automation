@@ -240,7 +240,39 @@ gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan d'implémentation
 [Tests prioritaires, fixtures, cas limites]"
 ```
 
-### 2.5 Transition vers Phase 3
+### 2.5 Mise à jour du cahier de tests browser (TDD)
+
+Avant de démarrer le développement, mets à jour le cahier de tests de non-régression
+`docs/browser-test-checklist.md` pour refléter les fonctionnalités à implémenter.
+
+**Principe TDD :** les tests attendus sont écrits **avant** le code, ce qui garantit
+que le cahier est toujours synchronisé avec les fonctionnalités de l'application.
+
+**Démarche :**
+
+1. Lis le fichier `docs/browser-test-checklist.md` existant
+2. Analyse les tâches du plan (étape 2.3) pour identifier les impacts sur les tests browser :
+   - Nouvelle fonctionnalité utilisateur → **ajouter** de nouveaux scénarios de test
+   - Modification d'un flux existant → **mettre à jour** les scénarios concernés
+   - Suppression d'une fonctionnalité → **retirer** les scénarios obsolètes
+   - Nouvel endpoint API consommé par le front → **ajouter** les vérifications associées
+   - Changement de comportement UI (formulaire, navigation, permissions) → **adapter** les vérifications
+3. Applique les modifications en respectant les conventions du cahier :
+   - Tags `[PUBLIC]`, `[AUTH]`, `[OWNER]` selon le niveau d'accès requis
+   - Format : action à réaliser + résultat attendu
+   - Placement dans la section thématique appropriée (ou création d'une nouvelle section si nécessaire)
+   - Si la fonctionnalité implique un parcours complet, ajouter un scénario end-to-end (section 12)
+4. Commite la mise à jour du cahier **séparément** du code d'implémentation :
+
+```bash
+git add docs/browser-test-checklist.md
+git diff --cached --quiet || git commit -m "test: update browser test checklist for #{ISSUE_NUMBER}"
+```
+
+**Si aucun changement front-end n'est identifié** (ex : refactoring backend pur,
+modification de tâche Celery sans impact UI), cette étape est sautée.
+
+### 2.6 Transition vers Phase 3
 
 ```bash
 write_state "3"
@@ -486,7 +518,7 @@ Phase 1 (Analyse)
   ├── Questions bloquantes → commentaire + label help wanted → STOP
   └── Pas de questions → write_state("2") → Phase 2 directement
 
-Phase 2 (Plan)
+Phase 2 (Plan + mise à jour cahier de tests browser)
   └── Toujours → write_state("3") → Phase 3 directement
 
 Phase 3 (Dev + tests + PR)
@@ -508,7 +540,7 @@ Phase 5 (Rapport corrections)
 |Démarrage          |Retire `analyze`, ajoute `in progress`               |
 |Phase 1            |`gh issue comment` (analyse)                         |
 |Phase 1 si bloqué  |`gh issue comment` (questions) + `help wanted` → STOP|
-|Phase 2            |`gh issue comment` (plan)                            |
+|Phase 2            |`gh issue comment` (plan) + MAJ `docs/browser-test-checklist.md`|
 |Phase 3            |`gh pr create/edit` + `gh issue comment` (doc)       |
 |Phase 3 si tests KO|`gh issue comment` (erreurs) + `help wanted` → STOP  |
 |Phase 4            |`/code-review --comment` (automatique)               |
