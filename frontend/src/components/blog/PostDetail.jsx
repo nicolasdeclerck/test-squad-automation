@@ -52,6 +52,22 @@ export default function PostDetail() {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    setPublishError("");
+    const res = await api.post(`/api/blog/posts/${post.slug}/publish/`);
+    if (res.ok) {
+      setPost(res.data);
+    } else {
+      setPublishError(
+        res.errors?.error || "Erreur lors de la publication."
+      );
+    }
+    setPublishing(false);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -136,9 +152,37 @@ export default function PostDetail() {
                   />
                 </svg>
               </Link>
+              {post.status === "draft" && (
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className="inline-flex items-center gap-1 rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  title="Publier"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="size-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75"
+                    />
+                  </svg>
+                  {publishing ? "Publication..." : "Publier"}
+                </button>
+              )}
             </div>
           )}
         </div>
+
+        {publishError && (
+          <p className="text-red-600 text-sm mt-2">{publishError}</p>
+        )}
 
         <div className="flex items-center gap-2 mb-8">
           <Avatar user={post.author} size="md" />
