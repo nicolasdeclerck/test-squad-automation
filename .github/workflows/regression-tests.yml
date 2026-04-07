@@ -36,7 +36,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ubuntu
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
+          script: | 
+            cd ~/n8n-traefik/repos/test-squad-automation && git pull origin main
             docker exec -i -w /workspace/test-squad-automation claude-worker \
               claude -p "Exécute le skill .claude/skills/regression-tests/SKILL.md" \
               --dangerously-skip-permissions --output-format json
