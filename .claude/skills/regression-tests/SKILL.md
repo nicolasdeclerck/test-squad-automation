@@ -22,21 +22,18 @@ Lis le fichier `docs/browser-test-checklist.md` pour récupérer :
 
 ### 1.2 Configuration des URLs cibles
 
-Détermine les URLs à utiliser selon l'environnement. Les variables `BASE_URL`
-et `API_URL` permettent de cibler n'importe quel environnement :
+Les URLs cibles sont **toujours** les URLs de production, sauf si les
+variables d'environnement `BASE_URL` et `API_URL` sont explicitement définies :
 
 ```bash
 BASE_URL="${BASE_URL:-https://blog.nickorp.com}"
 API_URL="${API_URL:-https://blog.nickorp.com}"
 ```
 
-**Valeurs par défaut** (production) :
+**IMPORTANT : ne jamais utiliser `localhost` ou `127.0.0.1`.** Si aucune
+variable d'environnement n'est définie, utiliser obligatoirement :
 - `BASE_URL=https://blog.nickorp.com`
 - `API_URL=https://blog.nickorp.com`
-
-**Développement local** :
-- `BASE_URL=http://localhost:5173`
-- `API_URL=http://localhost:8001`
 
 Toutes les URLs utilisées dans les tests sont construites à partir de
 `BASE_URL` (ex : `${BASE_URL}/comptes/connexion`).

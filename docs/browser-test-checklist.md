@@ -15,9 +15,10 @@
 
 > **Note** : Les utilisateurs de test doivent être créés au préalable via l'interface d'inscription ou via le backend Django.
 >
-> **Configuration des URLs** : Les variables `BASE_URL` et `API_URL` permettent de cibler différents environnements :
-> - Production : `BASE_URL=https://blog.nickorp.com` / `API_URL=https://blog.nickorp.com`
-> - Développement local : `BASE_URL=http://localhost:5173` / `API_URL=http://localhost:8001`
+> **Configuration des URLs** : Les variables `BASE_URL` et `API_URL` permettent de cibler différents environnements.
+> Par défaut (si non définies), utiliser les URLs de production :
+> `BASE_URL=https://blog.nickorp.com` / `API_URL=https://blog.nickorp.com`
+> **Ne jamais utiliser `localhost` sauf si explicitement demandé.**
 
 ---
 
