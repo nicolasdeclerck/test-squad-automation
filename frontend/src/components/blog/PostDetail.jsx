@@ -54,7 +54,7 @@ export default function PostDetail() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    setLoading(true);
+    if (!post) setLoading(true);
     api.get(`/api/blog/posts/${slug}/`).then((res) => {
       if (res.ok) {
         setPost(res.data);
