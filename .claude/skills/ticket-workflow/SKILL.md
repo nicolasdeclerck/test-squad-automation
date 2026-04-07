@@ -553,7 +553,7 @@ Phase 5 (Rapport corrections)
 **Total : 2 changements de labels sur tout le cycle**, quelle que soit la durée.
 
 > **Note :** En cas d'interruption involontaire (ex : dépassement des quotas de tokens
-> de Claude Code), le flux appelant (n8n, GitHub Actions) doit ajouter le label `standby`
+> de Claude Code), le flux appelant (GitHub Actions) doit ajouter le label `standby`
 > au ticket et poster un commentaire expliquant l'arrêt. Le fichier `.claude-state.json`
 > permet de reprendre exactement où l'exécution s'est arrêtée.
 
@@ -580,7 +580,7 @@ Phases possibles : `"1"`, `"2"`, `"3"`, `"4"`, `"5"`, `"done"`
 ## Gestion des erreurs — Interruption par quota de tokens
 
 Si l'exécution de Claude Code est interrompue (ex : dépassement du quota de tokens),
-le flux appelant (n8n, GitHub Actions, script manuel) **doit** exécuter les actions
+le flux appelant (GitHub Actions, script manuel) **doit** exécuter les actions
 suivantes pour signaler l'arrêt :
 
 ```bash
