@@ -7,13 +7,17 @@
 
 | Élément | Valeur |
 |---------|--------|
-| URL Frontend | `http://localhost:5173` |
-| URL API | `http://localhost:8001` |
+| URL Frontend | Définie par la variable `BASE_URL` (par défaut : `https://blog.nickorp.com`) |
+| URL API | Définie par la variable `API_URL` (par défaut : `https://blog.nickorp.com`) |
 | Navigateur cible | Chromium (via Playwright) |
 | Utilisateur test 1 | email: `testuser@example.com` / mot de passe: `Testpass123!` |
 | Utilisateur test 2 | email: `testuser2@example.com` / mot de passe: `Testpass123!` |
 
 > **Note** : Les utilisateurs de test doivent être créés au préalable via l'interface d'inscription ou via le backend Django.
+>
+> **Configuration des URLs** : Les variables `BASE_URL` et `API_URL` permettent de cibler différents environnements :
+> - Production : `BASE_URL=https://blog.nickorp.com` / `API_URL=https://blog.nickorp.com`
+> - Développement local : `BASE_URL=http://localhost:5173` / `API_URL=http://localhost:8001`
 
 ---
 
@@ -30,7 +34,7 @@
 
 ### 1.1 — [PUBLIC] Affichage du header
 
-- **Action** : Ouvrir `http://localhost:5173`
+- **Action** : Ouvrir `{BASE_URL}`
 - **Vérifications** :
   - Le logo/nom "NICKORP" est visible dans le header
   - Les liens "Accueil", "Articles", "A propos", "Contact" sont visibles
