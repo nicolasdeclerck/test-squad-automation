@@ -4,11 +4,11 @@ on:
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to test (pulled on VPS instead of main)'
-        required: false
-        default: 'main'
+
+env:
+  # github.ref_name = branch selected in the "Use workflow from" dropdown
+  # For schedule triggers this is the default branch (main)
+  TNR_BRANCH: ${{ github.ref_name }}
 
 jobs:
   regression-tests:
@@ -50,11 +50,10 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
-            BRANCH="${{ inputs.branch || 'main' }}"
             cd ~/test-squad-automation
-            git fetch origin "$BRANCH"
-            git checkout "$BRANCH"
-            git pull origin "$BRANCH"
+            git fetch origin "${{ env.TNR_BRANCH }}"
+            git checkout "${{ env.TNR_BRANCH }}"
+            git pull origin "${{ env.TNR_BRANCH }}"
             ./scripts/tnr-docker.sh up
             docker network connect blog-tnr_default claude-worker || true
 
@@ -69,10 +68,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           command_timeout: 60m
           script: |
-            BRANCH="${{ inputs.branch || 'main' }}"
-            docker exec claude-worker git -C /workspace/test-squad-automation fetch origin "$BRANCH"
-            docker exec claude-worker git -C /workspace/test-squad-automation checkout "$BRANCH"
-            docker exec claude-worker git -C /workspace/test-squad-automation pull origin "$BRANCH"
+            docker exec claude-worker git -C /workspace/test-squad-automation fetch origin "${{ env.TNR_BRANCH }}"
+            docker exec claude-worker git -C /workspace/test-squad-automation checkout "${{ env.TNR_BRANCH }}"
+            docker exec claude-worker git -C /workspace/test-squad-automation pull origin "${{ env.TNR_BRANCH }}"
             docker exec -i -w /workspace/test-squad-automation \
               -e BASE_URL=http://blog-tnr-nginx-1:80 \
               -e API_URL=http://blog-tnr-nginx-1:80 \
@@ -92,6 +90,7 @@ jobs:
             docker network disconnect blog-tnr_default claude-worker || true
             cd ~/test-squad-automation
             ./scripts/tnr-docker.sh down
+            git checkout main || true
 
       - name: Handle failure (token quota or other error)
         if: steps.run-tests.outcome == 'failure'
