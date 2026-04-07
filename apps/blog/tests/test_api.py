@@ -74,6 +74,41 @@ class TestPostListAPI:
         data = response.json()
         assert "Hello world" in data["results"][0]["plain_content"]
 
+    def test_list_drafts_requires_auth(self):
+        PostFactory(status="draft")
+        response = self.client.get(f"{API_POSTS_URL}?status=draft")
+        data = response.json()
+        assert data["count"] == 0
+
+    def test_list_drafts_returns_own_drafts(self):
+        user = UserFactory()
+        PostFactory(author=user, status="draft")
+        PostFactory(author=user, status="draft")
+        PostFactory(author=user, status="published")
+        self.client.force_login(user)
+        response = self.client.get(f"{API_POSTS_URL}?status=draft")
+        data = response.json()
+        assert data["count"] == 2
+
+    def test_list_drafts_excludes_other_users_drafts(self):
+        user = UserFactory()
+        other = UserFactory()
+        PostFactory(author=user, status="draft")
+        PostFactory(author=other, status="draft")
+        self.client.force_login(user)
+        response = self.client.get(f"{API_POSTS_URL}?status=draft")
+        data = response.json()
+        assert data["count"] == 1
+
+    def test_list_without_filter_still_excludes_drafts(self):
+        user = UserFactory()
+        PostFactory(author=user, status="draft")
+        PostFactory(status="published")
+        self.client.force_login(user)
+        response = self.client.get(API_POSTS_URL)
+        data = response.json()
+        assert data["count"] == 1
+
 
 @pytest.mark.django_db
 class TestPostDetailAPI:

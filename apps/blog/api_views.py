@@ -27,11 +27,16 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
         return PostListSerializer
 
     def get_queryset(self):
-        return (
-            Post.objects.filter(status=Post.STATUS_PUBLISHED)
-            .select_related("author__profile")
-            .order_by("-created_at")
-        )
+        qs = Post.objects.select_related("author__profile").order_by("-created_at")
+        status_filter = self.request.query_params.get("status")
+        if (
+            status_filter == "draft"
+            and self.request.user.is_authenticated
+        ):
+            return qs.filter(
+                status=Post.STATUS_DRAFT, author=self.request.user
+            )
+        return qs.filter(status=Post.STATUS_PUBLISHED)
 
     def get_permissions(self):
         if self.request.method == "POST":

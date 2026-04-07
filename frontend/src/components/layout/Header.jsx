@@ -74,6 +74,13 @@ export default function Header() {
                     >
                       Mon profil
                     </Link>
+                    <Link
+                      to="/articles/mes-brouillons"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Mes brouillons
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -170,6 +177,13 @@ export default function Header() {
                   onClick={() => setMobileOpen(false)}
                 >
                   Mon profil
+                </Link>
+                <Link
+                  to="/articles/mes-brouillons"
+                  className="btn-secondary text-center"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Mes brouillons
                 </Link>
                 <Link
                   to="/articles/creer"

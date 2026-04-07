@@ -64,7 +64,7 @@ export default function PostForm() {
     autoResize();
   }, [title]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, { publish = false } = {}) => {
     e.preventDefault();
     setErrors({});
 
@@ -80,6 +80,19 @@ export default function PostForm() {
     }
 
     if (res.ok) {
+      if (publish && !isEdit) {
+        const publishRes = await api.post(
+          `/api/blog/posts/${res.data.slug}/publish/`
+        );
+        if (publishRes.ok) {
+          navigate(`/articles/${publishRes.data.slug}`);
+          return;
+        }
+        if (publishRes.errors) {
+          setErrors(publishRes.errors);
+          return;
+        }
+      }
       navigate(`/articles/${res.data.slug}`);
     } else if (res.errors) {
       setErrors(res.errors);
@@ -167,9 +180,28 @@ export default function PostForm() {
             ))}
         </div>
 
-        <button type="submit" className="btn-primary w-full py-3">
-          {isEdit ? "Modifier" : "Publier"}
-        </button>
+        {isEdit ? (
+          <button type="submit" className="btn-primary w-full py-3">
+            Modifier
+          </button>
+        ) : (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, { publish: false })}
+              className="btn-secondary flex-1 py-3"
+            >
+              Enregistrer en brouillon
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, { publish: true })}
+              className="btn-primary flex-1 py-3"
+            >
+              Publier
+            </button>
+          </div>
+        )}
       </form>
 
       <div className="mt-6 text-center">
