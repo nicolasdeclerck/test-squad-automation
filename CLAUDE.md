@@ -88,6 +88,16 @@ class Post(models.Model):
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+class PostVersion(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='versions')
+    version_number = models.PositiveIntegerField()
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    published_at = models.DateTimeField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # unique_together: (post, version_number)
+    # ordering: ['-version_number']
+
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
