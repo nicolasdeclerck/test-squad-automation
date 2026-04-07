@@ -68,11 +68,19 @@ class PostVersion(models.Model):
     content = models.TextField()
     published_at = models.DateTimeField()
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="+",
     )
 
     class Meta:
-        unique_together = [("post", "version_number")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["post", "version_number"],
+                name="unique_post_version_number",
+            )
+        ]
         ordering = ["-version_number"]
 
     def __str__(self):

@@ -94,8 +94,8 @@ class PostVersion(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
     published_at = models.DateTimeField()
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    # unique_together: (post, version_number)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    # UniqueConstraint: (post, version_number)
     # ordering: ['-version_number']
 
 class Comment(models.Model):
