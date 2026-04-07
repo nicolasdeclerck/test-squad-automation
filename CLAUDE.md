@@ -125,6 +125,7 @@ class Profile(models.Model):
 /api/blog/comments/<id>/           → Suppression de commentaire
 /api/blog/posts/<slug>/versions/   → Liste paginée des versions (auteur uniquement)
 /api/blog/posts/<slug>/versions/<version_number>/ → Détail d'une version (auteur uniquement)
+/api/blog/posts/<slug>/versions/<version_number>/restore/ → Restauration d'une version comme brouillon
 
 # Accounts
 /api/accounts/csrf/                → Token CSRF
