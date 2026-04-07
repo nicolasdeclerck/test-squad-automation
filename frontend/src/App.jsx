@@ -9,6 +9,8 @@ import PostDetail from "./components/blog/PostDetail";
 import MyDrafts from "./components/blog/MyDrafts";
 import PostForm from "./components/blog/PostForm";
 import PostList from "./components/blog/PostList";
+import VersionDetail from "./components/blog/VersionDetail";
+import VersionHistory from "./components/blog/VersionHistory";
 import About from "./components/core/About";
 import Contact from "./components/core/Contact";
 import DevTracking from "./components/core/DevTracking";
@@ -45,6 +47,22 @@ function AppRoutes() {
           }
         />
         <Route path="/articles/:slug" element={<PostDetail />} />
+        <Route
+          path="/articles/:slug/versions"
+          element={
+            <ProtectedRoute>
+              <VersionHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/articles/:slug/versions/:versionNumber"
+          element={
+            <ProtectedRoute>
+              <VersionDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/articles/:slug/modifier"
           element={
