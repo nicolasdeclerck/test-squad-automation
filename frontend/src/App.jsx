@@ -6,6 +6,7 @@ import ProfileEdit from "./components/accounts/ProfileEdit";
 import SignupForm from "./components/accounts/SignupForm";
 import PostDelete from "./components/blog/PostDelete";
 import PostDetail from "./components/blog/PostDetail";
+import MyDrafts from "./components/blog/MyDrafts";
 import PostForm from "./components/blog/PostForm";
 import PostList from "./components/blog/PostList";
 import About from "./components/core/About";
@@ -27,6 +28,14 @@ function AppRoutes() {
       <Route element={<Layout />}>
         <Route path="/" element={<PostList isHome />} />
         <Route path="/articles" element={<PostList />} />
+        <Route
+          path="/articles/mes-brouillons"
+          element={
+            <ProtectedRoute>
+              <MyDrafts />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/articles/creer"
           element={

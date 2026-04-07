@@ -10,7 +10,7 @@ export default function PostList({ isHome = false }) {
   const [totalPages, setTotalPages] = useState(1);
   const [showFullListLink, setShowFullListLink] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1", 10);
 
   useEffect(() => {
@@ -86,7 +86,13 @@ export default function PostList({ isHome = false }) {
             </div>
           )}
 
-          {!isHome && <Pagination page={page} totalPages={totalPages} />}
+          {!isHome && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              setSearchParams={setSearchParams}
+            />
+          )}
         </>
       ) : (
         <p className="text-gray-500 text-center mt-12">

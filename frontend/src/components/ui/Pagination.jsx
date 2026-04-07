@@ -1,8 +1,4 @@
-import { useSearchParams } from "react-router-dom";
-
-export default function Pagination({ page, totalPages }) {
-  const [, setSearchParams] = useSearchParams();
-
+export default function Pagination({ page, totalPages, setSearchParams }) {
   if (totalPages <= 1) return null;
 
   return (
