@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
 
-from .models import Comment, Post
+from .models import Comment, Post, PostVersion
 
 User = get_user_model()
 
@@ -142,6 +142,13 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Le titre est obligatoire.")
         return value.strip()
+
+
+class PostVersionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostVersion
+        fields = ("version_number", "title", "content", "published_at")
+        read_only_fields = fields
 
 
 class PostAutoSaveSerializer(serializers.ModelSerializer):

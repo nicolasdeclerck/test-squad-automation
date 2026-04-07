@@ -6,7 +6,7 @@ from django.test import Client
 from apps.accounts.tests.factories import UserFactory
 from apps.blog.models import Post
 
-from .factories import CommentFactory, PostFactory
+from .factories import CommentFactory, PostFactory, PostVersionFactory
 
 API_POSTS_URL = "/api/blog/posts/"
 
@@ -29,6 +29,14 @@ def api_comments_url(slug):
 
 def api_comment_delete_url(pk):
     return f"/api/blog/comments/{pk}/"
+
+
+def api_versions_url(slug):
+    return f"/api/blog/posts/{slug}/versions/"
+
+
+def api_version_detail_url(slug, version_number):
+    return f"/api/blog/posts/{slug}/versions/{version_number}/"
 
 
 @pytest.mark.django_db
@@ -473,3 +481,100 @@ class TestPostPublishAPI:
         assert response.status_code == 200
         post.refresh_from_db()
         assert post.published_at == original_date
+
+
+@pytest.mark.django_db
+class TestPostVersionListAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_author_can_list_versions(self):
+        post = PostFactory()
+        PostVersionFactory(post=post, version_number=1)
+        PostVersionFactory(post=post, version_number=2)
+        self.client.force_login(post.author)
+        response = self.client.get(api_versions_url(post.slug))
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 2
+        assert data["results"][0]["version_number"] == 2
+        assert data["results"][1]["version_number"] == 1
+
+    def test_other_user_cannot_list_versions(self):
+        post = PostFactory()
+        PostVersionFactory(post=post, version_number=1)
+        other_user = UserFactory()
+        self.client.force_login(other_user)
+        response = self.client.get(api_versions_url(post.slug))
+        assert response.status_code == 403
+
+    def test_anonymous_cannot_list_versions(self):
+        post = PostFactory()
+        PostVersionFactory(post=post, version_number=1)
+        response = self.client.get(api_versions_url(post.slug))
+        assert response.status_code == 403
+
+    def test_versions_pagination(self):
+        post = PostFactory()
+        for i in range(1, 13):
+            PostVersionFactory(post=post, version_number=i)
+        self.client.force_login(post.author)
+        response = self.client.get(api_versions_url(post.slug))
+        data = response.json()
+        assert data["count"] == 12
+        assert len(data["results"]) == 10
+        assert data["next"] is not None
+
+    def test_post_not_found(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        response = self.client.get(api_versions_url("nonexistent-slug"))
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestPostVersionDetailAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_author_can_view_version_detail(self):
+        post = PostFactory()
+        version = PostVersionFactory(
+            post=post, version_number=1, title="V1 Title", content="V1 Content"
+        )
+        self.client.force_login(post.author)
+        response = self.client.get(api_version_detail_url(post.slug, 1))
+        assert response.status_code == 200
+        data = response.json()
+        assert data["version_number"] == 1
+        assert data["title"] == "V1 Title"
+        assert data["content"] == "V1 Content"
+        assert "published_at" in data
+
+    def test_other_user_cannot_view_version_detail(self):
+        post = PostFactory()
+        PostVersionFactory(post=post, version_number=1)
+        other_user = UserFactory()
+        self.client.force_login(other_user)
+        response = self.client.get(api_version_detail_url(post.slug, 1))
+        assert response.status_code == 403
+
+    def test_anonymous_cannot_view_version_detail(self):
+        post = PostFactory()
+        PostVersionFactory(post=post, version_number=1)
+        response = self.client.get(api_version_detail_url(post.slug, 1))
+        assert response.status_code == 403
+
+    def test_version_not_found(self):
+        post = PostFactory()
+        self.client.force_login(post.author)
+        response = self.client.get(api_version_detail_url(post.slug, 999))
+        assert response.status_code == 404
+
+    def test_post_not_found(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        response = self.client.get(
+            api_version_detail_url("nonexistent-slug", 1)
+        )
+        assert response.status_code == 404
