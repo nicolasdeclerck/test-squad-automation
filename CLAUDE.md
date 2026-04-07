@@ -123,6 +123,8 @@ class Profile(models.Model):
 /api/blog/posts/<slug>/publish/    → Publication d'un article
 /api/blog/posts/<slug>/comments/   → Création de commentaire
 /api/blog/comments/<id>/           → Suppression de commentaire
+/api/blog/posts/<slug>/versions/   → Liste paginée des versions (auteur uniquement)
+/api/blog/posts/<slug>/versions/<version_number>/ → Détail d'une version (auteur uniquement)
 
 # Accounts
 /api/accounts/csrf/                → Token CSRF
