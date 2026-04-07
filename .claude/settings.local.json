@@ -10,7 +10,22 @@
       "Bash(python3:*)",
       "Bash(curl -s -b /tmp/cookies.txt http://localhost:8001/comptes/profil/modifier/)",
       "Bash(grep -oP '\"[^\"]*\"$')",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(agent-browser fill:*)",
+      "Bash(agent-browser click:*)",
+      "Bash(agent-browser wait:*)",
+      "Bash(agent-browser snapshot:*)",
+      "Bash(agent-browser open:*)",
+      "Bash(agent-browser eval:*)",
+      "Bash(agent-browser --args \"--no-sandbox\" open https://blog.nickorp.com/comptes/connexion)",
+      "Bash(agent-browser --session public click @e3)",
+      "Bash(agent-browser --session public wait 500)",
+      "Bash(agent-browser --session public snapshot -i)",
+      "Bash(agent-browser:*)",
+      "Bash(pkill -f \"agent-browser\")",
+      "Bash(pkill -f \"chrome\")",
+      "Bash(pkill -f agent-browser)",
+      "Bash(gh issue:*)"
     ]
   }
 }
