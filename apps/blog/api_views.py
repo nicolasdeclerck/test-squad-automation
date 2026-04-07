@@ -3,13 +3,14 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Comment, Post
+from .models import Comment, Post, PostVersion
 from .serializers import (
     CommentSerializer,
     PostAutoSaveSerializer,
     PostCreateUpdateSerializer,
     PostDetailSerializer,
     PostListSerializer,
+    PostVersionSerializer,
 )
 
 
@@ -147,3 +148,30 @@ class CommentDeleteAPIView(generics.DestroyAPIView):
 
     def get_queryset(self):
         return Comment.objects.filter(author=self.request.user)
+
+
+class PostVersionListAPIView(generics.ListAPIView):
+    serializer_class = PostVersionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        post = generics.get_object_or_404(
+            Post, slug=self.kwargs["slug"]
+        )
+        if post.author != self.request.user:
+            self.permission_denied(self.request)
+        return PostVersion.objects.filter(post=post)
+
+
+class PostVersionDetailAPIView(generics.RetrieveAPIView):
+    serializer_class = PostVersionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "version_number"
+
+    def get_queryset(self):
+        post = generics.get_object_or_404(
+            Post, slug=self.kwargs["slug"]
+        )
+        if post.author != self.request.user:
+            self.permission_denied(self.request)
+        return PostVersion.objects.filter(post=post)

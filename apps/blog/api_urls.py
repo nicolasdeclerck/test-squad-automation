@@ -7,6 +7,8 @@ from .api_views import (
     PostDetailAPIView,
     PostListCreateAPIView,
     PostPublishView,
+    PostVersionDetailAPIView,
+    PostVersionListAPIView,
 )
 
 urlpatterns = [
@@ -35,5 +37,15 @@ urlpatterns = [
         "comments/<int:pk>/",
         CommentDeleteAPIView.as_view(),
         name="api_comment_delete",
+    ),
+    path(
+        "posts/<slug:slug>/versions/",
+        PostVersionListAPIView.as_view(),
+        name="api_post_versions",
+    ),
+    path(
+        "posts/<slug:slug>/versions/<int:version_number>/",
+        PostVersionDetailAPIView.as_view(),
+        name="api_post_version_detail",
     ),
 ]
