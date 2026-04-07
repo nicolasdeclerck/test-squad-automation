@@ -165,6 +165,82 @@ class TestProfileUpdateAPI:
 
 
 @pytest.mark.django_db
+class TestProfileUpdateAvatarValidationAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_rejects_txt_file_upload(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+
+        user = UserFactory()
+        self.client.force_login(user)
+        txt_file = SimpleUploadedFile(
+            "test.txt", b"hello world", content_type="text/plain"
+        )
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "avatar": txt_file},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert "avatar" in data
+
+    def test_rejects_fake_content_type_upload(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+
+        user = UserFactory()
+        self.client.force_login(user)
+        fake_file = SimpleUploadedFile(
+            "fake.jpg", b"this is not an image", content_type="image/jpeg"
+        )
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "avatar": fake_file},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert "avatar" in data
+
+    def test_accepts_valid_jpeg_upload(self):
+        import struct
+        from io import BytesIO
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+        from PIL import Image
+
+        user = UserFactory()
+        self.client.force_login(user)
+        # Créer une vraie image JPEG minimale
+        buf = BytesIO()
+        img = Image.new("RGB", (10, 10), color="red")
+        img.save(buf, format="JPEG")
+        buf.seek(0)
+        jpeg_file = SimpleUploadedFile(
+            "avatar.jpg", buf.read(), content_type="image/jpeg"
+        )
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "avatar": jpeg_file},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
 class TestAvatarDeleteAPI:
     def test_delete_avatar_requires_auth(self):
         client = Client()
