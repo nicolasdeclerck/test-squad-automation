@@ -89,6 +89,9 @@ print(json.dumps(state, indent=2))
 # Retire le label analyze (posé par l'humain pour déclencher/relancer)
 gh issue edit {ISSUE_NUMBER} --remove-label 'analyze'
 
+# Retire le label standby si présent (reprise après interruption)
+gh issue edit {ISSUE_NUMBER} --remove-label 'standby' 2>/dev/null || true
+
 # Ajoute in progress uniquement si première exécution (pas de fichier d'état)
 if [ "$PHASE" = "1" ] && [ ! -f "$STATE_FILE" ]; then
   gh issue edit {ISSUE_NUMBER} --add-label 'in progress'
@@ -549,6 +552,11 @@ Phase 5 (Rapport corrections)
 
 **Total : 2 changements de labels sur tout le cycle**, quelle que soit la durée.
 
+> **Note :** En cas d'interruption involontaire (ex : dépassement des quotas de tokens
+> de Claude Code), le flux appelant (n8n, GitHub Actions) doit ajouter le label `standby`
+> au ticket et poster un commentaire expliquant l'arrêt. Le fichier `.claude-state.json`
+> permet de reprendre exactement où l'exécution s'est arrêtée.
+
 ## Structure de `.claude-state.json`
 
 ```json
@@ -566,3 +574,40 @@ Phase 5 (Rapport corrections)
 ```
 
 Phases possibles : `"1"`, `"2"`, `"3"`, `"4"`, `"5"`, `"done"`
+
+---
+
+## Gestion des erreurs — Interruption par quota de tokens
+
+Si l'exécution de Claude Code est interrompue (ex : dépassement du quota de tokens),
+le flux appelant (n8n, GitHub Actions, script manuel) **doit** exécuter les actions
+suivantes pour signaler l'arrêt :
+
+```bash
+# 1. Ajouter le label "standby" au ticket
+gh issue edit {ISSUE_NUMBER} --add-label 'standby'
+
+# 2. Poster un commentaire explicatif
+gh issue comment {ISSUE_NUMBER} --body "## ⚠️ Exécution interrompue
+
+Les travaux ont été stoppés suite au dépassement des quotas de tokens de Claude Code.
+
+**Phase en cours :** {phase courante depuis .claude-state.json}
+**Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+L'exécution reprendra automatiquement à la phase interrompue grâce au fichier d'état
+\`.claude-state.json\`. Pour relancer, reposer le label \`analyze\` sur le ticket."
+```
+
+**Détection de l'erreur :** Le processus Claude Code retourne un code de sortie
+non-zéro en cas d'interruption. Le flux appelant doit vérifier ce code de retour
+et déclencher la procédure ci-dessus.
+
+**Reprise :** Lorsque le label `analyze` est reposé, le workflow reprend grâce
+à la table de routage de la Phase 0 qui lit `.claude-state.json` et redémarre
+à la bonne phase. Le label `standby` est retiré au redémarrage.
+
+```bash
+# À ajouter dans la Phase 0.3, après le retrait du label analyze :
+gh issue edit {ISSUE_NUMBER} --remove-label 'standby' 2>/dev/null || true
+```
