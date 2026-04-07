@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Max
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -43,6 +44,19 @@ class Post(models.Model):
         if not self.published_at:
             self.published_at = timezone.now()
         self.save()
+
+        current_max = self.versions.aggregate(max_num=Max("version_number"))[
+            "max_num"
+        ]
+        next_version = (current_max or 0) + 1
+        PostVersion.objects.create(
+            post=self,
+            version_number=next_version,
+            title=self.title,
+            content=self.content,
+            published_at=timezone.now(),
+            created_by=self.author,
+        )
 
     def save(self, *args, **kwargs):
         if not self.slug:

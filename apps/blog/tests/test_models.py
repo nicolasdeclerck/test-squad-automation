@@ -7,6 +7,74 @@ from .factories import CommentFactory, PostFactory, PostVersionFactory
 
 
 @pytest.mark.django_db
+class TestPublishCreatesVersion:
+    def _make_draft(self, **kwargs):
+        defaults = {
+            "status": Post.STATUS_DRAFT,
+            "title": "",
+            "content": "",
+            "draft_title": "Mon brouillon",
+            "draft_content": "Contenu du brouillon",
+            "has_draft": True,
+            "published_at": None,
+        }
+        defaults.update(kwargs)
+        return PostFactory(**defaults)
+
+    def test_publish_creates_version(self):
+        post = self._make_draft()
+        post.publish()
+        assert post.versions.count() == 1
+        version = post.versions.first()
+        assert version.version_number == 1
+
+    def test_publish_twice_creates_two_versions(self):
+        post = self._make_draft()
+        post.publish()
+
+        post.draft_title = "Titre mis à jour"
+        post.draft_content = "Contenu mis à jour"
+        post.has_draft = True
+        post.save()
+        post.publish()
+
+        assert post.versions.count() == 2
+        version_numbers = list(
+            post.versions.order_by("version_number").values_list(
+                "version_number", flat=True
+            )
+        )
+        assert version_numbers == [1, 2]
+
+    def test_version_content_matches_published(self):
+        post = self._make_draft(
+            draft_title="Titre spécifique",
+            draft_content="Contenu spécifique",
+        )
+        post.publish()
+        version = post.versions.first()
+        assert version.title == "Titre spécifique"
+        assert version.content == "Contenu spécifique"
+        assert version.created_by == post.author
+        assert version.published_at is not None
+
+    def test_publish_preserves_existing_behavior(self):
+        post = self._make_draft(
+            draft_title="Titre final",
+            draft_content="Contenu final",
+        )
+        post.publish()
+        post.refresh_from_db()
+        assert post.title == "Titre final"
+        assert post.content == "Contenu final"
+        assert post.status == Post.STATUS_PUBLISHED
+        assert post.has_draft is False
+        assert post.draft_title == ""
+        assert post.draft_content == ""
+        assert post.published_at is not None
+
+
+@pytest.mark.django_db
 class TestPostModel:
     def test_create_post(self):
         post = PostFactory()
