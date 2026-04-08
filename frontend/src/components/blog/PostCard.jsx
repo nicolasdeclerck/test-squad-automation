@@ -4,7 +4,7 @@ import Avatar from "../ui/Avatar";
 
 export default function PostCard({ post }) {
   const { user } = useAuth();
-  const isOwner = user && post.author && user.id === post.author.id;
+  const isOwner = user && user.is_superuser && post.author && user.id === post.author.id;
 
   const authorName =
     post.author.first_name && post.author.last_name

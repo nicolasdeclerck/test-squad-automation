@@ -14,6 +14,11 @@ from .serializers import (
 )
 
 
+class IsSuperUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
+
+
 class IsAuthorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
@@ -41,7 +46,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == "POST":
-            return [permissions.IsAuthenticated()]
+            return [permissions.IsAuthenticated(), IsSuperUser()]
         return [permissions.AllowAny()]
 
     def perform_create(self, serializer):
@@ -67,6 +72,11 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
 class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = "slug"
     permission_classes = [IsAuthorOrReadOnly]
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), IsSuperUser(), IsAuthorOrReadOnly()]
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -120,7 +130,7 @@ class CommentCreateAPIView(generics.CreateAPIView):
 
 
 class PostAutoSaveView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def patch(self, request, slug):
         post = generics.get_object_or_404(
@@ -133,7 +143,7 @@ class PostAutoSaveView(APIView):
 
 
 class PostPublishView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def post(self, request, slug):
         post = generics.get_object_or_404(
@@ -186,7 +196,7 @@ class PostVersionDetailAPIView(generics.RetrieveAPIView):
 
 
 class PostVersionRestoreAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def post(self, request, slug, version_number):
         post = generics.get_object_or_404(Post, slug=slug)

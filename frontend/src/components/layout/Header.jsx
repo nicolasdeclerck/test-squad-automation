@@ -55,9 +55,11 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
-              <Link to="/articles/creer" className="btn-primary">
-                Ajouter un article
-              </Link>
+              {user.is_superuser && (
+                <Link to="/articles/creer" className="btn-primary">
+                  Ajouter un article
+                </Link>
+              )}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={(e) => {
@@ -195,13 +197,15 @@ export default function Header() {
                 >
                   Mes brouillons
                 </Link>
-                <Link
-                  to="/articles/creer"
-                  className="btn-primary text-center"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Ajouter un article
-                </Link>
+                {user.is_superuser && (
+                  <Link
+                    to="/articles/creer"
+                    className="btn-primary text-center"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Ajouter un article
+                  </Link>
+                )}
                 <button onClick={handleLogout} className="btn-secondary w-full">
                   Se d&eacute;connecter
                 </button>

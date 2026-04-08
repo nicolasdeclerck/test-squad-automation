@@ -52,6 +52,14 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function SuperUserRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/comptes/connexion" replace />;
+  if (!user.is_superuser) return <Navigate to="/" replace />;
+  return children;
+}
+
 function AuthLayout() {
   return (
     <AuthProvider>
@@ -78,9 +86,9 @@ const router = createBrowserRouter([
       {
         path: "/articles/creer",
         element: (
-          <ProtectedRoute>
+          <SuperUserRoute>
             <PostForm />
-          </ProtectedRoute>
+          </SuperUserRoute>
         ),
       },
       { path: "/articles/:slug", element: <PostDetail /> },
@@ -103,17 +111,17 @@ const router = createBrowserRouter([
       {
         path: "/articles/:slug/modifier",
         element: (
-          <ProtectedRoute>
+          <SuperUserRoute>
             <PostForm />
-          </ProtectedRoute>
+          </SuperUserRoute>
         ),
       },
       {
         path: "/articles/:slug/supprimer",
         element: (
-          <ProtectedRoute>
+          <SuperUserRoute>
             <PostDelete />
-          </ProtectedRoute>
+          </SuperUserRoute>
         ),
       },
       { path: "/comptes/connexion", element: <LoginForm /> },

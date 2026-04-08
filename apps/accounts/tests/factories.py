@@ -15,6 +15,10 @@ class UserFactory(factory.django.DjangoModelFactory):
     password = factory.PostGenerationMethodCall("set_password", "testpass123")
 
 
+class SuperUserFactory(UserFactory):
+    is_superuser = True
+
+
 class ProfileFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Profile
