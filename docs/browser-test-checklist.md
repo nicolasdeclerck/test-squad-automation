@@ -47,7 +47,7 @@
 - **Vérifications** :
   - Le bouton "Connexion" / "Inscription" disparaît
   - Le nom d'utilisateur ou avatar apparaît dans le header
-  - Un bouton "Ajouter un article" est visible
+  - Un bouton "Ajouter un article" est visible **uniquement pour les superutilisateurs**
   - Un menu déroulant utilisateur est accessible (clic sur le nom/avatar)
   - Le menu contient : "Mes brouillons", "Modifier profil", "Déconnexion"
 
@@ -121,6 +121,13 @@
   - Redirection automatique vers `/comptes/connexion`
   - Même comportement pour `/articles/mes-brouillons`, `/comptes/profil/modifier`
 
+### 2.7 — [AUTH] Protection des routes superutilisateur
+
+- **Action** : Se connecter avec un utilisateur non-superutilisateur et accéder à `/articles/creer`
+- **Vérifications** :
+  - L'accès est refusé (redirection ou message d'erreur 403)
+  - Même comportement pour `/articles/{slug}/modifier` et `/articles/{slug}/supprimer`
+
 ---
 
 ## 3. Articles — Liste et consultation
@@ -155,11 +162,12 @@
 
 ### 3.4 — [AUTH/OWNER] Boutons d'action sur un article
 
-- **URL** : `/articles/{slug}` (en tant qu'auteur de l'article)
+- **URL** : `/articles/{slug}` (en tant qu'auteur superutilisateur de l'article)
 - **Vérifications** :
-  - Les icônes "Modifier" et "Supprimer" sont visibles
+  - Les icônes "Modifier" et "Supprimer" sont visibles uniquement si l'utilisateur est **superutilisateur ET auteur**
   - Clic sur "Modifier" redirige vers `/articles/{slug}/modifier`
   - Clic sur "Supprimer" redirige vers `/articles/{slug}/supprimer`
+  - Ces boutons sont ABSENTS si l'utilisateur n'est pas superutilisateur
   - Ces boutons sont ABSENTS si l'utilisateur n'est pas l'auteur
 
 ### 3.5 — [AUTH/OWNER] Bandeau "Modifications non publiées" sur un article publié
@@ -193,9 +201,9 @@
 
 ## 4. Articles — Création et édition
 
-### 4.1 — [AUTH] Création d'un article — Brouillon
+### 4.1 — [AUTH/SUPERUSER] Création d'un article — Brouillon
 
-- **URL** : `/articles/creer`
+- **URL** : `/articles/creer` (accessible uniquement aux superutilisateurs)
 - **Action** : Remplir le titre, ajouter du contenu via l'éditeur BlockNote, cliquer "Enregistrer comme brouillon"
 - **Vérifications** :
   - Le champ titre est un textarea redimensionnable (max 200 caractères)
@@ -204,9 +212,9 @@
   - Redirection vers la page de l'article après sauvegarde
   - L'article apparaît dans "Mes brouillons" et PAS dans la liste publique
 
-### 4.2 — [AUTH] Création d'un article — Publication directe
+### 4.2 — [AUTH/SUPERUSER] Création d'un article — Publication directe
 
-- **URL** : `/articles/creer`
+- **URL** : `/articles/creer` (accessible uniquement aux superutilisateurs)
 - **Action** : Remplir le titre et le contenu, cliquer "Publier"
 - **Vérifications** :
   - L'article est publié et visible dans la liste des articles
@@ -582,17 +590,19 @@
 10. Supprimer l'avatar
 11. Vérifier que les initiales s'affichent à la place
 
-### 13.4 — Parcours complet : permissions inter-utilisateurs
+### 13.4 — Parcours complet : permissions inter-utilisateurs (superutilisateur vs utilisateur normal)
 
-1. Se connecter avec l'utilisateur 1
+1. Se connecter avec un superutilisateur
 2. Créer et publier un article
 3. Se déconnecter
-4. Se connecter avec l'utilisateur 2
-5. Ouvrir l'article de l'utilisateur 1
+4. Se connecter avec un utilisateur non-superutilisateur
+5. Ouvrir l'article du superutilisateur
 6. Vérifier que les boutons "Modifier" et "Supprimer" sont ABSENTS
-7. Vérifier que le formulaire de commentaire est accessible
-8. Ajouter un commentaire
-9. Vérifier le message de modération
+7. Vérifier que le bouton "Ajouter un article" est ABSENT dans le header
+8. Accéder directement à `/articles/creer` → vérifier que l'accès est refusé
+9. Vérifier que le formulaire de commentaire est accessible
+10. Ajouter un commentaire
+11. Vérifier le message de modération
 
 ### 13.5 — Parcours complet : publication → historique des versions
 
