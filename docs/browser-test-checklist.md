@@ -299,33 +299,6 @@
   - Le menu de blocs (slash `/`) est accessible
   - Aucune bordure bleue (outline) n'apparaît autour de la zone de saisie lorsqu'on clique ou saisit du texte (vérifier sur Firefox notamment)
 
-### 4.11 — [AUTH/SUPERUSER] Éditeur BlockNote — Insertion d'un diagramme Mermaid
-
-- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
-- **Action** : Taper `/mermaid` dans l'éditeur, sélectionner l'option "Mermaid"
-- **Vérifications** :
-  - Le slash menu affiche une option "Mermaid" quand on tape `/mermaid`, `/diagram`, `/diagramme`, `/chart` ou `/graphique`
-  - Cliquer sur l'option insère un bloc Mermaid avec un textarea pour le code
-  - Le textarea affiche un placeholder (ex: `graph TD\n    A[Début] --> B[Fin]`)
-  - Saisir un code Mermaid valide (ex: `graph TD; A-->B`) affiche un aperçu du diagramme en dessous du textarea
-  - Saisir un code Mermaid invalide affiche un message d'erreur (pas de crash de l'application)
-  - Le bloc Mermaid est sauvegardé correctement via l'autosave
-
-### 4.12 — [PUBLIC] Affichage d'un diagramme Mermaid dans un article
-
-- **URL** : `/articles/{slug}` (article contenant un bloc Mermaid)
-- **Vérifications** :
-  - Le diagramme Mermaid est rendu en SVG (pas le code source brut)
-  - Le textarea d'édition n'est PAS visible (mode lecture seule)
-  - Le diagramme est centré dans la page
-
-### 4.13 — [AUTH/OWNER] Affichage d'un diagramme Mermaid dans une version
-
-- **URL** : `/articles/{slug}/versions/{n}` (version contenant un bloc Mermaid)
-- **Vérifications** :
-  - Le diagramme Mermaid est rendu en SVG (identique à l'affichage article)
-  - Le textarea d'édition n'est PAS visible (mode lecture seule)
-
 ---
 
 ## 5. Articles — Suppression

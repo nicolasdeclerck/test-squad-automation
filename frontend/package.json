@@ -14,7 +14,6 @@
     "@mantine/core": "^7.17.4",
     "@mantine/notifications": "^7.17.4",
     "dompurify": "^3.2.3",
-    "mermaid": "^11.14.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-helmet-async": "^2.0.5",
