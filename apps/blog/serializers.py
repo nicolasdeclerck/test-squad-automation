@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
 
-from .models import Comment, Post
+from .models import Comment, Post, PostVersion
 
 User = get_user_model()
 
@@ -78,6 +78,9 @@ class PostDetailSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
     is_owner = serializers.SerializerMethodField()
     approved_comments = serializers.SerializerMethodField()
+    has_draft = serializers.SerializerMethodField()
+    draft_title = serializers.SerializerMethodField()
+    draft_content = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -90,15 +93,41 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "status",
             "is_owner",
             "approved_comments",
+            "has_draft",
+            "draft_title",
+            "draft_content",
             "published_at",
             "created_at",
         )
 
-    def get_is_owner(self, obj):
+    def _is_author(self, obj):
         request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            return obj.author_id == request.user.id
+        return request and request.user.is_authenticated and obj.author_id == request.user.id
+
+    def get_is_owner(self, obj):
+        return self._is_author(obj)
+
+    def get_has_draft(self, obj):
+        if self._is_author(obj):
+            return obj.has_draft
         return False
+
+    def get_draft_title(self, obj):
+        if self._is_author(obj):
+            return obj.draft_title
+        return ""
+
+    def get_draft_content(self, obj):
+        if self._is_author(obj):
+            return obj.draft_content
+        return ""
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self._is_author(instance) and instance.has_draft:
+            data["title"] = instance.draft_title or instance.title
+            data["content"] = instance.draft_content or instance.content
+        return data
 
     def get_approved_comments(self, obj):
         comments = (
@@ -115,3 +144,21 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ("title", "content")
+
+    def validate_title(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Le titre est obligatoire.")
+        return value.strip()
+
+
+class PostVersionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostVersion
+        fields = ("version_number", "title", "content", "published_at")
+        read_only_fields = fields
+
+
+class PostAutoSaveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ("draft_title", "draft_content")

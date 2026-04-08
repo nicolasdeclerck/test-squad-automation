@@ -1,4 +1,5 @@
 import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import LoginForm from "./components/accounts/LoginForm";
@@ -6,8 +7,11 @@ import ProfileEdit from "./components/accounts/ProfileEdit";
 import SignupForm from "./components/accounts/SignupForm";
 import PostDelete from "./components/blog/PostDelete";
 import PostDetail from "./components/blog/PostDetail";
+import MyDrafts from "./components/blog/MyDrafts";
 import PostForm from "./components/blog/PostForm";
 import PostList from "./components/blog/PostList";
+import VersionDetail from "./components/blog/VersionDetail";
+import VersionHistory from "./components/blog/VersionHistory";
 import About from "./components/core/About";
 import Contact from "./components/core/Contact";
 import DevTracking from "./components/core/DevTracking";
@@ -28,6 +32,14 @@ function AppRoutes() {
         <Route path="/" element={<PostList isHome />} />
         <Route path="/articles" element={<PostList />} />
         <Route
+          path="/articles/mes-brouillons"
+          element={
+            <ProtectedRoute>
+              <MyDrafts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/articles/creer"
           element={
             <ProtectedRoute>
@@ -36,6 +48,22 @@ function AppRoutes() {
           }
         />
         <Route path="/articles/:slug" element={<PostDetail />} />
+        <Route
+          path="/articles/:slug/versions"
+          element={
+            <ProtectedRoute>
+              <VersionHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/articles/:slug/versions/:versionNumber"
+          element={
+            <ProtectedRoute>
+              <VersionDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/articles/:slug/modifier"
           element={
@@ -80,6 +108,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <MantineProvider>
+      <Notifications position="top-right" />
       <HelmetProvider>
         <BrowserRouter>
           <AuthProvider>

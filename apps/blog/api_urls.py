@@ -3,8 +3,13 @@ from django.urls import path
 from .api_views import (
     CommentCreateAPIView,
     CommentDeleteAPIView,
+    PostAutoSaveView,
     PostDetailAPIView,
     PostListCreateAPIView,
+    PostPublishView,
+    PostVersionDetailAPIView,
+    PostVersionListAPIView,
+    PostVersionRestoreAPIView,
 )
 
 urlpatterns = [
@@ -15,6 +20,16 @@ urlpatterns = [
         name="api_post_detail",
     ),
     path(
+        "posts/<slug:slug>/autosave/",
+        PostAutoSaveView.as_view(),
+        name="api_post_autosave",
+    ),
+    path(
+        "posts/<slug:slug>/publish/",
+        PostPublishView.as_view(),
+        name="api_post_publish",
+    ),
+    path(
         "posts/<slug:slug>/comments/",
         CommentCreateAPIView.as_view(),
         name="api_comment_create",
@@ -23,5 +38,20 @@ urlpatterns = [
         "comments/<int:pk>/",
         CommentDeleteAPIView.as_view(),
         name="api_comment_delete",
+    ),
+    path(
+        "posts/<slug:slug>/versions/",
+        PostVersionListAPIView.as_view(),
+        name="api_post_versions",
+    ),
+    path(
+        "posts/<slug:slug>/versions/<int:version_number>/",
+        PostVersionDetailAPIView.as_view(),
+        name="api_post_version_detail",
+    ),
+    path(
+        "posts/<slug:slug>/versions/<int:version_number>/restore/",
+        PostVersionRestoreAPIView.as_view(),
+        name="api_post_version_restore",
     ),
 ]

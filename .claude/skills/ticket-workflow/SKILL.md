@@ -89,6 +89,9 @@ print(json.dumps(state, indent=2))
 # Retire le label analyze (posé par l'humain pour déclencher/relancer)
 gh issue edit {ISSUE_NUMBER} --remove-label 'analyze'
 
+# Retire le label standby si présent (reprise après interruption)
+gh issue edit {ISSUE_NUMBER} --remove-label 'standby' 2>/dev/null || true
+
 # Ajoute in progress uniquement si première exécution (pas de fichier d'état)
 if [ "$PHASE" = "1" ] && [ ! -f "$STATE_FILE" ]; then
   gh issue edit {ISSUE_NUMBER} --add-label 'in progress'
@@ -240,7 +243,39 @@ gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan d'implémentation
 [Tests prioritaires, fixtures, cas limites]"
 ```
 
-### 2.5 Transition vers Phase 3
+### 2.5 Mise à jour du cahier de tests browser (TDD)
+
+Avant de démarrer le développement, mets à jour le cahier de tests de non-régression
+`docs/browser-test-checklist.md` pour refléter les fonctionnalités à implémenter.
+
+**Principe TDD :** les tests attendus sont écrits **avant** le code, ce qui garantit
+que le cahier est toujours synchronisé avec les fonctionnalités de l'application.
+
+**Démarche :**
+
+1. Lis le fichier `docs/browser-test-checklist.md` existant
+2. Analyse les tâches du plan (étape 2.3) pour identifier les impacts sur les tests browser :
+   - Nouvelle fonctionnalité utilisateur → **ajouter** de nouveaux scénarios de test
+   - Modification d'un flux existant → **mettre à jour** les scénarios concernés
+   - Suppression d'une fonctionnalité → **retirer** les scénarios obsolètes
+   - Nouvel endpoint API consommé par le front → **ajouter** les vérifications associées
+   - Changement de comportement UI (formulaire, navigation, permissions) → **adapter** les vérifications
+3. Applique les modifications en respectant les conventions du cahier :
+   - Tags `[PUBLIC]`, `[AUTH]`, `[OWNER]` selon le niveau d'accès requis
+   - Format : action à réaliser + résultat attendu
+   - Placement dans la section thématique appropriée (ou création d'une nouvelle section si nécessaire)
+   - Si la fonctionnalité implique un parcours complet, ajouter un scénario end-to-end (section 12)
+4. Commite la mise à jour du cahier **séparément** du code d'implémentation :
+
+```bash
+git add docs/browser-test-checklist.md
+git diff --cached --quiet || git commit -m "test: update browser test checklist for #{ISSUE_NUMBER}"
+```
+
+**Si aucun changement front-end n'est identifié** (ex : refactoring backend pur,
+modification de tâche Celery sans impact UI), cette étape est sautée.
+
+### 2.6 Transition vers Phase 3
 
 ```bash
 write_state "3"
@@ -313,7 +348,27 @@ git diff --cached --quiet || git commit -m "feat: close #{ISSUE_NUMBER} - {titre
 git push origin "$BRANCH_NAME"
 ```
 
-### 3.5 Commentaire de documentation
+### 3.5 Vérification de la documentation
+
+Après chaque implémentation, vérifie si les fichiers de documentation du projet
+nécessitent des mises à jour en fonction des changements réalisés :
+
+- **`CLAUDE.md`** : stack technique, modèles, endpoints API, conventions, architecture
+- **`README.md`** : fonctionnalités, stack, structure du projet
+- **`INSTALL.md`** : nouvelles dépendances, variables d'environnement, étapes d'installation
+
+Pour chaque fichier, compare le contenu actuel avec les changements apportés.
+Si une mise à jour est nécessaire, applique-la directement (pas de commentaire GitHub).
+
+Exemples de changements déclencheurs :
+- Nouveau modèle ou champ → mettre à jour la section modèles de `CLAUDE.md`
+- Nouvel endpoint API → mettre à jour la section endpoints de `CLAUDE.md`
+- Nouvelle dépendance Python/JS → mettre à jour `INSTALL.md` et la stack dans `README.md`/`CLAUDE.md`
+- Nouvelle variable d'environnement → mettre à jour `INSTALL.md` et `CLAUDE.md`
+- Nouvelle app ou dossier → mettre à jour l'arborescence dans `CLAUDE.md` et `README.md`
+- Nouvelle fonctionnalité utilisateur → mettre à jour les fonctionnalités dans `README.md`
+
+### 3.6 Commentaire de documentation
 
 ```bash
 gh issue comment {ISSUE_NUMBER} --body "## 📝 Documentation
@@ -331,7 +386,7 @@ gh issue comment {ISSUE_NUMBER} --body "## 📝 Documentation
 [Limitations, prérequis]"
 ```
 
-### 3.6 Pull Request
+### 3.7 Pull Request
 
 ```bash
 EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 2>/dev/null)
@@ -365,7 +420,7 @@ Closes #{ISSUE_NUMBER}
 fi
 ```
 
-### 3.7 Transition vers Phase 4
+### 3.8 Transition vers Phase 4
 
 ```bash
 N_DEV=$((N_DEV + 1))
@@ -466,7 +521,7 @@ Phase 1 (Analyse)
   ├── Questions bloquantes → commentaire + label help wanted → STOP
   └── Pas de questions → write_state("2") → Phase 2 directement
 
-Phase 2 (Plan)
+Phase 2 (Plan + mise à jour cahier de tests browser)
   └── Toujours → write_state("3") → Phase 3 directement
 
 Phase 3 (Dev + tests + PR)
@@ -488,7 +543,7 @@ Phase 5 (Rapport corrections)
 |Démarrage          |Retire `analyze`, ajoute `in progress`               |
 |Phase 1            |`gh issue comment` (analyse)                         |
 |Phase 1 si bloqué  |`gh issue comment` (questions) + `help wanted` → STOP|
-|Phase 2            |`gh issue comment` (plan)                            |
+|Phase 2            |`gh issue comment` (plan) + MAJ `docs/browser-test-checklist.md`|
 |Phase 3            |`gh pr create/edit` + `gh issue comment` (doc)       |
 |Phase 3 si tests KO|`gh issue comment` (erreurs) + `help wanted` → STOP  |
 |Phase 4            |`/code-review --comment` (automatique)               |
@@ -496,6 +551,11 @@ Phase 5 (Rapport corrections)
 |Fin                |Retire `in progress`, ajoute `approved`              |
 
 **Total : 2 changements de labels sur tout le cycle**, quelle que soit la durée.
+
+> **Note :** En cas d'interruption involontaire (ex : dépassement des quotas de tokens
+> de Claude Code), le flux appelant (GitHub Actions) doit ajouter le label `standby`
+> au ticket et poster un commentaire expliquant l'arrêt. Le fichier `.claude-state.json`
+> permet de reprendre exactement où l'exécution s'est arrêtée.
 
 ## Structure de `.claude-state.json`
 
@@ -514,3 +574,40 @@ Phase 5 (Rapport corrections)
 ```
 
 Phases possibles : `"1"`, `"2"`, `"3"`, `"4"`, `"5"`, `"done"`
+
+---
+
+## Gestion des erreurs — Interruption par quota de tokens
+
+Si l'exécution de Claude Code est interrompue (ex : dépassement du quota de tokens),
+le flux appelant (GitHub Actions, script manuel) **doit** exécuter les actions
+suivantes pour signaler l'arrêt :
+
+```bash
+# 1. Ajouter le label "standby" au ticket
+gh issue edit {ISSUE_NUMBER} --add-label 'standby'
+
+# 2. Poster un commentaire explicatif
+gh issue comment {ISSUE_NUMBER} --body "## ⚠️ Exécution interrompue
+
+Les travaux ont été stoppés suite au dépassement des quotas de tokens de Claude Code.
+
+**Phase en cours :** {phase courante depuis .claude-state.json}
+**Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+L'exécution reprendra automatiquement à la phase interrompue grâce au fichier d'état
+\`.claude-state.json\`. Pour relancer, reposer le label \`analyze\` sur le ticket."
+```
+
+**Détection de l'erreur :** Le processus Claude Code retourne un code de sortie
+non-zéro en cas d'interruption. Le flux appelant doit vérifier ce code de retour
+et déclencher la procédure ci-dessus.
+
+**Reprise :** Lorsque le label `analyze` est reposé, le workflow reprend grâce
+à la table de routage de la Phase 0 qui lit `.claude-state.json` et redémarre
+à la bonne phase. Le label `standby` est retiré au redémarrage.
+
+```bash
+# À ajouter dans la Phase 0.3, après le retrait du label analyze :
+gh issue edit {ISSUE_NUMBER} --remove-label 'standby' 2>/dev/null || true
+```

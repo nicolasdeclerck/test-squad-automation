@@ -45,9 +45,26 @@ export default function PostDetail() {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+  const [hasVersions, setHasVersions] = useState(false);
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    setPublishError("");
+    const res = await api.post(`/api/blog/posts/${post.slug}/publish/`);
+    if (res.ok) {
+      setPost(res.data);
+    } else {
+      setPublishError(
+        res.errors?.error || "Erreur lors de la publication."
+      );
+    }
+    setPublishing(false);
+  };
 
   useEffect(() => {
-    setLoading(true);
+    if (!post) setLoading(true);
     api.get(`/api/blog/posts/${slug}/`).then((res) => {
       if (res.ok) {
         setPost(res.data);
@@ -55,6 +72,16 @@ export default function PostDetail() {
       setLoading(false);
     });
   }, [slug, refreshKey]);
+
+  useEffect(() => {
+    if (post?.is_owner) {
+      api.get(`/api/blog/posts/${slug}/versions/`).then((res) => {
+        if (res.ok && res.data.count > 0) {
+          setHasVersions(true);
+        }
+      });
+    }
+  }, [post?.is_owner, slug]);
 
   if (loading) {
     return (
@@ -129,9 +156,60 @@ export default function PostDetail() {
                   />
                 </svg>
               </Link>
+              {post.status === "draft" && (
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className="inline-flex items-center gap-1 rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  title="Publier"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="size-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75"
+                    />
+                  </svg>
+                  {publishing ? "Publication..." : "Publier"}
+                </button>
+              )}
+              {hasVersions && (
+                <Link
+                  to={`/articles/${post.slug}/versions`}
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  title="Historique des versions"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="size-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                    />
+                  </svg>
+                  Versions
+                </Link>
+              )}
             </div>
           )}
         </div>
+
+        {publishError && (
+          <p className="text-red-600 text-sm mt-2">{publishError}</p>
+        )}
 
         <div className="flex items-center gap-2 mb-8">
           <Avatar user={post.author} size="md" />

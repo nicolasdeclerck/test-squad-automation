@@ -1,13 +1,6 @@
-from django.urls import path
-
-from .views import AvatarDeleteView, LoginView, LogoutView, ProfileUpdateView, SignUpView
+# Template-based URL patterns removed — all user-facing routes served by React SPA.
+# API URL patterns are in api_urls.py.
 
 app_name = "accounts"
 
-urlpatterns = [
-    path("inscription/", SignUpView.as_view(), name="signup"),
-    path("connexion/", LoginView.as_view(), name="login"),
-    path("deconnexion/", LogoutView.as_view(), name="logout"),
-    path("profil/modifier/", ProfileUpdateView.as_view(), name="profile_edit"),
-    path("profil/avatar/supprimer/", AvatarDeleteView.as_view(), name="avatar_delete"),
-]
+urlpatterns = []

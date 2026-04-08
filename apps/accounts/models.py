@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -20,6 +22,26 @@ def validate_avatar(image):
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
     content_type = getattr(image, "content_type", None)
     if content_type and content_type not in allowed_types:
+        raise ValidationError(
+            "Format non autorisé. Utilisez JPEG, PNG ou WebP."
+        )
+
+    # Vérification du contenu réel avec PIL
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        if hasattr(image, "seek"):
+            image.seek(0)
+        if hasattr(image, "read"):
+            data = BytesIO(image.read())
+            image.seek(0)
+        elif hasattr(image, "temporary_file_path"):
+            data = image.temporary_file_path()
+        else:
+            raise UnidentifiedImageError("Impossible de lire le fichier.")
+        img = Image.open(data)
+        img.verify()
+    except (UnidentifiedImageError, OSError, SyntaxError):
         raise ValidationError(
             "Format non autorisé. Utilisez JPEG, PNG ou WebP."
         )

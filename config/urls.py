@@ -8,9 +8,6 @@ urlpatterns = [
     path("api/blog/", include("apps.blog.api_urls")),
     path("api/accounts/", include("apps.accounts.api_urls")),
     path("api/core/", include("apps.core.api_urls")),
-    path("", include("apps.core.urls")),
-    path("", include("apps.blog.urls")),
-    path("comptes/", include("apps.accounts.urls")),
 ]
 
 if settings.DEBUG:

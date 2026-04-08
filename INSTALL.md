@@ -209,19 +209,7 @@ POSTGRES_PASSWORD=<mot-de-passe-fort>
 
 > **Important** : ne jamais commiter `.env.prod`. Le fichier est dans `.gitignore`.
 
-### 2. Construire le frontend React
-
-Avant de construire les images Docker, generer le build de production du frontend :
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-Cela genere les fichiers optimises dans `frontend/dist/`.
-
-### 3. Construire et demarrer les services
+### 2. Construire et demarrer les services
 
 ```bash
 docker compose -f docker-compose.prod.yml build
@@ -233,24 +221,25 @@ Les services demarres en production :
 | Service | Role |
 |---------|------|
 | `django` | API Django (Gunicorn, 3 workers) |
+| `frontend` | Build React (Vite) et copie dans le volume nginx |
 | `nginx` | Reverse proxy, fichiers statiques et media |
 | `postgres` | Base de donnees PostgreSQL |
 | `redis` | Cache + broker Celery |
 | `celery` | Worker asynchrone |
 
-### 4. Appliquer les migrations
+### 3. Appliquer les migrations
 
 ```bash
 docker compose -f docker-compose.prod.yml exec django python manage.py migrate
 ```
 
-### 5. Creer un superutilisateur (premier deploiement)
+### 4. Creer un superutilisateur (premier deploiement)
 
 ```bash
 docker compose -f docker-compose.prod.yml exec django python manage.py createsuperuser
 ```
 
-### 6. Verifier le deploiement
+### 5. Verifier le deploiement
 
 L'application est accessible via `https://blog.nickorp.com` (HTTPS via Traefik).
 
@@ -258,11 +247,12 @@ L'application est accessible via `https://blog.nickorp.com` (HTTPS via Traefik).
 
 ```bash
 git pull
-cd frontend && npm install && npm run build && cd ..
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml exec django python manage.py migrate
 ```
+
+> **Note** : le build du frontend est automatiquement gere par le service `frontend` dans Docker Compose (voir `docker/frontend/Dockerfile`). Il n'est pas necessaire de lancer `npm install` ou `npm run build` manuellement.
 
 ### Architecture de production
 
