@@ -63,7 +63,7 @@ export default function CommentForm({ slug, onCommentAdded }) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={4}
-            placeholder="\u00c9crivez votre commentaire..."
+            placeholder="Écrivez votre commentaire..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
           />
           {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
