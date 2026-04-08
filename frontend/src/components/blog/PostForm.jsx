@@ -60,12 +60,12 @@ export default function PostForm() {
   const [contentReady, setContentReady] = useState(!isEdit);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [isDirty, setIsDirty] = useState(false);
   const titleRef = useRef(null);
   const editorRef = useRef(null);
   const autosaveTimerRef = useRef(null);
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const retryCountRef = useRef(0);
   const titleValueRef = useRef("");
   const lastSavedTitleRef = useRef("");
   const lastSavedContentRef = useRef("");
@@ -107,7 +107,6 @@ export default function PostForm() {
       currentContent === lastSavedContentRef.current
     ) {
       isDirtyRef.current = false;
-      setIsDirty(false);
       return;
     }
 
@@ -123,7 +122,7 @@ export default function PostForm() {
 
     if (res.ok) {
       isDirtyRef.current = false;
-      setIsDirty(false);
+      retryCountRef.current = 0;
       lastSavedTitleRef.current = trimmedTitle;
       lastSavedContentRef.current = currentContent;
       const now = new Date();
@@ -133,19 +132,21 @@ export default function PostForm() {
       setSaveStatus("saved");
     } else {
       setSaveStatus("error");
-      // Keep dirty flag and schedule retry after 5s
       isDirtyRef.current = true;
-      setIsDirty(true);
-      autosaveTimerRef.current = setTimeout(() => {
-        performAutosave();
-      }, 5000);
+      retryCountRef.current += 1;
+      // Retry up to 3 times after failure, then stop until next user edit
+      if (retryCountRef.current < 3) {
+        autosaveTimerRef.current = setTimeout(() => {
+          performAutosave();
+        }, 5000);
+      }
     }
   }, [slug]);
 
   const scheduleAutosave = useCallback(() => {
     if (!slug) return;
     isDirtyRef.current = true;
-    setIsDirty(true);
+    retryCountRef.current = 0;
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
     }
