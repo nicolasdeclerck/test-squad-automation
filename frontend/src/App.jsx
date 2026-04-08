@@ -3,9 +3,11 @@ import { Notifications } from "@mantine/notifications";
 import { HelmetProvider } from "react-helmet-async";
 import {
   createBrowserRouter,
+  Link,
   Navigate,
   Outlet,
   RouterProvider,
+  useRouteError,
 } from "react-router-dom";
 import LoginForm from "./components/accounts/LoginForm";
 import ProfileEdit from "./components/accounts/ProfileEdit";
@@ -22,6 +24,26 @@ import Contact from "./components/core/Contact";
 import DevTracking from "./components/core/DevTracking";
 import Layout from "./components/layout/Layout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+
+function ErrorPage() {
+  const error = useRouteError();
+  return (
+    <div className="max-w-xl mx-auto px-4 py-20 text-center">
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">
+        Une erreur est survenue
+      </h1>
+      <p className="text-gray-600 mb-6">
+        {error?.message || "Erreur inattendue. Veuillez réessayer."}
+      </p>
+      <Link
+        to="/"
+        className="text-sm text-gray-500 hover:text-black transition-colors"
+      >
+        &larr; Retour à l'accueil
+      </Link>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -41,6 +63,7 @@ function AuthLayout() {
 const router = createBrowserRouter([
   {
     element: <AuthLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { path: "/", element: <PostList isHome /> },
       { path: "/articles", element: <PostList /> },
