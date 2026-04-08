@@ -289,6 +289,7 @@
   - Création de titres (h1, h2, h3) fonctionne
   - Création de listes (à puces, numérotées) fonctionne
   - Le menu de blocs (slash `/`) est accessible
+  - Aucune bordure bleue (outline) n'apparaît autour de la zone de saisie lorsqu'on clique ou saisit du texte (vérifier sur Firefox notamment)
 
 ---
 
