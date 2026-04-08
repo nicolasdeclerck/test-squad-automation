@@ -162,6 +162,30 @@ class TestSuperUserPermissions:
         assert response.status_code == 200
         assert response.json()["is_superuser"] is False
 
+    def test_non_superuser_cannot_list_drafts(self):
+        """Non-superusers requesting ?status=draft get published posts instead."""
+        user = UserFactory()
+        PostFactory(author=user, status=Post.STATUS_DRAFT)
+        PostFactory(status=Post.STATUS_PUBLISHED)
+        self.client.force_login(user)
+        response = self.client.get(f"{API_POSTS_URL}?status=draft")
+        assert response.status_code == 200
+        results = response.json()["results"]
+        for post in results:
+            assert post["status"] == "published"
+
+    def test_superuser_can_list_drafts(self):
+        """Superusers can filter by ?status=draft and see their own drafts."""
+        user = SuperUserFactory()
+        draft = PostFactory(author=user, status=Post.STATUS_DRAFT)
+        PostFactory(status=Post.STATUS_PUBLISHED)
+        self.client.force_login(user)
+        response = self.client.get(f"{API_POSTS_URL}?status=draft")
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["slug"] == draft.slug
+
     def test_non_superuser_can_still_read_posts(self):
         """Non-superusers can still view published posts (GET)."""
         post = PostFactory(status=Post.STATUS_PUBLISHED)

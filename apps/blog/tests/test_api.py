@@ -70,7 +70,7 @@ class TestPostListAPI:
         assert data["count"] == 0
 
     def test_list_drafts_returns_own_drafts(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         PostFactory(author=user, status="draft")
         PostFactory(author=user, status="draft")
         PostFactory(author=user, status="published")
@@ -80,8 +80,8 @@ class TestPostListAPI:
         assert data["count"] == 2
 
     def test_list_drafts_excludes_other_users_drafts(self):
-        user = UserFactory()
-        other = UserFactory()
+        user = SuperUserFactory()
+        other = SuperUserFactory()
         PostFactory(author=user, status="draft")
         PostFactory(author=other, status="draft")
         self.client.force_login(user)

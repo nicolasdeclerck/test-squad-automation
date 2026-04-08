@@ -71,7 +71,7 @@ const router = createBrowserRouter([
       {
         path: "/articles/mes-brouillons",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requireSuperUser>
             <MyDrafts />
           </ProtectedRoute>
         ),
