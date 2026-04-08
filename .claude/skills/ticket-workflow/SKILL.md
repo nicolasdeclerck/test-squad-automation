@@ -553,6 +553,31 @@ gh issue edit {ISSUE_NUMBER} --add-label 'approved'
 
 ```bash
 N_REVIEW=$((N_REVIEW + 1))
+```
+
+**Si `N_REVIEW >= 3` (limite de cycles atteinte) :**
+
+```bash
+write_state "4"
+
+gh pr review "$PR_NUMBER" --request-changes \
+  --body "Code review automatique cycle $N_REVIEW : corrections nécessaires. Limite de 3 cycles atteinte — intervention humaine requise."
+
+gh issue comment {ISSUE_NUMBER} --body "## ⚠️ Limite de cycles de code review atteinte
+
+La code review automatique a détecté des problèmes pendant **$N_REVIEW cycles consécutifs**.
+Les corrections automatiques n'ont pas suffi à résoudre tous les points.
+
+Intervention humaine requise. Pour relancer après correction manuelle, reposer le label \`analyze\`."
+
+gh issue edit {ISSUE_NUMBER} --add-label 'help wanted'
+```
+
+→ **STOP** (l'humain reposera `analyze` après avoir corrigé)
+
+**Sinon (cycles restants) :**
+
+```bash
 write_state "5"
 
 gh pr review "$PR_NUMBER" --request-changes \
@@ -712,6 +737,31 @@ gh issue edit {ISSUE_NUMBER} --add-label 'approved'
 
 **Si des tests échouent :**
 
+**Si `N_BROWSER_TEST >= 3` (limite de cycles atteinte) :**
+
+```bash
+write_state "6"
+
+gh issue comment {ISSUE_NUMBER} --body "## ⚠️ Limite de cycles de tests browser atteinte
+
+Les tests browser ont échoué pendant **$N_BROWSER_TEST cycles consécutifs**.
+Les corrections automatiques n'ont pas suffi à résoudre toutes les anomalies.
+
+### Derniers tests en échec
+
+| ID | Scénario | Résultat |
+|----|----------|----------|
+[tableau complet avec PASS/FAIL/SKIP]
+
+Intervention humaine requise. Pour relancer après correction manuelle, reposer le label \`analyze\`."
+
+gh issue edit {ISSUE_NUMBER} --add-label 'help wanted'
+```
+
+→ **STOP** (l'humain reposera `analyze` après avoir corrigé)
+
+**Sinon (cycles restants) :**
+
 ```bash
 write_state "7"
 
@@ -810,14 +860,16 @@ Phase 3 (Dev + tests + PR)
 Phase 4 (Code review)
   ├── Approuvée + tests browser prévus → write_state("6") → Phase 6 directement
   ├── Approuvée + pas de tests browser → write_state("done") → labels finaux + STOP ✅
-  └── Corrections → write_state("5") → Phase 5 directement
+  ├── Corrections + N_REVIEW < 3 → write_state("5") → Phase 5 directement
+  └── Corrections + N_REVIEW ≥ 3 → commentaire + label help wanted → STOP ⚠️
 
 Phase 5 (Rapport corrections code review)
   └── Toujours → write_state("3") → Phase 3 directement (nouveau cycle)
 
 Phase 6 (Tests browser via agent-browser)
   ├── Tous les tests passent → write_state("done") → labels finaux + STOP ✅
-  └── Anomalies détectées → write_state("7") → Phase 7 directement
+  ├── Anomalies + N_BROWSER_TEST < 3 → write_state("7") → Phase 7 directement
+  └── Anomalies + N_BROWSER_TEST ≥ 3 → commentaire + label help wanted → STOP ⚠️
 
 Phase 7 (Rapport corrections browser)
   └── Toujours → write_state("3") → Phase 3 directement (nouveau cycle)
