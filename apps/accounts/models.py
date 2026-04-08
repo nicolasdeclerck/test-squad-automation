@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -6,18 +8,43 @@ from django.dispatch import receiver
 
 
 def validate_avatar(image):
+    if not image:
+        return
+
     max_size = 5 * 1024 * 1024  # 5 MB
-    if image.size > max_size:
+    try:
+        file_size = image.size
+    except (FileNotFoundError, OSError, ValueError, AttributeError):
+        raise ValidationError("Le fichier image est inaccessible.")
+    if file_size > max_size:
         raise ValidationError("La taille de l'image ne doit pas dépasser 5 Mo.")
 
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
-    from django.core.files.uploadedfile import UploadedFile
+    content_type = getattr(image, "content_type", None)
+    if content_type and content_type not in allowed_types:
+        raise ValidationError(
+            "Format non autorisé. Utilisez JPEG, PNG ou WebP."
+        )
 
-    if isinstance(image, UploadedFile):
-        if image.content_type not in allowed_types:
-            raise ValidationError(
-                "Format non autorisé. Utilisez JPEG, PNG ou WebP."
-            )
+    # Vérification du contenu réel avec PIL
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        if hasattr(image, "seek"):
+            image.seek(0)
+        if hasattr(image, "read"):
+            data = BytesIO(image.read())
+            image.seek(0)
+        elif hasattr(image, "temporary_file_path"):
+            data = image.temporary_file_path()
+        else:
+            raise UnidentifiedImageError("Impossible de lire le fichier.")
+        img = Image.open(data)
+        img.verify()
+    except (UnidentifiedImageError, OSError, SyntaxError):
+        raise ValidationError(
+            "Format non autorisé. Utilisez JPEG, PNG ou WebP."
+        )
 
 
 class Profile(models.Model):
@@ -29,6 +56,7 @@ class Profile(models.Model):
     avatar = models.ImageField(
         upload_to="avatars/",
         blank=True,
+        null=True,
         validators=[validate_avatar],
     )
 
@@ -44,6 +72,3 @@ class Profile(models.Model):
 def create_or_update_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
-    else:
-        if hasattr(instance, "profile"):
-            instance.profile.save()
