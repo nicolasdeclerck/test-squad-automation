@@ -1,13 +1,28 @@
+from io import BytesIO
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 
 from apps.accounts.models import Profile, validate_avatar
 
 from .factories import UserFactory
 
 User = get_user_model()
+
+
+def _make_image(width, height, fmt="JPEG", mode="RGB"):
+    """Helper to create a test image as SimpleUploadedFile."""
+    buf = BytesIO()
+    img = Image.new(mode, (width, height), color="red")
+    if fmt == "JPEG" and mode != "RGB":
+        img = img.convert("RGB")
+    img.save(buf, format=fmt)
+    content_type = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}[fmt]
+    ext = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[fmt]
+    return SimpleUploadedFile(f"test.{ext}", buf.getvalue(), content_type=content_type)
 
 
 @pytest.mark.django_db
@@ -184,3 +199,60 @@ class TestAvatarValidation:
         with pytest.raises(ValidationError) as exc_info:
             validate_avatar(file)
         assert "Format non autorisé" in str(exc_info.value)
+
+
+@pytest.mark.django_db
+class TestAvatarCompression:
+    def test_avatar_is_compressed_on_save(self):
+        """Large image is resized to max 300x300 and compressed."""
+        user = UserFactory()
+        profile = user.profile
+        profile.avatar = _make_image(2000, 1500, "JPEG")
+        profile.save()
+
+        img = Image.open(profile.avatar)
+        assert img.size[0] <= 300
+        assert img.size[1] <= 300
+        assert img.format == "JPEG"
+        # Compressed file should be much smaller than original
+        profile.avatar.seek(0, 2)
+        assert profile.avatar.tell() < 100_000
+
+    def test_avatar_png_converted_to_jpeg(self):
+        """PNG with transparency is converted to JPEG with white background."""
+        user = UserFactory()
+        profile = user.profile
+        profile.avatar = _make_image(500, 500, "PNG", mode="RGBA")
+        profile.save()
+
+        img = Image.open(profile.avatar)
+        assert img.format == "JPEG"
+        assert profile.avatar.name.endswith(".jpg")
+
+    def test_avatar_not_reprocessed_on_save_without_change(self):
+        """Saving profile without changing avatar doesn't reprocess it."""
+        user = UserFactory()
+        profile = user.profile
+        profile.avatar = _make_image(200, 200, "JPEG")
+        profile.save()
+
+        profile.avatar.seek(0)
+        original_data = profile.avatar.read()
+
+        # Save again without changing avatar
+        profile.save()
+
+        profile.avatar.seek(0)
+        new_data = profile.avatar.read()
+        assert original_data == new_data
+
+    def test_small_avatar_still_processed(self):
+        """Even small images are converted to JPEG."""
+        user = UserFactory()
+        profile = user.profile
+        profile.avatar = _make_image(50, 50, "PNG")
+        profile.save()
+
+        img = Image.open(profile.avatar)
+        assert img.format == "JPEG"
+        assert img.size == (50, 50)
