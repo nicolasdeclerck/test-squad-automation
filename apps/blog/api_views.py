@@ -16,7 +16,7 @@ from .serializers import (
 
 class IsSuperUser(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_superuser
+        return request.user.is_superuser
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
@@ -71,7 +71,6 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
 
 class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = "slug"
-    permission_classes = [IsAuthorOrReadOnly]
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:

@@ -45,18 +45,11 @@ function ErrorPage() {
   );
 }
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, requireSuperUser = false }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/comptes/connexion" replace />;
-  return children;
-}
-
-function SuperUserRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user) return <Navigate to="/comptes/connexion" replace />;
-  if (!user.is_superuser) return <Navigate to="/" replace />;
+  if (requireSuperUser && !user.is_superuser) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -86,9 +79,9 @@ const router = createBrowserRouter([
       {
         path: "/articles/creer",
         element: (
-          <SuperUserRoute>
+          <ProtectedRoute requireSuperUser>
             <PostForm />
-          </SuperUserRoute>
+          </ProtectedRoute>
         ),
       },
       { path: "/articles/:slug", element: <PostDetail /> },
@@ -111,17 +104,17 @@ const router = createBrowserRouter([
       {
         path: "/articles/:slug/modifier",
         element: (
-          <SuperUserRoute>
+          <ProtectedRoute requireSuperUser>
             <PostForm />
-          </SuperUserRoute>
+          </ProtectedRoute>
         ),
       },
       {
         path: "/articles/:slug/supprimer",
         element: (
-          <SuperUserRoute>
+          <ProtectedRoute requireSuperUser>
             <PostDelete />
-          </SuperUserRoute>
+          </ProtectedRoute>
         ),
       },
       { path: "/comptes/connexion", element: <LoginForm /> },
