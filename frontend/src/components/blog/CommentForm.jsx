@@ -1,3 +1,4 @@
+import { Alert, Button, Textarea } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
@@ -12,7 +13,7 @@ export default function CommentForm({ slug, onCommentAdded }) {
 
   if (!user) {
     return (
-      <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+      <div className="text-center py-4">
         <p className="text-sm text-gray-600">
           <Link
             to="/comptes/connexion"
@@ -41,40 +42,39 @@ export default function CommentForm({ slug, onCommentAdded }) {
     if (res.ok) {
       setContent("");
       setSuccessMsg(
-        "Votre commentaire a \u00e9t\u00e9 soumis et est en attente de mod\u00e9ration."
+        "Votre commentaire a été soumis et est en attente de modération."
       );
       if (onCommentAdded) onCommentAdded();
     } else {
-      setError("Le commentaire n'a pas pu \u00eatre soumis.");
+      setError("Le commentaire n'a pas pu être soumis.");
     }
     setSubmitting(false);
   };
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
+    <div>
       {successMsg && (
-        <div className="mb-3 p-4 rounded-md bg-green-50 text-green-800">
+        <Alert color="green" mb="sm">
           {successMsg}
-        </div>
+        </Alert>
       )}
       <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={4}
-            placeholder="Écrivez votre commentaire..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
-          />
-          {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
-        </div>
-        <button
+        <Textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={3}
+          placeholder="Écrivez votre commentaire..."
+          error={error || undefined}
+          mb="sm"
+        />
+        <Button
           type="submit"
-          disabled={submitting}
-          className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm disabled:opacity-50"
+          loading={submitting}
+          color="dark"
+          size="sm"
         >
           Publier le commentaire
-        </button>
+        </Button>
       </form>
     </div>
   );
