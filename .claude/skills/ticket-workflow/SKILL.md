@@ -542,6 +542,13 @@ write_state "6"
 APPROVED="True"
 write_state "done"
 
+gh issue comment {ISSUE_NUMBER} --body "## ✅ Tests browser — non requis
+
+Aucun test browser n'a été défini pour ce ticket (pas de changement front-end identifié).
+La code review a été approuvée, le ticket est considéré comme terminé.
+
+**Tests browser : 0 prévu, 0 exécuté.**"
+
 # Labels finaux
 gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
 gh issue edit {ISSUE_NUMBER} --add-label 'approved'
@@ -885,7 +892,7 @@ Phase 7 (Rapport corrections browser)
 |Phase 2               |`gh issue comment` (plan + tests browser prévus) + MAJ `docs/browser-test-checklist.md`|
 |Phase 3               |`gh pr create/edit` + `gh issue comment` (doc)       |
 |Phase 3 si tests KO   |`gh issue comment` (erreurs) + `help wanted` → STOP  |
-|Phase 4               |`/code-review --comment` (automatique)               |
+|Phase 4               |`/code-review --comment` (automatique) + `gh issue comment` (résultat tests browser : exécutés ou non requis)|
 |Phase 5               |`gh issue comment` (corrections code review)         |
 |Phase 6               |`agent-browser` (exécution tests) + `gh issue comment` (résultats)|
 |Phase 7               |`gh issue comment` (corrections browser)             |
