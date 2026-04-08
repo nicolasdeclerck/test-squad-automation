@@ -1,10 +1,11 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
 import { Button, Modal } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import DOMPurify from "dompurify";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { schema } from "./mermaid-block";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
@@ -22,28 +23,18 @@ function BlockNoteRenderer({ content }) {
     Array.isArray(blocks) && blocks.length > 0 ? blocks : undefined;
 
   const editor = useCreateBlockNote({
+    schema,
     initialContent: validBlocks,
   });
-
-  const [html, setHtml] = useState("");
-
-  useEffect(() => {
-    if (editor && validBlocks) {
-      editor.blocksToFullHTML(editor.document).then((rawHtml) => {
-        setHtml(DOMPurify.sanitize(rawHtml));
-      }).catch(() => {});
-    }
-  }, [editor, validBlocks]);
 
   if (!validBlocks) {
     return <div className="whitespace-pre-line">{content}</div>;
   }
 
   return (
-    <div
-      className="text-gray-700 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="text-gray-700 leading-relaxed">
+      <BlockNoteView editor={editor} theme="light" editable={false} />
+    </div>
   );
 }
 

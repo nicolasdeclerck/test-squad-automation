@@ -1,14 +1,21 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+import { filterSuggestionItems } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote } from "@blocknote/react";
+import {
+  getDefaultReactSlashMenuItems,
+  SuggestionMenuController,
+  useCreateBlockNote,
+} from "@blocknote/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { schema, insertMermaid } from "./mermaid-block";
 import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {
   const editor = useCreateBlockNote({
+    schema,
     initialContent: initialContent || undefined,
   });
 
@@ -21,7 +28,18 @@ function BlockNoteEditor({ initialContent, editorRef, onChange }) {
       editor={editor}
       theme="light"
       onChange={onChange}
-    />
+      slashMenu={false}
+    >
+      <SuggestionMenuController
+        triggerCharacter="/"
+        getItems={async (query) =>
+          filterSuggestionItems(
+            [...getDefaultReactSlashMenuItems(editor), insertMermaid()],
+            query
+          )
+        }
+      />
+    </BlockNoteView>
   );
 }
 
