@@ -421,6 +421,15 @@
   - Après upload, le nouvel avatar est affiché
   - L'avatar est mis à jour dans le header
 
+### 8.2b — [AUTH] Upload d'avatar — Compression automatique
+
+- **URL** : `/comptes/profil/modifier`
+- **Action** : Uploader une image large (ex: 2000×2000 JPEG ou PNG) et soumettre
+- **Vérifications** :
+  - L'avatar est affiché correctement après upload (pas de distorsion)
+  - L'image servie par le serveur est en format JPEG (vérifier l'URL ou le Content-Type)
+  - L'image servie ne dépasse pas 300×300 pixels (vérifiable via les dimensions naturelles de l'image dans le DOM)
+
 ### 8.3 — [AUTH] Upload d'avatar — Validation
 
 - **URL** : `/comptes/profil/modifier`
