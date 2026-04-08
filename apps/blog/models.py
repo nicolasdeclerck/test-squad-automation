@@ -35,8 +35,8 @@ class Post(models.Model):
         return self.title or self.draft_title or "(sans titre)"
 
     def publish(self):
-        self.title = self.draft_title
-        self.content = self.draft_content
+        self.title = self.draft_title or self.title
+        self.content = self.draft_content or self.content
         self.status = self.STATUS_PUBLISHED
         self.has_draft = False
         self.draft_title = ""
