@@ -164,30 +164,17 @@ Si tu peux faire un choix raisonnable → fais-le et documente-le.
 
 ### 1.3 Post du commentaire d'analyse
 
+Poste un commentaire **court** de notification. Le détail complet sera
+documenté en Phase 3 une fois l'implémentation terminée et stabilisée.
+
 ```bash
-gh issue comment {ISSUE_NUMBER} --body "## 🔍 Analyse
+gh issue comment {ISSUE_NUMBER} --body "## 🔍 Analyse terminée
 
-[Contexte métier et état actuel du code]
+**Périmètre identifié :** [résumé en 1-2 phrases du besoin et de l'approche envisagée]
 
-## 📋 Consignes de développement
+**Fichiers concernés :** [nombre] fichiers à créer/modifier
 
-### Fichiers à créer ou modifier
-[Chemins exacts]
-
-### Logique métier
-[Description avec extraits si utile]
-
-### Critères d'acceptance
-[Liste vérifiable]
-
-### Tests à écrire
-[Noms et descriptions]
-
-## 📦 Changements de stack
-[Dépendances ou 'Aucun changement']
-
-## ❓ Questions bloquantes
-[Liste numérotée ou 'Aucune question']"
+**Questions bloquantes :** [Aucune | liste courte]"
 ```
 
 ### 1.4 Gestion des questions bloquantes et transition
@@ -232,30 +219,22 @@ Tâches de **moins de 15 minutes**, une par fichier :
 
 ### 2.4 Post du commentaire de plan
 
+Poste un commentaire **court** de notification. Le détail complet de l'implémentation
+sera documenté en Phase 3 une fois le code stabilisé.
+
 ```bash
-gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan d'implémentation
+gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan défini — développement en cours
 
 **Approche :** [résumé en une phrase]
 
-**Fichiers impactés :** [liste]
+**Tâches :** [N] tâches sur [M] fichiers
 
-## 📝 Tâches
-
-**T1 — [titre]**
-- Fichier : \`chemin/exact\`
-- Action : créer | modifier
-- Description : [détail]
-- Critère de validation : [comment vérifier]
-- Dépend de : T0 | aucune
-
-[...]
-
-## ⚠️ Points d'attention
-[Risques, ordre critique, contraintes]
-
-## 🔬 Stratégie de tests
-[Tests prioritaires, fixtures, cas limites]"
+**Tests browser prévus :** [N scénarios | aucun (pas d'impact front-end)]"
 ```
+
+> **Note :** L'analyse complète (fichiers, tâches, critères, choix techniques)
+> est réalisée en interne. Elle sera documentée dans le commentaire de Phase 3
+> après implémentation et code review.
 
 ### 2.5 Mise à jour du cahier de tests browser (TDD)
 
@@ -324,21 +303,9 @@ browser **spécifiques à ce ticket** qui seront exécutés en Phase 6 après la
 }
 ```
 
-4. Poste la liste des tests browser retenus dans le commentaire de plan (2.4) ou
-   dans un commentaire séparé :
-
-```bash
-gh issue comment {ISSUE_NUMBER} --body "## 🧪 Tests browser prévus
-
-Les scénarios suivants seront exécutés via agent-browser après la code review :
-
-| ID | Scénario | Type |
-|----|----------|------|
-| NAV-01 | Affichage du header | [PUBLIC] |
-| E2E-02 | Brouillon → édition → publication | [AUTH] |
-
-**Total : N scénarios**"
-```
+4. Le nombre de scénarios est mentionné dans le commentaire court de Phase 2.4.
+   Le détail complet (tableau des scénarios avec IDs) sera posté au démarrage
+   de la Phase 6 (section 6.2.1).
 
 **Si aucun changement front-end n'est identifié**, la liste `browser_tests` est vide (`[]`)
 et la Phase 6 sera automatiquement sautée.
@@ -542,6 +509,13 @@ write_state "6"
 APPROVED="True"
 write_state "done"
 
+gh issue comment {ISSUE_NUMBER} --body "## ✅ Tests browser — non requis
+
+Aucun test browser n'a été défini pour ce ticket (pas de changement front-end identifié).
+La code review a été approuvée, le ticket est considéré comme terminé.
+
+**Tests browser : 0 prévu, 0 exécuté.**"
+
 # Labels finaux
 gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
 gh issue edit {ISSUE_NUMBER} --add-label 'approved'
@@ -648,13 +622,19 @@ for t in tests:
 ")
 ```
 
-### 6.2 Préparation de l'environnement
+### 6.2 Préparation de l'environnement éphémère
 
-Vérifie que l'application est accessible avant de lancer les tests :
+Lance un environnement Docker éphémère identique à la production
+(`docker-compose.test.yml`) via le script `tnr-docker.sh`, comme pour les
+tests de non-régression. Cet environnement inclut le code de la branche PR.
 
 ```bash
-# S'assurer que les services sont démarrés
-docker compose up -d
+# Démarrer l'environnement éphémère (build, migrate, seed test data)
+./scripts/tnr-docker.sh up
+
+# Définir les URLs de test
+BASE_URL=http://localhost:8080
+API_URL=http://localhost:8080
 
 # Vérifier l'accessibilité de l'application
 agent-browser open "$BASE_URL"
@@ -662,7 +642,37 @@ agent-browser wait --load networkidle
 agent-browser snapshot -i
 ```
 
-**URLs :** utilise les variables `BASE_URL` et `API_URL` (par défaut `https://blog.nickorp.com`).
+> **Note :** Ne pas utiliser `docker compose up -d` (environnement de dev).
+> L'environnement éphémère (`tnr-docker.sh`) reproduit fidèlement la production :
+> gunicorn, nginx, frontend buildé, PostgreSQL, Redis, Celery.
+
+### 6.2.1 Commentaire de démarrage des tests
+
+Poste un commentaire sur le ticket **avant** de commencer l'exécution des tests,
+pour tracer le démarrage même en cas d'interruption du workflow :
+
+```bash
+TOTAL_TESTS=$(cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print(len(d.get('browser_tests', [])))
+")
+
+gh issue comment {ISSUE_NUMBER} --body "## 🔄 Tests browser — démarrage (cycle $((N_BROWSER_TEST + 1)))
+
+Lancement de **$TOTAL_TESTS scénarios** de test browser via agent-browser.
+
+| ID | Scénario | Type |
+|----|----------|------|
+$(cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for t in d.get('browser_tests', []):
+    print(f\"| {t['id']} | {t['title']} | [{t['type']}] |\")
+")
+
+Les résultats seront postés à la fin de l'exécution."
+```
 
 ### 6.3 Gestion des sessions d'authentification
 
@@ -791,7 +801,11 @@ Des anomalies ont été détectées lors des tests browser.
 ### 6.6 Nettoyage
 
 ```bash
+# Fermer toutes les sessions browser
 agent-browser close --all
+
+# Détruire l'environnement éphémère
+./scripts/tnr-docker.sh down
 ```
 
 ---
@@ -880,14 +894,15 @@ Phase 7 (Rapport corrections browser)
 |Moment                |Interaction                                          |
 |----------------------|-----------------------------------------------------|
 |Démarrage             |Retire `analyze`, ajoute `in progress`               |
-|Phase 1               |`gh issue comment` (analyse)                         |
+|Phase 1               |`gh issue comment` (notification : analyse terminée) |
 |Phase 1 si bloqué     |`gh issue comment` (questions) + `help wanted` → STOP|
-|Phase 2               |`gh issue comment` (plan + tests browser prévus) + MAJ `docs/browser-test-checklist.md`|
-|Phase 3               |`gh pr create/edit` + `gh issue comment` (doc)       |
+|Phase 2               |`gh issue comment` (notification : plan défini + nb tests browser) + MAJ `docs/browser-test-checklist.md`|
+|Phase 3               |`gh pr create/edit` + `gh issue comment` (documentation détaillée : référence)|
 |Phase 3 si tests KO   |`gh issue comment` (erreurs) + `help wanted` → STOP  |
-|Phase 4               |`/code-review --comment` (automatique)               |
+|Phase 4 sans tests    |`/code-review` + `gh issue comment` (tests browser non requis)|
+|Phase 4 avec tests    |`/code-review` → Phase 6                             |
 |Phase 5               |`gh issue comment` (corrections code review)         |
-|Phase 6               |`agent-browser` (exécution tests) + `gh issue comment` (résultats)|
+|Phase 6               |`gh issue comment` (démarrage) + `agent-browser` + `gh issue comment` (résultats)|
 |Phase 7               |`gh issue comment` (corrections browser)             |
 |Fin                   |Retire `in progress`, ajoute `approved`              |
 
