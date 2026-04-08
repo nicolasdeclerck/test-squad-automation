@@ -162,6 +162,33 @@
   - Clic sur "Supprimer" redirige vers `/articles/{slug}/supprimer`
   - Ces boutons sont ABSENTS si l'utilisateur n'est pas l'auteur
 
+### 3.5 — [AUTH/OWNER] Bandeau "Modifications non publiées" sur un article publié
+
+- **URL** : `/articles/{slug}` (article publié avec `has_draft === true`, en tant qu'auteur)
+- **Vérifications** :
+  - Un bandeau/alerte indiquant "Cet article a des modifications non publiées" est visible
+  - Le bandeau contient un lien "Voir les modifications" qui mène à `/articles/{slug}/modifier`
+  - Le bandeau n'est PAS visible pour un utilisateur non-auteur
+  - Le bandeau n'est PAS visible pour un visiteur non connecté
+  - Le bandeau n'est PAS visible si `has_draft === false`
+
+### 3.6 — [AUTH/OWNER] Bouton "Publier les modifications" pour re-publication
+
+- **URL** : `/articles/{slug}` (article publié avec `has_draft === true`, en tant qu'auteur)
+- **Vérifications** :
+  - Un bouton "Publier les modifications" est visible (libellé différent de "Publier" pour un premier draft)
+  - Clic sur le bouton appelle l'API de publication
+  - Après succès : le bandeau disparaît, le contenu mis à jour est affiché, `has_draft` repasse à `false`
+  - Le bouton "Publier" classique est toujours affiché pour un article en statut "draft"
+
+### 3.7 — [AUTH/OWNER] Badge "brouillon en cours" dans les listes d'articles
+
+- **URL** : `/` ou `/articles` (en tant qu'auteur d'un article publié avec `has_draft === true`)
+- **Vérifications** :
+  - Un badge ou icône discret (ex: icône crayon) est visible sur la carte de l'article
+  - Le badge n'est PAS visible pour un utilisateur non-auteur
+  - Le badge n'est PAS visible pour un visiteur non connecté
+
 ---
 
 ## 4. Articles — Création et édition
@@ -554,7 +581,28 @@
 12. Vérifier que l'éditeur contient le titre "Version originale" et le contenu de la version 1
 13. Vérifier que l'article publié affiche toujours "Version modifiée" (non publié automatiquement)
 
-### 13.7 — Parcours complet : édition continue d'un article publié (brouillon continu)
+### 13.7 — Parcours complet : re-publication avec indicateur de modifications non publiées
+
+1. Se connecter avec l'utilisateur 1
+2. Créer un article avec titre "Article à re-publier" et du contenu, le publier (version 1)
+3. Naviguer vers `/articles/{slug}/modifier`
+4. Modifier le titre et le contenu (sauvegardé via autosave)
+5. Quitter l'éditeur et revenir sur `/articles/{slug}`
+6. Vérifier qu'un bandeau "Modifications non publiées" est visible
+7. Vérifier qu'un lien "Voir les modifications" est présent dans le bandeau
+8. Vérifier qu'un bouton "Publier les modifications" est visible (pas "Publier")
+9. Se déconnecter, se connecter avec l'utilisateur 2
+10. Ouvrir le même article
+11. Vérifier que le bandeau "Modifications non publiées" est ABSENT
+12. Vérifier que le bouton "Publier les modifications" est ABSENT
+13. Se déconnecter, se connecter avec l'utilisateur 1
+14. Ouvrir l'article, cliquer sur "Publier les modifications"
+15. Vérifier que le bandeau disparaît après publication
+16. Vérifier que le contenu mis à jour est affiché
+17. Vérifier dans "Historique des versions" qu'une nouvelle version a été créée
+18. Vérifier dans la liste des articles que le badge "brouillon en cours" a disparu
+
+### 13.8 — Parcours complet : édition continue d'un article publié (brouillon continu)
 
 1. Se connecter avec l'utilisateur 1
 2. Créer un article avec titre "Article initial" et du contenu, le publier (version 1)
