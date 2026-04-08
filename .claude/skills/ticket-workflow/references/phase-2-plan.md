@@ -2,10 +2,20 @@
 
 ## 2.1 Récupération des consignes
 
-Relit le commentaire d'analyse posté en Phase 1 depuis les commentaires GitHub.
+Récupère le commentaire d'analyse posté en Phase 1 depuis les commentaires GitHub :
 
-Si en reprise après réponses, récupère aussi les commentaires postés après
-le commentaire d'attente.
+```bash
+gh issue view {ISSUE_NUMBER} --json comments \
+  --jq '[.comments[] | select(.body | startswith("## 🔍 Analyse terminée"))] | last | .body'
+```
+
+Si en reprise après réponses à des questions bloquantes, récupère aussi les
+commentaires postés après le commentaire d'attente :
+
+```bash
+gh issue view {ISSUE_NUMBER} --json comments \
+  --jq '[.comments[] | {author: .author.login, body: .body}]'
+```
 
 ## 2.2 Analyse de l'impact
 
@@ -41,79 +51,32 @@ gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan défini — développeme
 > est réalisée en interne. Elle sera documentée dans le commentaire de Phase 3
 > après implémentation et code review.
 
-## 2.5 Mise à jour du cahier de tests browser (TDD)
+## 2.5 Planification des tests browser (TDD)
 
-Avant de démarrer le développement, mets à jour le cahier de tests de non-régression
-`docs/browser-test-checklist.md` pour refléter les fonctionnalités à implémenter.
+Lis le fichier `references/browser-test-planning.md` et exécute les deux étapes :
+1. Mise à jour du cahier `docs/browser-test-checklist.md`
+2. Définition de la liste `browser_tests` dans `.claude-state.json`
 
-**Principe TDD :** les tests attendus sont écrits **avant** le code, ce qui garantit
-que le cahier est toujours synchronisé avec les fonctionnalités de l'application.
+**Si aucun changement front-end n'est identifié**, sauter cette étape
+et laisser `browser_tests` vide (`[]`).
 
-**Démarche :**
+## 2.6 Persistance des tâches dans le fichier d'état
 
-1. Lis le fichier `docs/browser-test-checklist.md` existant
-2. Analyse les tâches du plan (étape 2.3) pour identifier les impacts sur les tests browser :
-   - Nouvelle fonctionnalité utilisateur → **ajouter** de nouveaux scénarios de test
-   - Modification d'un flux existant → **mettre à jour** les scénarios concernés
-   - Suppression d'une fonctionnalité → **retirer** les scénarios obsolètes
-   - Nouvel endpoint API consommé par le front → **ajouter** les vérifications associées
-   - Changement de comportement UI (formulaire, navigation, permissions) → **adapter** les vérifications
-3. Applique les modifications en respectant les conventions du cahier :
-   - Tags `[PUBLIC]`, `[AUTH]`, `[OWNER]` selon le niveau d'accès requis
-   - Format : action à réaliser + résultat attendu
-   - Placement dans la section thématique appropriée (ou création d'une nouvelle section si nécessaire)
-   - Si la fonctionnalité implique un parcours complet, ajouter un scénario end-to-end (section 12)
-4. Commite la mise à jour du cahier **séparément** du code d'implémentation :
-
-```bash
-git add docs/browser-test-checklist.md
-git diff --cached --quiet || git commit -m "test: update browser test checklist for #{ISSUE_NUMBER}"
-```
-
-**Si aucun changement front-end n'est identifié** (ex : refactoring backend pur,
-modification de tâche Celery sans impact UI), cette étape est sautée.
-
-## 2.6 Définition de la liste de tests browser du ticket
-
-Après la mise à jour du cahier de tests, définis la liste des scénarios de test
-browser **spécifiques à ce ticket** qui seront exécutés en Phase 6 après la code review.
-
-**Démarche :**
-
-1. Identifie tous les scénarios de `docs/browser-test-checklist.md` impactés par ce ticket :
-   - Les scénarios **ajoutés** dans l'étape 2.5
-   - Les scénarios **modifiés** dans l'étape 2.5
-   - Les scénarios existants qui testent des fonctionnalités **touchées** par les changements
-     (tests de non-régression directe)
-2. Collecte pour chaque scénario : son identifiant (ex : `NAV-01`), son titre, son type
-   (`[PUBLIC]`, `[AUTH]`, `[OWNER]`), et les étapes détaillées telles que décrites dans le cahier
-3. Enregistre cette liste dans le fichier d'état `.claude-state.json` sous la clé `browser_tests` :
+Enregistre la liste ordonnée des tâches dans `.claude-state.json` sous la clé `tasks`,
+afin que la Phase 3 puisse les retrouver même en cas de reprise de session :
 
 ```json
 {
-  "browser_tests": [
-    {
-      "id": "NAV-01",
-      "title": "Affichage du header",
-      "type": "PUBLIC",
-      "steps": "1. Ouvrir la page d'accueil\n2. Vérifier la présence du header..."
-    },
-    {
-      "id": "E2E-02",
-      "title": "Brouillon → édition avec autosave → publication",
-      "type": "AUTH",
-      "steps": "1. Se connecter...\n2. Créer un brouillon..."
-    }
+  "tasks": [
+    {"index": 0, "description": "Créer le modèle X dans apps/blog/models.py", "status": "pending"},
+    {"index": 1, "description": "Ajouter la migration", "status": "pending"},
+    {"index": 2, "description": "Créer la vue API dans apps/blog/api_views.py", "status": "pending"},
+    {"index": 3, "description": "Écrire les tests dans apps/blog/tests/", "status": "pending"}
   ]
 }
 ```
 
-4. Le nombre de scénarios est mentionné dans le commentaire court de Phase 2.4.
-   Le détail complet (tableau des scénarios avec IDs) sera posté au démarrage
-   de la Phase 6 (section 6.2.1).
-
-**Si aucun changement front-end n'est identifié**, la liste `browser_tests` est vide (`[]`)
-et la Phase 6 sera automatiquement sautée.
+**Important :** cette clé est préservée par `write_state()` au même titre que `browser_tests`.
 
 ## 2.7 Transition vers Phase 3
 

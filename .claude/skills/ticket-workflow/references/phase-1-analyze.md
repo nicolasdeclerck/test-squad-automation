@@ -22,6 +22,9 @@ Si tu peux faire un choix raisonnable → fais-le et documente-le.
 Poste un commentaire **court** de notification. Le détail complet sera
 documenté en Phase 3 une fois l'implémentation terminée et stabilisée.
 
+Le commentaire **doit** commencer par `## 🔍 Analyse terminée` pour être
+retrouvé par la Phase 2.
+
 ```bash
 gh issue comment {ISSUE_NUMBER} --body "## 🔍 Analyse terminée
 

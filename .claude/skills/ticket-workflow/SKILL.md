@@ -25,7 +25,8 @@ les fichiers `references/`. Ce fichier ne contient que l'orchestration.
 |---------|---------|
 | `references/state-management.md` | `write_state()`, structure JSON, gestion erreurs/interruptions |
 | `references/phase-1-analyze.md` | Analyse du ticket et du codebase |
-| `references/phase-2-plan.md` | Plan technique, tâches atomiques, cahier de tests browser |
+| `references/phase-2-plan.md` | Plan technique, tâches atomiques |
+| `references/browser-test-planning.md` | Planification TDD des tests browser (cahier + liste du ticket) |
 | `references/phase-3-develop.md` | Développement, tests, commit, PR, documentation |
 | `references/phase-4-review.md` | Code review automatique |
 | `references/phase-5-corrections.md` | Rapport des corrections (code review ET tests browser, unifié) |
@@ -147,7 +148,7 @@ Phase 5 (Rapport corrections — code review OU tests browser)
 
 Phase 6 (Tests browser via agent-browser)
   ├── Tous les tests passent → labels finaux + STOP ✅
-  ├── Anomalies + N_BROWSER_TEST < 3 → Phase 5 (contexte browser) directement
+  ├── Anomalies + N_BROWSER_TEST < 3 → Phase 7 directement (→ phase-5-corrections.md, contexte browser)
   └── Anomalies + N_BROWSER_TEST ≥ 3 → label help wanted → STOP ⚠️
 ```
 

@@ -2,13 +2,28 @@
 
 ## 3.1 Récupération du plan et de la progression
 
-Relit le commentaire de plan depuis les commentaires GitHub et récupère
-`CURRENT_TASK` depuis le fichier d'état pour reprendre à la bonne tâche.
+Récupère la liste des tâches depuis le fichier d'état (clé `tasks`) et
+`CURRENT_TASK` pour reprendre à la bonne tâche :
+
+```bash
+cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for t in d.get('tasks', []):
+    status = '✅' if t['status'] == 'completed' else '⬜'
+    print(f\"{status} [{t['index']}] {t['description']}\")
+"
+```
 
 Si un commentaire `## 🔄 Corrections demandées` ou
-`## 🔄 Corrections demandées (tests browser)` existe, lis-le pour connaître
-les corrections spécifiques à apporter — elles priment sur le plan initial
-pour les fichiers concernés.
+`## 🔄 Corrections demandées (tests browser)` existe, récupère-le pour
+connaître les corrections spécifiques à apporter — elles priment sur le
+plan initial pour les fichiers concernés :
+
+```bash
+gh issue view {ISSUE_NUMBER} --json comments \
+  --jq '[.comments[] | select(.body | startswith("## 🔄 Corrections demandées"))] | last | .body'
+```
 
 ## 3.2 Exécution des tâches
 
@@ -107,7 +122,8 @@ gh issue comment {ISSUE_NUMBER} --body "## 📝 Documentation
 EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 2>/dev/null)
 
 if [ -n "$EXISTING_PR" ]; then
-  gh pr edit "$EXISTING_PR" \
+  PR_NUMBER="$EXISTING_PR"
+  gh pr edit "$PR_NUMBER" \
     --body "## Description
 
 Closes #{ISSUE_NUMBER}
@@ -117,9 +133,9 @@ Closes #{ISSUE_NUMBER}
 ## Documentation
 
 [contenu du commentaire de doc]"
-  echo "PR #$EXISTING_PR mise à jour."
+  echo "PR #$PR_NUMBER mise à jour."
 else
-  gh pr create \
+  PR_NUMBER=$(gh pr create \
     --title "feat: {titre du ticket}" \
     --body "## Description
 
@@ -131,9 +147,13 @@ Closes #{ISSUE_NUMBER}
 
 [contenu du commentaire de doc]" \
     --base main \
-    --head "$BRANCH_NAME"
+    --head "$BRANCH_NAME" 2>&1 | grep -oP '/pull/\K[0-9]+')
+  echo "PR #$PR_NUMBER créée."
 fi
 ```
+
+**Important :** `PR_NUMBER` doit être capturé ici pour être persisté par
+`write_state()` à l'étape 3.8.
 
 ## 3.8 Transition vers Phase 4
 

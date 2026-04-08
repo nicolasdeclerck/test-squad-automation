@@ -52,7 +52,8 @@ state = {
   'approved': $APPROVED,
   'branch': '${BRANCH_NAME:-}',
   'pr_number': '${PR_NUMBER:-}',
-  'browser_tests': existing.get('browser_tests', [])
+  'browser_tests': existing.get('browser_tests', []),
+  'tasks': existing.get('tasks', [])
 }
 print(json.dumps(state, indent=2))
 " > "$STATE_FILE"
@@ -73,6 +74,12 @@ print(json.dumps(state, indent=2))
   "branch": "feat/issue-42-ma-feature",
   "pr_number": "15",
   "approved": false,
+  "tasks": [
+    {"index": 0, "description": "Créer le modèle X", "status": "completed"},
+    {"index": 1, "description": "Ajouter la migration", "status": "completed"},
+    {"index": 2, "description": "Créer la vue API", "status": "in_progress"},
+    {"index": 3, "description": "Écrire les tests", "status": "pending"}
+  ],
   "browser_tests": [
     {
       "id": "AUTH-01",

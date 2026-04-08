@@ -189,7 +189,7 @@ Des anomalies ont été détectées lors des tests browser.
 [...]"
 ```
 
-→ Exécuter Phase 5 (corrections) directement
+→ Exécuter Phase 7 directement (la table de routage mappe Phase 7 → `phase-5-corrections.md` avec contexte tests browser)
 
 ## 6.6 Nettoyage
 

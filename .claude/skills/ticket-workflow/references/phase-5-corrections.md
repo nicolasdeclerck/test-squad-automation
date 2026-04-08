@@ -2,9 +2,15 @@
 
 Cette phase est utilisée dans deux contextes :
 - **Après une code review** (Phase 4 → Phase 5) : corrections issues de `/code-review`
-- **Après des tests browser** (Phase 6 → Phase 7→5) : corrections issues de `agent-browser`
+- **Après des tests browser** (Phase 6 → Phase 7) : corrections issues de `agent-browser`
 
-Le contexte est déterminé par la phase d'origine stockée dans `.claude-state.json`.
+## Détection du contexte
+
+Le contexte est déterminé par la valeur de `PHASE` lue depuis `.claude-state.json`
+au démarrage (Phase 0.2) :
+
+- **`PHASE = 5`** → contexte **code review** (venant de Phase 4)
+- **`PHASE = 7`** → contexte **tests browser** (venant de Phase 6)
 
 ## 5.1 Récupération des feedbacks
 
@@ -62,7 +68,11 @@ Les tests browser ont révélé les anomalies suivantes à corriger :
 
 ## 5.3 Transition vers Phase 3
 
+**Important :** Remet `CURRENT_TASK` à 0 avant la transition, car les
+corrections constituent de nouvelles tâches à exécuter depuis le début :
+
 ```bash
+CURRENT_TASK=0
 write_state "3"
 # → Exécuter Phase 3 directement (nouveau cycle de développement)
 ```
