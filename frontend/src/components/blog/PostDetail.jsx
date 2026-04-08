@@ -1,6 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
+import { Alert } from "@mantine/core";
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -163,12 +164,17 @@ export default function PostDetail() {
                   />
                 </svg>
               </Link>
-              {post.status === "draft" && (
+              {(post.status === "draft" ||
+                (post.status === "published" && post.has_draft)) && (
                 <button
                   onClick={handlePublish}
                   disabled={publishing}
                   className="inline-flex items-center gap-1 rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
-                  title="Publier"
+                  title={
+                    post.status === "published"
+                      ? "Publier les modifications"
+                      : "Publier"
+                  }
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -184,7 +190,11 @@ export default function PostDetail() {
                       d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75"
                     />
                   </svg>
-                  {publishing ? "Publication..." : "Publier"}
+                  {publishing
+                    ? "Publication..."
+                    : post.status === "published"
+                      ? "Publier les modifications"
+                      : "Publier"}
                 </button>
               )}
               {hasVersions && (
@@ -213,6 +223,20 @@ export default function PostDetail() {
             </div>
           )}
         </div>
+
+        {post.is_owner &&
+          post.status === "published" &&
+          post.has_draft && (
+            <Alert color="blue" className="mb-4">
+              Cet article a des modifications non publiées.{" "}
+              <Link
+                to={`/articles/${post.slug}/modifier`}
+                className="underline font-medium"
+              >
+                Voir les modifications
+              </Link>
+            </Alert>
+          )}
 
         {publishError && (
           <p className="text-red-600 text-sm mt-2">{publishError}</p>

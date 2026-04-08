@@ -74,13 +74,19 @@ export default function PostForm() {
     if (isEdit) {
       api.get(`/api/blog/posts/${slug}/`).then((res) => {
         if (res.ok) {
-          setTitle(res.data.title);
-          titleValueRef.current = res.data.title;
-          lastSavedTitleRef.current = res.data.title;
+          const editTitle = res.data.has_draft
+            ? res.data.draft_title || res.data.title
+            : res.data.title;
+          const editContent = res.data.has_draft
+            ? res.data.draft_content || res.data.content
+            : res.data.content;
+          setTitle(editTitle);
+          titleValueRef.current = editTitle;
+          lastSavedTitleRef.current = editTitle;
           try {
-            const parsed = JSON.parse(res.data.content);
+            const parsed = JSON.parse(editContent);
             setInitialContent(parsed);
-            lastSavedContentRef.current = res.data.content;
+            lastSavedContentRef.current = editContent;
           } catch {
             setInitialContent(undefined);
             lastSavedContentRef.current = "";

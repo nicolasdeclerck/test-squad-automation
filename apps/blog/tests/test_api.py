@@ -686,7 +686,7 @@ class TestContinuousDraftWorkflow:
     def setup_method(self):
         self.client = Client()
 
-    def test_detail_author_with_draft_returns_draft_content(self):
+    def test_detail_author_with_draft_returns_published_content_and_draft_fields(self):
         user = UserFactory()
         post = PostFactory(
             author=user,
@@ -700,9 +700,11 @@ class TestContinuousDraftWorkflow:
         self.client.force_login(user)
         response = self.client.get(api_post_url(post.slug))
         data = response.json()
-        assert data["title"] == "Draft Title"
-        assert data["content"] == "Draft Content"
+        assert data["title"] == "Published Title"
+        assert data["content"] == "Published Content"
         assert data["has_draft"] is True
+        assert data["draft_title"] == "Draft Title"
+        assert data["draft_content"] == "Draft Content"
 
     def test_detail_reader_with_draft_returns_published_content(self):
         post = PostFactory(
@@ -781,8 +783,9 @@ class TestContinuousDraftWorkflow:
         assert data["count"] == 1
         assert data["results"][0]["title"] == "Published Title"
 
-    def test_detail_author_partial_autosave_fallback(self):
-        """When only draft_content is set (partial autosave), title should fall back to published title."""
+    def test_detail_author_partial_autosave_returns_published_and_draft_fields(self):
+        """When only draft_content is set (partial autosave), title/content show published values,
+        draft fields show the partial draft."""
         user = UserFactory()
         post = PostFactory(
             author=user,
@@ -797,7 +800,10 @@ class TestContinuousDraftWorkflow:
         response = self.client.get(api_post_url(post.slug))
         data = response.json()
         assert data["title"] == "Published Title"
-        assert data["content"] == "Draft Content Only"
+        assert data["content"] == "Published Content"
+        assert data["has_draft"] is True
+        assert data["draft_title"] == ""
+        assert data["draft_content"] == "Draft Content Only"
 
     def test_full_workflow_create_publish_edit_republish(self):
         user = UserFactory()
@@ -844,11 +850,14 @@ class TestContinuousDraftWorkflow:
         assert response.json()["title"] == "Mon article V1"
         assert response.json()["content"] == "Contenu V1"
 
-        # Verify author sees draft content
+        # Verify author sees published content in title/content fields
+        # and draft content in draft_title/draft_content fields
         response = self.client.get(api_post_url(slug))
-        assert response.json()["title"] == "Mon article V2"
-        assert response.json()["content"] == "Contenu V2"
+        assert response.json()["title"] == "Mon article V1"
+        assert response.json()["content"] == "Contenu V1"
         assert response.json()["has_draft"] is True
+        assert response.json()["draft_title"] == "Mon article V2"
+        assert response.json()["draft_content"] == "Contenu V2"
 
         # Verify PATCH is blocked on published post
         response = self.client.patch(
