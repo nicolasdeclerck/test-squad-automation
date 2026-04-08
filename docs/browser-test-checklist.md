@@ -220,25 +220,65 @@
   - Soumission sans titre → message d'erreur ou comportement empêchant la sauvegarde
   - Le titre est limité à 200 caractères
 
-### 4.4 — [AUTH/OWNER] Modification d'un article (brouillon)
+### 4.4 — [AUTH/OWNER] Modification d'un article (brouillon) avec autosave
 
 - **URL** : `/articles/{slug}/modifier`
-- **Action** : Modifier le titre et/ou le contenu, cliquer "Mettre à jour"
+- **Action** : Modifier le titre et/ou le contenu, attendre l'autosave
 - **Vérifications** :
   - Le formulaire est pré-rempli avec le titre et le contenu existants
   - L'éditeur BlockNote charge le contenu existant
-  - Après sauvegarde, les modifications sont reflétées sur la page de l'article
-  - Le slug peut changer si le titre est modifié
+  - Après modification, l'autosave se déclenche automatiquement (indicateur "Sauvegarde en cours..." puis "Brouillon sauvegardé")
+  - Le bouton "Modifier" n'est PAS affiché (remplacé par l'autosave)
+  - Les modifications sont sauvegardées en tant que brouillon via l'endpoint `/autosave/`
 
-### 4.6 — [AUTH/OWNER] Édition d'un article publié (brouillon continu)
+### 4.6 — [AUTH/OWNER] Édition d'un article publié (brouillon continu) avec autosave
 
 - **URL** : `/articles/{slug}/modifier` (article publié)
 - **Action** : Modifier le titre et/ou le contenu d'un article déjà publié
 - **Vérifications** :
   - L'éditeur est pré-rempli avec le contenu du brouillon (draft) si un brouillon existe, sinon avec le contenu publié
-  - Les modifications sont sauvegardées en tant que brouillon (via autosave), sans modifier le contenu publié visible par les lecteurs
+  - Les modifications sont sauvegardées automatiquement en tant que brouillon via l'endpoint `/autosave/` (pas le PATCH classique)
+  - L'indicateur de sauvegarde affiche "Sauvegarde en cours..." puis "Brouillon sauvegardé à HH:MM"
+  - Le bouton "Modifier" n'est PAS affiché (remplacé par l'autosave)
   - La page publique de l'article (`/articles/{slug}`) continue d'afficher le contenu de la dernière publication
   - Un lecteur non-auteur voit toujours le contenu publié, même si un brouillon est en cours
+
+### 4.7 — [AUTH] Autosave — Indicateur de statut
+
+- **URL** : `/articles/{slug}/modifier`
+- **Action** : Modifier le titre ou le contenu et observer l'indicateur
+- **Vérifications** :
+  - Un indicateur discret est visible entre le titre et l'éditeur
+  - Pendant la sauvegarde : affiche "Sauvegarde en cours..." (ou icône de chargement)
+  - Après succès : affiche "Brouillon sauvegardé" avec horodatage (ex: "Brouillon sauvegardé à 14:32")
+  - En cas d'erreur : affiche "Erreur de sauvegarde"
+
+### 4.8 — [AUTH] Autosave — Debounce (délai avant sauvegarde)
+
+- **URL** : `/articles/{slug}/modifier`
+- **Action** : Taper du texte en continu dans le titre ou l'éditeur
+- **Vérifications** :
+  - L'autosave ne se déclenche PAS à chaque frappe
+  - L'autosave se déclenche environ 1 à 2 secondes après la dernière modification
+  - L'indicateur passe à "Sauvegarde en cours..." seulement après le délai
+
+### 4.9 — [AUTH] Autosave — Nouveau article (première sauvegarde manuelle)
+
+- **URL** : `/articles/creer`
+- **Action** : Saisir un titre et du contenu, cliquer "Enregistrer en brouillon"
+- **Vérifications** :
+  - Avant la première sauvegarde, aucun autosave ne se déclenche (pas de slug disponible)
+  - Après clic sur "Enregistrer en brouillon", l'article est créé
+  - L'utilisateur est redirigé vers la page d'édition de l'article
+  - L'autosave est alors actif pour les modifications suivantes
+
+### 4.10 — [AUTH] Autosave — Protection contre la perte de données
+
+- **URL** : `/articles/{slug}/modifier`
+- **Action** : Modifier du contenu puis tenter de quitter la page avant que l'autosave ne se déclenche
+- **Vérifications** :
+  - Le navigateur affiche un avertissement de confirmation avant de quitter (dialogue `beforeunload`)
+  - Si l'utilisateur annule, il reste sur la page et l'autosave se termine normalement
 
 ### 4.5 — [AUTH] Éditeur BlockNote — Fonctionnalités
 
@@ -510,18 +550,18 @@
 10. Ajouter un commentaire "Super article !"
 11. Vérifier le message de modération
 
-### 13.2 — Parcours complet : brouillon → édition → publication
+### 13.2 — Parcours complet : brouillon → édition avec autosave → publication
 
 1. Se connecter avec un utilisateur existant
 2. Naviguer vers `/articles/creer`
 3. Saisir un titre et du contenu
-4. Cliquer "Enregistrer comme brouillon"
+4. Cliquer "Enregistrer en brouillon"
 5. Vérifier dans `/articles/mes-brouillons` que le brouillon apparaît
 6. Cliquer sur le brouillon pour l'ouvrir
 7. Cliquer sur "Modifier"
 8. Modifier le titre et le contenu
-9. Cliquer "Mettre à jour"
-10. Vérifier que les modifications sont appliquées
+9. Attendre que l'indicateur affiche "Brouillon sauvegardé"
+10. Vérifier que les modifications sont sauvegardées automatiquement (pas de bouton "Modifier"/"Mettre à jour")
 
 ### 13.3 — Parcours complet : gestion du profil
 
