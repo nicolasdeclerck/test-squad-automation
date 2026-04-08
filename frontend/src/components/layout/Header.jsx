@@ -37,6 +37,9 @@ export default function Header() {
 
         {/* Navigation desktop */}
         <nav className="hidden md:flex items-center gap-6">
+          <Link to="/" className="nav-link">
+            Accueil
+          </Link>
           <Link to="/articles" className="nav-link">
             Articles
           </Link>
@@ -146,6 +149,13 @@ export default function Header() {
       {mobileOpen && (
         <div className="md:hidden border-t border-gray-200 px-4 py-4">
           <nav className="flex flex-col gap-3">
+            <Link
+              to="/"
+              className="nav-link"
+              onClick={() => setMobileOpen(false)}
+            >
+              Accueil
+            </Link>
             <Link
               to="/articles"
               className="nav-link"
