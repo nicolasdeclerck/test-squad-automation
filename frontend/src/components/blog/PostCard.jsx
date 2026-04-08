@@ -62,6 +62,7 @@ export default function PostCard({ post }) {
             onClick={open}
             className="text-gray-400 hover:text-black transition-colors ml-4 shrink-0"
             title="Actions"
+            aria-label="Actions"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
