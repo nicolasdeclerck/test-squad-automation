@@ -39,6 +39,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class PostListSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
     plain_content = serializers.SerializerMethodField()
+    has_draft = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -49,9 +50,16 @@ class PostListSerializer(serializers.ModelSerializer):
             "author",
             "status",
             "plain_content",
+            "has_draft",
             "published_at",
             "created_at",
         )
+
+    def get_has_draft(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated and obj.author_id == request.user.id:
+            return obj.has_draft
+        return False
 
     def get_plain_content(self, obj):
         import json
@@ -121,13 +129,6 @@ class PostDetailSerializer(serializers.ModelSerializer):
         if self._is_author(obj):
             return obj.draft_content
         return ""
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if self._is_author(instance) and instance.has_draft:
-            data["title"] = instance.draft_title or instance.title
-            data["content"] = instance.draft_content or instance.content
-        return data
 
     def get_approved_comments(self, obj):
         comments = (
