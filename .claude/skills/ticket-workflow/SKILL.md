@@ -1,7 +1,7 @@
 ---
 name: ticket-workflow
-description: Workflow complet de traitement d'un ticket GitHub pour test-squad-automation, de l'analyse initiale jusqu'à l'approbation finale. Gère N cycles de review et corrections via un fichier d'état local (.claude-state.json). Déclencher sur le label "analyze" posé par un humain. Inclut : analyse, plan technique, développement, tests, PR, code review, corrections post-review. Un seul label au démarrage (in progress), un seul à la fin (approved).
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker:*), Read, Write, Glob, LS, Edit
+description: Workflow complet de traitement d'un ticket GitHub pour test-squad-automation, de l'analyse initiale jusqu'à l'approbation finale. Gère N cycles de review et corrections via un fichier d'état local (.claude-state.json). Déclencher sur le label "analyze" posé par un humain. Inclut : analyse, plan technique, développement, tests unitaires, PR, code review, tests browser via agent-browser, corrections post-review et post-tests-browser. Un seul label au démarrage (in progress), un seul à la fin (approved).
+allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker:*), Bash(agent-browser:*), Bash(npx agent-browser:*), Read, Write, Glob, LS, Edit
 ---
 
 # Skill : ticket-workflow
@@ -37,6 +37,7 @@ if [ -f "$STATE_FILE" ]; then
   N_DEV=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_dev',0))")
   N_REVIEW=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_review',0))")
   N_CORRECTIONS=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_corrections',0))")
+  N_BROWSER_TEST=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('n_browser_test',0))")
   CURRENT_TASK=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('current_task',0))")
   APPROVED=$(cat "$STATE_FILE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('approved',False))")
 else
@@ -45,6 +46,7 @@ else
   N_DEV=0
   N_REVIEW=0
   N_CORRECTIONS=0
+  N_BROWSER_TEST=0
   CURRENT_TASK=0
   APPROVED="False"
 fi
@@ -56,16 +58,26 @@ fi
 write_state() {
   python3 -c "
 import json, sys
+# Preserve browser_tests from existing state if present
+existing = {}
+try:
+    with open('$STATE_FILE') as f:
+        existing = json.load(f)
+except:
+    pass
+
 state = {
   'issue_number': {ISSUE_NUMBER},
   'phase': '$1',
   'n_dev': $N_DEV,
   'n_review': $N_REVIEW,
   'n_corrections': $N_CORRECTIONS,
+  'n_browser_test': ${N_BROWSER_TEST:-0},
   'current_task': $CURRENT_TASK,
   'approved': $APPROVED,
   'branch': '${BRANCH_NAME:-}',
-  'pr_number': '${PR_NUMBER:-}'
+  'pr_number': '${PR_NUMBER:-}',
+  'browser_tests': existing.get('browser_tests', [])
 }
 print(json.dumps(state, indent=2))
 " > "$STATE_FILE"
@@ -81,6 +93,8 @@ print(json.dumps(state, indent=2))
 | `PHASE = 3` | → **Phase 3** : Développement |
 | `PHASE = 4` | → **Phase 4** : Code review |
 | `PHASE = 5` | → **Phase 5** : Rapport corrections |
+| `PHASE = 6` | → **Phase 6** : Tests browser |
+| `PHASE = 7` | → **Phase 7** : Rapport corrections browser |
 | `APPROVED = True` ou `PHASE = done` | → **STOP** : ticket terminé |
 
 ### 0.3 Labels au démarrage
@@ -275,7 +289,61 @@ git diff --cached --quiet || git commit -m "test: update browser test checklist 
 **Si aucun changement front-end n'est identifié** (ex : refactoring backend pur,
 modification de tâche Celery sans impact UI), cette étape est sautée.
 
-### 2.6 Transition vers Phase 3
+### 2.6 Définition de la liste de tests browser du ticket
+
+Après la mise à jour du cahier de tests, définis la liste des scénarios de test
+browser **spécifiques à ce ticket** qui seront exécutés en Phase 6 après la code review.
+
+**Démarche :**
+
+1. Identifie tous les scénarios de `docs/browser-test-checklist.md` impactés par ce ticket :
+   - Les scénarios **ajoutés** dans l'étape 2.5
+   - Les scénarios **modifiés** dans l'étape 2.5
+   - Les scénarios existants qui testent des fonctionnalités **touchées** par les changements
+     (tests de non-régression directe)
+2. Collecte pour chaque scénario : son identifiant (ex : `NAV-01`), son titre, son type
+   (`[PUBLIC]`, `[AUTH]`, `[OWNER]`), et les étapes détaillées telles que décrites dans le cahier
+3. Enregistre cette liste dans le fichier d'état `.claude-state.json` sous la clé `browser_tests` :
+
+```json
+{
+  "browser_tests": [
+    {
+      "id": "NAV-01",
+      "title": "Affichage du header",
+      "type": "PUBLIC",
+      "steps": "1. Ouvrir la page d'accueil\n2. Vérifier la présence du header..."
+    },
+    {
+      "id": "E2E-02",
+      "title": "Brouillon → édition avec autosave → publication",
+      "type": "AUTH",
+      "steps": "1. Se connecter...\n2. Créer un brouillon..."
+    }
+  ]
+}
+```
+
+4. Poste la liste des tests browser retenus dans le commentaire de plan (2.4) ou
+   dans un commentaire séparé :
+
+```bash
+gh issue comment {ISSUE_NUMBER} --body "## 🧪 Tests browser prévus
+
+Les scénarios suivants seront exécutés via agent-browser après la code review :
+
+| ID | Scénario | Type |
+|----|----------|------|
+| NAV-01 | Affichage du header | [PUBLIC] |
+| E2E-02 | Brouillon → édition → publication | [AUTH] |
+
+**Total : N scénarios**"
+```
+
+**Si aucun changement front-end n'est identifié**, la liste `browser_tests` est vide (`[]`)
+et la Phase 6 sera automatiquement sautée.
+
+### 2.7 Transition vers Phase 3
 
 ```bash
 write_state "3"
@@ -291,7 +359,8 @@ write_state "3"
 Relit le commentaire de plan depuis les commentaires GitHub et récupère
 `CURRENT_TASK` depuis le fichier d'état pour reprendre à la bonne tâche.
 
-Si un commentaire `## 🔄 Corrections demandées` existe, lis-le pour connaître
+Si un commentaire `## 🔄 Corrections demandées` ou
+`## 🔄 Corrections demandées (tests browser)` existe, lis-le pour connaître
 les corrections spécifiques à apporter — elles priment sur le plan initial
 pour les fichiers concernés.
 
@@ -444,23 +513,71 @@ write_state "4"
 
 ```bash
 N_REVIEW=$((N_REVIEW + 1))
-APPROVED="True"
-write_state "done"
 
 gh pr review "$PR_NUMBER" --approve \
   --body "Code review automatique cycle $N_REVIEW : aucun problème détecté."
+```
+
+Vérifie ensuite si des tests browser sont prévus pour ce ticket :
+
+```bash
+BROWSER_TESTS=$(cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+tests = d.get('browser_tests', [])
+print(len(tests))
+")
+```
+
+**Si `BROWSER_TESTS > 0` :**
+
+```bash
+write_state "6"
+# → Exécuter Phase 6 directement (tests browser)
+```
+
+**Si `BROWSER_TESTS = 0` (aucun test front, ex : refactoring backend pur) :**
+
+```bash
+APPROVED="True"
+write_state "done"
 
 # Labels finaux
 gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
 gh issue edit {ISSUE_NUMBER} --add-label 'approved'
 ```
 
-→ **STOP** ✅ Ticket terminé.
+→ **STOP** ✅ Ticket terminé (pas de tests browser nécessaires).
 
-**Si des problèmes sont détectés :**
+**Si des problèmes de code review sont détectés :**
 
 ```bash
 N_REVIEW=$((N_REVIEW + 1))
+```
+
+**Si `N_REVIEW >= 3` (limite de cycles atteinte) :**
+
+```bash
+write_state "4"
+
+gh pr review "$PR_NUMBER" --request-changes \
+  --body "Code review automatique cycle $N_REVIEW : corrections nécessaires. Limite de 3 cycles atteinte — intervention humaine requise."
+
+gh issue comment {ISSUE_NUMBER} --body "## ⚠️ Limite de cycles de code review atteinte
+
+La code review automatique a détecté des problèmes pendant **$N_REVIEW cycles consécutifs**.
+Les corrections automatiques n'ont pas suffi à résoudre tous les points.
+
+Intervention humaine requise. Pour relancer après correction manuelle, reposer le label \`analyze\`."
+
+gh issue edit {ISSUE_NUMBER} --add-label 'help wanted'
+```
+
+→ **STOP** (l'humain reposera `analyze` après avoir corrigé)
+
+**Sinon (cycles restants) :**
+
+```bash
 write_state "5"
 
 gh pr review "$PR_NUMBER" --request-changes \
@@ -514,6 +631,218 @@ write_state "3"
 
 ---
 
+## PHASE 6 — Tests browser
+
+Cette phase exécute les scénarios de test browser définis en Phase 2.6 via `agent-browser`.
+Elle intervient **après** une code review réussie (Phase 4) et **avant** l'approbation finale.
+
+### 6.1 Récupération de la liste de tests
+
+```bash
+BROWSER_TESTS=$(cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+tests = d.get('browser_tests', [])
+for t in tests:
+    print(f\"{t['id']} | {t['type']} | {t['title']}\")
+")
+```
+
+### 6.2 Préparation de l'environnement
+
+Vérifie que l'application est accessible avant de lancer les tests :
+
+```bash
+# S'assurer que les services sont démarrés
+docker compose up -d
+
+# Vérifier l'accessibilité de l'application
+agent-browser open "$BASE_URL"
+agent-browser wait --load networkidle
+agent-browser snapshot -i
+```
+
+**URLs :** utilise les variables `BASE_URL` et `API_URL` (par défaut `https://blog.nickorp.com`).
+
+### 6.3 Gestion des sessions d'authentification
+
+Utilise des sessions nommées selon le type de test, conformément au skill `agent-browser` :
+
+- `--session public` pour les tests `[PUBLIC]`
+- `--session user1` pour les tests `[AUTH]` (connexion avec `testuser@example.com` / `Testpass123!`)
+- `--session user2` pour les tests `[OWNER]` nécessitant un deuxième utilisateur
+
+Si une session authentifiée n'existe pas encore, connecte-toi d'abord :
+
+```bash
+agent-browser open "$BASE_URL/login" --session user1
+agent-browser snapshot -i
+# Remplir le formulaire de connexion
+agent-browser fill @emailInput "testuser@example.com"
+agent-browser fill @passwordInput "Testpass123!"
+agent-browser click @submitButton
+agent-browser wait --load networkidle
+```
+
+### 6.4 Exécution des tests
+
+Pour chaque scénario de la liste `browser_tests` :
+
+1. **Exécute les étapes** décrites dans le champ `steps` du scénario en utilisant
+   les commandes `agent-browser` (open, snapshot, click, fill, wait, get text, etc.)
+2. **Vérifie chaque assertion** (présence d'éléments, texte attendu, navigation correcte)
+3. **En cas d'échec** : capture un screenshot et enregistre le détail de l'anomalie
+
+```bash
+# Exemple d'exécution d'un scénario
+agent-browser open "$BASE_URL/page-cible" --session user1
+agent-browser wait --load networkidle
+agent-browser snapshot -i
+# Vérifications...
+agent-browser screenshot --full  # En cas d'échec, pour preuve
+```
+
+4. **Enregistre le résultat** (PASS / FAIL / SKIP) pour chaque scénario
+
+### 6.5 Compilation des résultats
+
+Après exécution de tous les scénarios, compile les résultats :
+
+```bash
+N_BROWSER_TEST=$((N_BROWSER_TEST + 1))
+```
+
+**Si tous les tests passent (aucun FAIL) :**
+
+```bash
+APPROVED="True"
+write_state "done"
+
+gh issue comment {ISSUE_NUMBER} --body "## ✅ Tests browser — cycle $N_BROWSER_TEST
+
+Tous les scénarios de test browser ont été exécutés avec succès.
+
+| ID | Scénario | Résultat |
+|----|----------|----------|
+[tableau des résultats PASS]
+
+**$TOTAL_PASS / $TOTAL_TESTS tests réussis.**"
+
+# Labels finaux
+gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
+gh issue edit {ISSUE_NUMBER} --add-label 'approved'
+```
+
+→ **STOP** ✅ Ticket terminé.
+
+**Si des tests échouent :**
+
+**Si `N_BROWSER_TEST >= 3` (limite de cycles atteinte) :**
+
+```bash
+write_state "6"
+
+gh issue comment {ISSUE_NUMBER} --body "## ⚠️ Limite de cycles de tests browser atteinte
+
+Les tests browser ont échoué pendant **$N_BROWSER_TEST cycles consécutifs**.
+Les corrections automatiques n'ont pas suffi à résoudre toutes les anomalies.
+
+### Derniers tests en échec
+
+| ID | Scénario | Résultat |
+|----|----------|----------|
+[tableau complet avec PASS/FAIL/SKIP]
+
+Intervention humaine requise. Pour relancer après correction manuelle, reposer le label \`analyze\`."
+
+gh issue edit {ISSUE_NUMBER} --add-label 'help wanted'
+```
+
+→ **STOP** (l'humain reposera `analyze` après avoir corrigé)
+
+**Sinon (cycles restants) :**
+
+```bash
+write_state "7"
+
+gh issue comment {ISSUE_NUMBER} --body "## ❌ Tests browser — cycle $N_BROWSER_TEST
+
+Des anomalies ont été détectées lors des tests browser.
+
+| ID | Scénario | Résultat |
+|----|----------|----------|
+[tableau complet avec PASS/FAIL/SKIP]
+
+**$TOTAL_PASS réussis, $TOTAL_FAIL échoués, $TOTAL_SKIP ignorés sur $TOTAL_TESTS tests.**
+
+### Détail des anomalies
+
+**[TEST_ID] — [titre du test]**
+- **Étape en échec :** [description de l'étape]
+- **Comportement observé :** [ce qui s'est passé]
+- **Comportement attendu :** [ce qui était attendu]
+- **Screenshot :** [lien ou référence]
+
+[...]"
+```
+
+→ Exécuter Phase 7 directement
+
+### 6.6 Nettoyage
+
+```bash
+agent-browser close --all
+```
+
+---
+
+## PHASE 7 — Rapport des corrections browser
+
+Cette phase est le pendant de la Phase 5, mais pour les anomalies détectées
+par les tests browser. Elle formate les corrections nécessaires et relance
+un cycle de développement.
+
+### 7.1 Synthèse des anomalies
+
+Relit le commentaire de résultats de la Phase 6 depuis les commentaires GitHub
+pour extraire les anomalies détaillées.
+
+### 7.2 Post du commentaire de corrections sur le ticket
+
+```bash
+N_CORRECTIONS=$((N_CORRECTIONS + 1))
+
+gh issue comment {ISSUE_NUMBER} --body "## 🔄 Corrections demandées (tests browser) — cycle $N_CORRECTIONS
+
+Les tests browser ont révélé les anomalies suivantes à corriger :
+
+### [TEST_ID] — [titre du test]
+- **Problème :** [description du comportement incorrect]
+- **Fichiers probablement impactés :** [chemins estimés]
+- **Correction attendue :** [description de ce qu'il faut corriger]
+
+[... pour chaque FAIL ...]
+
+> Ces corrections suivent le même processus que les corrections de code review.
+> Le prochain cycle de développement (Phase 3) doit traiter ces points."
+```
+
+### 7.3 Transition vers Phase 3
+
+```bash
+write_state "3"
+# → Exécuter Phase 3 directement (nouveau cycle de développement)
+```
+
+> **Note :** Lors du retour en Phase 3, les corrections browser sont traitées
+> exactement comme les corrections de code review : le commentaire
+> `## 🔄 Corrections demandées (tests browser)` est lu en Phase 3.1 et prime
+> sur le plan initial pour les fichiers concernés. Après développement,
+> le flux repasse par Phase 4 (code review) puis Phase 6 (tests browser)
+> pour valider les corrections.
+
+---
+
 ## Résumé du flux et des interactions GitHub
 
 ```
@@ -521,7 +850,7 @@ Phase 1 (Analyse)
   ├── Questions bloquantes → commentaire + label help wanted → STOP
   └── Pas de questions → write_state("2") → Phase 2 directement
 
-Phase 2 (Plan + mise à jour cahier de tests browser)
+Phase 2 (Plan + cahier de tests browser + liste tests du ticket)
   └── Toujours → write_state("3") → Phase 3 directement
 
 Phase 3 (Dev + tests + PR)
@@ -529,26 +858,38 @@ Phase 3 (Dev + tests + PR)
   └── PR créée → write_state("4") → Phase 4 directement
 
 Phase 4 (Code review)
-  ├── Approuvée → write_state("done") → labels finaux + STOP ✅
-  └── Corrections → write_state("5") → Phase 5 directement
+  ├── Approuvée + tests browser prévus → write_state("6") → Phase 6 directement
+  ├── Approuvée + pas de tests browser → write_state("done") → labels finaux + STOP ✅
+  ├── Corrections + N_REVIEW < 3 → write_state("5") → Phase 5 directement
+  └── Corrections + N_REVIEW ≥ 3 → commentaire + label help wanted → STOP ⚠️
 
-Phase 5 (Rapport corrections)
+Phase 5 (Rapport corrections code review)
+  └── Toujours → write_state("3") → Phase 3 directement (nouveau cycle)
+
+Phase 6 (Tests browser via agent-browser)
+  ├── Tous les tests passent → write_state("done") → labels finaux + STOP ✅
+  ├── Anomalies + N_BROWSER_TEST < 3 → write_state("7") → Phase 7 directement
+  └── Anomalies + N_BROWSER_TEST ≥ 3 → commentaire + label help wanted → STOP ⚠️
+
+Phase 7 (Rapport corrections browser)
   └── Toujours → write_state("3") → Phase 3 directement (nouveau cycle)
 ```
 
 **Interactions GitHub :**
 
-|Moment             |Interaction                                          |
-|-------------------|-----------------------------------------------------|
-|Démarrage          |Retire `analyze`, ajoute `in progress`               |
-|Phase 1            |`gh issue comment` (analyse)                         |
-|Phase 1 si bloqué  |`gh issue comment` (questions) + `help wanted` → STOP|
-|Phase 2            |`gh issue comment` (plan) + MAJ `docs/browser-test-checklist.md`|
-|Phase 3            |`gh pr create/edit` + `gh issue comment` (doc)       |
-|Phase 3 si tests KO|`gh issue comment` (erreurs) + `help wanted` → STOP  |
-|Phase 4            |`/code-review --comment` (automatique)               |
-|Phase 5            |`gh issue comment` (corrections)                     |
-|Fin                |Retire `in progress`, ajoute `approved`              |
+|Moment                |Interaction                                          |
+|----------------------|-----------------------------------------------------|
+|Démarrage             |Retire `analyze`, ajoute `in progress`               |
+|Phase 1               |`gh issue comment` (analyse)                         |
+|Phase 1 si bloqué     |`gh issue comment` (questions) + `help wanted` → STOP|
+|Phase 2               |`gh issue comment` (plan + tests browser prévus) + MAJ `docs/browser-test-checklist.md`|
+|Phase 3               |`gh pr create/edit` + `gh issue comment` (doc)       |
+|Phase 3 si tests KO   |`gh issue comment` (erreurs) + `help wanted` → STOP  |
+|Phase 4               |`/code-review --comment` (automatique)               |
+|Phase 5               |`gh issue comment` (corrections code review)         |
+|Phase 6               |`agent-browser` (exécution tests) + `gh issue comment` (résultats)|
+|Phase 7               |`gh issue comment` (corrections browser)             |
+|Fin                   |Retire `in progress`, ajoute `approved`              |
 
 **Total : 2 changements de labels sur tout le cycle**, quelle que soit la durée.
 
@@ -566,14 +907,29 @@ Phase 5 (Rapport corrections)
   "n_dev": 0,
   "n_review": 0,
   "n_corrections": 0,
+  "n_browser_test": 0,
   "current_task": 2,
   "branch": "feat/issue-42-ma-feature",
   "pr_number": "15",
-  "approved": false
+  "approved": false,
+  "browser_tests": [
+    {
+      "id": "AUTH-01",
+      "title": "Inscription d'un nouvel utilisateur",
+      "type": "PUBLIC",
+      "steps": "1. Ouvrir /signup\n2. Remplir le formulaire\n3. Vérifier la redirection"
+    },
+    {
+      "id": "E2E-01",
+      "title": "Inscription → création article → commentaire",
+      "type": "AUTH",
+      "steps": "1. Se connecter\n2. Créer un article\n3. Publier\n4. Ajouter un commentaire"
+    }
+  ]
 }
 ```
 
-Phases possibles : `"1"`, `"2"`, `"3"`, `"4"`, `"5"`, `"done"`
+Phases possibles : `"1"`, `"2"`, `"3"`, `"4"`, `"5"`, `"6"`, `"7"`, `"done"`
 
 ---
 
