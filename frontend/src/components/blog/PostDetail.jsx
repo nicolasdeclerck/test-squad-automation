@@ -21,21 +21,24 @@ function BlockNoteRenderer({ content }) {
     }
   }, [content]);
 
+  const validBlocks =
+    Array.isArray(blocks) && blocks.length > 0 ? blocks : undefined;
+
   const editor = useCreateBlockNote({
-    initialContent: blocks || undefined,
+    initialContent: validBlocks,
   });
 
   const [html, setHtml] = useState("");
 
   useEffect(() => {
-    if (editor && blocks) {
+    if (editor && validBlocks) {
       editor.blocksToFullHTML(editor.document).then((rawHtml) => {
         setHtml(DOMPurify.sanitize(rawHtml));
-      });
+      }).catch(() => {});
     }
-  }, [editor, blocks]);
+  }, [editor, validBlocks]);
 
-  if (!blocks) {
+  if (!validBlocks) {
     return <div className="whitespace-pre-line">{content}</div>;
   }
 
