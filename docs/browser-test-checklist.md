@@ -193,7 +193,7 @@
   - Soumission sans titre → message d'erreur ou comportement empêchant la sauvegarde
   - Le titre est limité à 200 caractères
 
-### 4.4 — [AUTH/OWNER] Modification d'un article
+### 4.4 — [AUTH/OWNER] Modification d'un article (brouillon)
 
 - **URL** : `/articles/{slug}/modifier`
 - **Action** : Modifier le titre et/ou le contenu, cliquer "Mettre à jour"
@@ -202,6 +202,16 @@
   - L'éditeur BlockNote charge le contenu existant
   - Après sauvegarde, les modifications sont reflétées sur la page de l'article
   - Le slug peut changer si le titre est modifié
+
+### 4.6 — [AUTH/OWNER] Édition d'un article publié (brouillon continu)
+
+- **URL** : `/articles/{slug}/modifier` (article publié)
+- **Action** : Modifier le titre et/ou le contenu d'un article déjà publié
+- **Vérifications** :
+  - L'éditeur est pré-rempli avec le contenu du brouillon (draft) si un brouillon existe, sinon avec le contenu publié
+  - Les modifications sont sauvegardées en tant que brouillon (via autosave), sans modifier le contenu publié visible par les lecteurs
+  - La page publique de l'article (`/articles/{slug}`) continue d'afficher le contenu de la dernière publication
+  - Un lecteur non-auteur voit toujours le contenu publié, même si un brouillon est en cours
 
 ### 4.5 — [AUTH] Éditeur BlockNote — Fonctionnalités
 
@@ -543,3 +553,22 @@
 11. Vérifier la redirection vers l'éditeur
 12. Vérifier que l'éditeur contient le titre "Version originale" et le contenu de la version 1
 13. Vérifier que l'article publié affiche toujours "Version modifiée" (non publié automatiquement)
+
+### 13.7 — Parcours complet : édition continue d'un article publié (brouillon continu)
+
+1. Se connecter avec l'utilisateur 1
+2. Créer un article avec titre "Article initial" et du contenu, le publier (version 1)
+3. Vérifier que l'article est visible dans la liste avec le titre "Article initial"
+4. Naviguer vers `/articles/{slug}/modifier`
+5. Modifier le titre en "Article en cours d'édition" et le contenu (les changements sont sauvegardés via autosave)
+6. Ne PAS publier — quitter l'éditeur
+7. Vérifier que la page publique `/articles/{slug}` affiche toujours "Article initial" pour un lecteur
+8. Se déconnecter, se connecter avec l'utilisateur 2
+9. Vérifier que l'article affiche "Article initial" (contenu publié)
+10. Se déconnecter, se connecter avec l'utilisateur 1
+11. Naviguer vers `/articles/{slug}/modifier`
+12. Vérifier que l'éditeur est pré-rempli avec "Article en cours d'édition" (contenu draft)
+13. Publier l'article
+14. Vérifier que l'article affiche maintenant "Article en cours d'édition" (version 2)
+15. Naviguer vers "Historique des versions"
+16. Vérifier que 2 versions sont listées
