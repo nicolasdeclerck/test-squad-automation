@@ -622,13 +622,19 @@ for t in tests:
 ")
 ```
 
-### 6.2 Préparation de l'environnement
+### 6.2 Préparation de l'environnement éphémère
 
-Vérifie que l'application est accessible avant de lancer les tests :
+Lance un environnement Docker éphémère identique à la production
+(`docker-compose.test.yml`) via le script `tnr-docker.sh`, comme pour les
+tests de non-régression. Cet environnement inclut le code de la branche PR.
 
 ```bash
-# S'assurer que les services sont démarrés
-docker compose up -d
+# Démarrer l'environnement éphémère (build, migrate, seed test data)
+./scripts/tnr-docker.sh up
+
+# Définir les URLs de test
+BASE_URL=http://localhost:8080
+API_URL=http://localhost:8080
 
 # Vérifier l'accessibilité de l'application
 agent-browser open "$BASE_URL"
@@ -636,7 +642,9 @@ agent-browser wait --load networkidle
 agent-browser snapshot -i
 ```
 
-**URLs :** utilise les variables `BASE_URL` et `API_URL` (par défaut `https://blog.nickorp.com`).
+> **Note :** Ne pas utiliser `docker compose up -d` (environnement de dev).
+> L'environnement éphémère (`tnr-docker.sh`) reproduit fidèlement la production :
+> gunicorn, nginx, frontend buildé, PostgreSQL, Redis, Celery.
 
 ### 6.2.1 Commentaire de démarrage des tests
 
@@ -793,7 +801,11 @@ Des anomalies ont été détectées lors des tests browser.
 ### 6.6 Nettoyage
 
 ```bash
+# Fermer toutes les sessions browser
 agent-browser close --all
+
+# Détruire l'environnement éphémère
+./scripts/tnr-docker.sh down
 ```
 
 ---
