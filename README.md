@@ -4,7 +4,7 @@ Application de blog multi-utilisateur avec un backend Django (API REST) et un fr
 
 ## Fonctionnalites principales
 
-- **Gestion d'articles** : creation, edition, publication avec brouillons, categories et tags, diagrammes Mermaid
+- **Gestion d'articles** : creation, edition, publication avec brouillons, categories et tags
 - **Commentaires avec moderation** : les commentaires sont soumis a validation avant publication
 - **Profils utilisateurs** : inscription, connexion, gestion de profil avec avatar
 - **Pages statiques** : a propos, contact, coming soon
