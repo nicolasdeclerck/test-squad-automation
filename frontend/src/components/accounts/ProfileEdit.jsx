@@ -12,6 +12,7 @@ export default function ProfileEdit() {
   const [errors, setErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,14 +36,20 @@ export default function ProfileEdit() {
   };
 
   const handleDeleteAvatar = async () => {
+    setSuccessMsg("");
+    setErrors({});
+    setIsDeleting(true);
     try {
       const res = await deleteAvatar();
       if (res.ok) {
         setSuccessMsg("Votre avatar a été supprimé.");
+      } else {
+        setErrors({ non_field_errors: ["Erreur lors de la suppression de l'avatar."] });
       }
     } catch {
       setErrors({ non_field_errors: ["Erreur lors de la suppression de l'avatar."] });
     } finally {
+      setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
   };
@@ -166,9 +173,10 @@ export default function ProfileEdit() {
               <button
                 type="button"
                 onClick={handleDeleteAvatar}
-                className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
+                disabled={isDeleting}
+                className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded disabled:opacity-50"
               >
-                Confirmer la suppression
+                {isDeleting ? "Suppression..." : "Confirmer la suppression"}
               </button>
               <button
                 type="button"
