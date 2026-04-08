@@ -7,6 +7,7 @@
 | Frontend | React + Vite | 18.x / 6.x |
 | UI Components | Mantine | 7.x |
 | Éditeur rich text | BlockNote | 0.24.x |
+| Diagrammes | Mermaid | 11.x |
 | Backend / API | Django + DRF | 5.x |
 | Base de données | PostgreSQL | 16 |
 | Cache / Queue broker | Redis | 7 |

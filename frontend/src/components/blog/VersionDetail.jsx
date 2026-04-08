@@ -1,51 +1,10 @@
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
 import { Button, Modal } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import DOMPurify from "dompurify";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
-
-function BlockNoteRenderer({ content }) {
-  const blocks = useMemo(() => {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return null;
-    }
-  }, [content]);
-
-  const validBlocks =
-    Array.isArray(blocks) && blocks.length > 0 ? blocks : undefined;
-
-  const editor = useCreateBlockNote({
-    initialContent: validBlocks,
-  });
-
-  const [html, setHtml] = useState("");
-
-  useEffect(() => {
-    if (editor && validBlocks) {
-      editor.blocksToFullHTML(editor.document).then((rawHtml) => {
-        setHtml(DOMPurify.sanitize(rawHtml));
-      }).catch(() => {});
-    }
-  }, [editor, validBlocks]);
-
-  if (!validBlocks) {
-    return <div className="whitespace-pre-line">{content}</div>;
-  }
-
-  return (
-    <div
-      className="text-gray-700 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-}
+import BlockNoteRenderer from "./BlockNoteRenderer";
 
 export default function VersionDetail() {
   const { slug, versionNumber } = useParams();
@@ -144,7 +103,7 @@ export default function VersionDetail() {
         </p>
       </div>
 
-      <BlockNoteRenderer content={version.content} />
+      <BlockNoteRenderer key={version.content} content={version.content} />
 
       <div className="mt-10 flex items-center gap-4">
         <Link
