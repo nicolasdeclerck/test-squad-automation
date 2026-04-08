@@ -213,7 +213,7 @@ export default function PostDetail() {
           </p>
         </div>
 
-        <BlockNoteRenderer content={post.content} />
+        <BlockNoteRenderer key={post.content} content={post.content} />
       </article>
 
       <CommentSection

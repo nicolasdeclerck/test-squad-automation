@@ -103,7 +103,7 @@ export default function VersionDetail() {
         </p>
       </div>
 
-      <BlockNoteRenderer content={version.content} />
+      <BlockNoteRenderer key={version.content} content={version.content} />
 
       <div className="mt-10 flex items-center gap-4">
         <Link
