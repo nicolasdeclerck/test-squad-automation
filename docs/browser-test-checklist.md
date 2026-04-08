@@ -164,7 +164,9 @@
 
 - **URL** : `/articles/{slug}` (en tant qu'auteur superutilisateur de l'article)
 - **Vérifications** :
-  - Les icônes "Modifier" et "Supprimer" sont visibles uniquement si l'utilisateur est **superutilisateur ET auteur**
+  - Les boutons "Modifier" et "Supprimer" sont visibles uniquement si l'utilisateur est **superutilisateur ET auteur**
+  - Les boutons d'action sont positionnés **en dessous du titre**, pas à sa droite
+  - Tous les boutons ont un style visuel harmonisé (bordure, padding et taille de texte cohérents)
   - Clic sur "Modifier" redirige vers `/articles/{slug}/modifier`
   - Clic sur "Supprimer" redirige vers `/articles/{slug}/supprimer`
   - Ces boutons sont ABSENTS si l'utilisateur n'est pas superutilisateur
