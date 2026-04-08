@@ -1,7 +1,12 @@
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { HelmetProvider } from "react-helmet-async";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+} from "react-router-dom";
 import LoginForm from "./components/accounts/LoginForm";
 import ProfileEdit from "./components/accounts/ProfileEdit";
 import SignupForm from "./components/accounts/SignupForm";
@@ -25,96 +30,99 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-function AppRoutes() {
+function AuthLayout() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<PostList isHome />} />
-        <Route path="/articles" element={<PostList />} />
-        <Route
-          path="/articles/mes-brouillons"
-          element={
-            <ProtectedRoute>
-              <MyDrafts />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/articles/creer"
-          element={
-            <ProtectedRoute>
-              <PostForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/articles/:slug" element={<PostDetail />} />
-        <Route
-          path="/articles/:slug/versions"
-          element={
-            <ProtectedRoute>
-              <VersionHistory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/articles/:slug/versions/:versionNumber"
-          element={
-            <ProtectedRoute>
-              <VersionDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/articles/:slug/modifier"
-          element={
-            <ProtectedRoute>
-              <PostForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/articles/:slug/supprimer"
-          element={
-            <ProtectedRoute>
-              <PostDelete />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/comptes/connexion" element={<LoginForm />} />
-        <Route path="/comptes/inscription" element={<SignupForm />} />
-        <Route
-          path="/comptes/profil/modifier"
-          element={
-            <ProtectedRoute>
-              <ProfileEdit />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/a-propos" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route
-          path="/suivi-des-devs"
-          element={
-            <ProtectedRoute>
-              <DevTracking />
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-    </Routes>
+    <AuthProvider>
+      <Layout />
+    </AuthProvider>
   );
 }
+
+const router = createBrowserRouter([
+  {
+    element: <AuthLayout />,
+    children: [
+      { path: "/", element: <PostList isHome /> },
+      { path: "/articles", element: <PostList /> },
+      {
+        path: "/articles/mes-brouillons",
+        element: (
+          <ProtectedRoute>
+            <MyDrafts />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/articles/creer",
+        element: (
+          <ProtectedRoute>
+            <PostForm />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/articles/:slug", element: <PostDetail /> },
+      {
+        path: "/articles/:slug/versions",
+        element: (
+          <ProtectedRoute>
+            <VersionHistory />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/articles/:slug/versions/:versionNumber",
+        element: (
+          <ProtectedRoute>
+            <VersionDetail />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/articles/:slug/modifier",
+        element: (
+          <ProtectedRoute>
+            <PostForm />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/articles/:slug/supprimer",
+        element: (
+          <ProtectedRoute>
+            <PostDelete />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/comptes/connexion", element: <LoginForm /> },
+      { path: "/comptes/inscription", element: <SignupForm /> },
+      {
+        path: "/comptes/profil/modifier",
+        element: (
+          <ProtectedRoute>
+            <ProfileEdit />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/a-propos", element: <About /> },
+      { path: "/contact", element: <Contact /> },
+      {
+        path: "/suivi-des-devs",
+        element: (
+          <ProtectedRoute>
+            <DevTracking />
+          </ProtectedRoute>
+        ),
+      },
+    ],
+  },
+]);
 
 export default function App() {
   return (
     <MantineProvider>
       <Notifications position="top-right" />
       <HelmetProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </HelmetProvider>
     </MantineProvider>
   );
