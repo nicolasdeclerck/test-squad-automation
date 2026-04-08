@@ -671,6 +671,34 @@ agent-browser snapshot -i
 
 **URLs :** utilise les variables `BASE_URL` et `API_URL` (par défaut `https://blog.nickorp.com`).
 
+### 6.2.1 Commentaire de démarrage des tests
+
+Poste un commentaire sur le ticket **avant** de commencer l'exécution des tests,
+pour tracer le démarrage même en cas d'interruption du workflow :
+
+```bash
+TOTAL_TESTS=$(cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print(len(d.get('browser_tests', [])))
+")
+
+gh issue comment {ISSUE_NUMBER} --body "## 🔄 Tests browser — démarrage (cycle $((N_BROWSER_TEST + 1)))
+
+Lancement de **$TOTAL_TESTS scénarios** de test browser via agent-browser.
+
+| ID | Scénario | Type |
+|----|----------|------|
+$(cat "$STATE_FILE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for t in d.get('browser_tests', []):
+    print(f\"| {t['id']} | {t['title']} | [{t['type']}] |\")
+")
+
+Les résultats seront postés à la fin de l'exécution."
+```
+
 ### 6.3 Gestion des sessions d'authentification
 
 Utilise des sessions nommées selon le type de test, conformément au skill `agent-browser` :
