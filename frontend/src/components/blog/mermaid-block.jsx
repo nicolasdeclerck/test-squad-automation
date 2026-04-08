@@ -5,6 +5,7 @@ import {
   insertOrUpdateBlock,
 } from "@blocknote/core";
 import mermaid from "mermaid";
+import DOMPurify from "dompurify";
 import { useEffect, useRef } from "react";
 
 mermaid.initialize({
@@ -19,18 +20,25 @@ export function MermaidPreview({ code, blockId }) {
   useEffect(() => {
     if (!containerRef.current || !code || !code.trim()) return;
 
+    let cancelled = false;
     const id = "mermaid-" + blockId.replace(/[^a-zA-Z0-9]/g, "");
     mermaid
       .render(id, code.trim())
       .then(({ svg }) => {
-        // Safe: mermaid securityLevel "strict" sanitizes SVG output
-        // (removes scripts, foreign objects, event handlers)
-        if (containerRef.current) containerRef.current.innerHTML = svg;
+        if (!cancelled && containerRef.current) {
+          containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
+            USE_PROFILES: { svg: true },
+          });
+        }
       })
       .catch(() => {
-        if (containerRef.current)
+        if (!cancelled && containerRef.current)
           containerRef.current.textContent = "Syntaxe mermaid invalide";
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [code, blockId]);
 
   if (!code || !code.trim()) {

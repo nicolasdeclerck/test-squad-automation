@@ -1,45 +1,13 @@
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
-import { BlockNoteView } from "@blocknote/mantine";
 import { Alert } from "@mantine/core";
-import { useMemo } from "react";
-import { schema } from "./mermaid-block";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
+import BlockNoteRenderer from "./BlockNoteRenderer";
 import CommentForm from "./CommentForm";
 import CommentSection from "./CommentSection";
-
-function BlockNoteRenderer({ content }) {
-  const blocks = useMemo(() => {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return null;
-    }
-  }, [content]);
-
-  const validBlocks =
-    Array.isArray(blocks) && blocks.length > 0 ? blocks : undefined;
-
-  const editor = useCreateBlockNote({
-    schema,
-    initialContent: validBlocks,
-  });
-
-  if (!validBlocks) {
-    return <div className="whitespace-pre-line">{content}</div>;
-  }
-
-  return (
-    <div className="text-gray-700 leading-relaxed">
-      <BlockNoteView editor={editor} theme="light" editable={false} />
-    </div>
-  );
-}
 
 export default function PostDetail() {
   const { slug } = useParams();
