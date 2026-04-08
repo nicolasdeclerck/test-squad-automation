@@ -39,6 +39,11 @@ def validate_post_image(image):
             raise UnidentifiedImageError("Impossible de lire le fichier.")
         img = Image.open(data)
         img.verify()
+        allowed_formats = {"JPEG", "PNG", "WEBP", "GIF"}
+        if img.format not in allowed_formats:
+            raise ValidationError(
+                "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
+            )
     except (UnidentifiedImageError, OSError, SyntaxError):
         raise ValidationError(
             "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."

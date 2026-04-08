@@ -14,7 +14,7 @@ async function uploadFile(file) {
   if (res.ok) {
     return res.data.url;
   }
-  throw new Error(res.errors?.image?.[0] || "Erreur lors de l'upload de l'image");
+  throw new Error(res.errors?.image?.[0] || res.errors?.detail || "Erreur lors de l'upload de l'image");
 }
 
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {

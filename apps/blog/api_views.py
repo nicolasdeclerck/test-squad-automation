@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .models import Comment, Post, PostVersion
@@ -200,6 +201,8 @@ class PostVersionDetailAPIView(generics.RetrieveAPIView):
 class PostImageUploadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "uploads"
 
     def post(self, request):
         serializer = PostImageUploadSerializer(data=request.data)
