@@ -1,4 +1,4 @@
-import { Avatar, Group, Text, ActionIcon } from "@mantine/core";
+import { Avatar, Button, Group, Text, ActionIcon } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
@@ -103,12 +103,14 @@ export default function CommentSection({ comments: initialComments, slug }) {
 
           {visibleCount < comments.length && (
             <div className="mt-4 text-center">
-              <button
+              <Button
+                variant="subtle"
+                color="gray"
+                size="sm"
                 onClick={() => setVisibleCount((prev) => prev + 10)}
-                className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
               >
                 Voir les 10 commentaires suivants
-              </button>
+              </Button>
             </div>
           )}
         </>
