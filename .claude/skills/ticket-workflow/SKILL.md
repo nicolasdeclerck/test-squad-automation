@@ -164,30 +164,17 @@ Si tu peux faire un choix raisonnable → fais-le et documente-le.
 
 ### 1.3 Post du commentaire d'analyse
 
+Poste un commentaire **court** de notification. Le détail complet sera
+documenté en Phase 3 une fois l'implémentation terminée et stabilisée.
+
 ```bash
-gh issue comment {ISSUE_NUMBER} --body "## 🔍 Analyse
+gh issue comment {ISSUE_NUMBER} --body "## 🔍 Analyse terminée
 
-[Contexte métier et état actuel du code]
+**Périmètre identifié :** [résumé en 1-2 phrases du besoin et de l'approche envisagée]
 
-## 📋 Consignes de développement
+**Fichiers concernés :** [nombre] fichiers à créer/modifier
 
-### Fichiers à créer ou modifier
-[Chemins exacts]
-
-### Logique métier
-[Description avec extraits si utile]
-
-### Critères d'acceptance
-[Liste vérifiable]
-
-### Tests à écrire
-[Noms et descriptions]
-
-## 📦 Changements de stack
-[Dépendances ou 'Aucun changement']
-
-## ❓ Questions bloquantes
-[Liste numérotée ou 'Aucune question']"
+**Questions bloquantes :** [Aucune | liste courte]"
 ```
 
 ### 1.4 Gestion des questions bloquantes et transition
@@ -232,30 +219,22 @@ Tâches de **moins de 15 minutes**, une par fichier :
 
 ### 2.4 Post du commentaire de plan
 
+Poste un commentaire **court** de notification. Le détail complet de l'implémentation
+sera documenté en Phase 3 une fois le code stabilisé.
+
 ```bash
-gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan d'implémentation
+gh issue comment {ISSUE_NUMBER} --body "## 🗺️ Plan défini — développement en cours
 
 **Approche :** [résumé en une phrase]
 
-**Fichiers impactés :** [liste]
+**Tâches :** [N] tâches sur [M] fichiers
 
-## 📝 Tâches
-
-**T1 — [titre]**
-- Fichier : \`chemin/exact\`
-- Action : créer | modifier
-- Description : [détail]
-- Critère de validation : [comment vérifier]
-- Dépend de : T0 | aucune
-
-[...]
-
-## ⚠️ Points d'attention
-[Risques, ordre critique, contraintes]
-
-## 🔬 Stratégie de tests
-[Tests prioritaires, fixtures, cas limites]"
+**Tests browser prévus :** [N scénarios | aucun (pas d'impact front-end)]"
 ```
+
+> **Note :** L'analyse complète (fichiers, tâches, critères, choix techniques)
+> est réalisée en interne. Elle sera documentée dans le commentaire de Phase 3
+> après implémentation et code review.
 
 ### 2.5 Mise à jour du cahier de tests browser (TDD)
 
@@ -324,21 +303,9 @@ browser **spécifiques à ce ticket** qui seront exécutés en Phase 6 après la
 }
 ```
 
-4. Poste la liste des tests browser retenus dans le commentaire de plan (2.4) ou
-   dans un commentaire séparé :
-
-```bash
-gh issue comment {ISSUE_NUMBER} --body "## 🧪 Tests browser prévus
-
-Les scénarios suivants seront exécutés via agent-browser après la code review :
-
-| ID | Scénario | Type |
-|----|----------|------|
-| NAV-01 | Affichage du header | [PUBLIC] |
-| E2E-02 | Brouillon → édition → publication | [AUTH] |
-
-**Total : N scénarios**"
-```
+4. Le nombre de scénarios est mentionné dans le commentaire court de Phase 2.4.
+   Le détail complet (tableau des scénarios avec IDs) sera posté au démarrage
+   de la Phase 6 (section 6.2.1).
 
 **Si aucun changement front-end n'est identifié**, la liste `browser_tests` est vide (`[]`)
 et la Phase 6 sera automatiquement sautée.
@@ -915,14 +882,15 @@ Phase 7 (Rapport corrections browser)
 |Moment                |Interaction                                          |
 |----------------------|-----------------------------------------------------|
 |Démarrage             |Retire `analyze`, ajoute `in progress`               |
-|Phase 1               |`gh issue comment` (analyse)                         |
+|Phase 1               |`gh issue comment` (notification : analyse terminée) |
 |Phase 1 si bloqué     |`gh issue comment` (questions) + `help wanted` → STOP|
-|Phase 2               |`gh issue comment` (plan + tests browser prévus) + MAJ `docs/browser-test-checklist.md`|
-|Phase 3               |`gh pr create/edit` + `gh issue comment` (doc)       |
+|Phase 2               |`gh issue comment` (notification : plan défini + nb tests browser) + MAJ `docs/browser-test-checklist.md`|
+|Phase 3               |`gh pr create/edit` + `gh issue comment` (documentation détaillée : référence)|
 |Phase 3 si tests KO   |`gh issue comment` (erreurs) + `help wanted` → STOP  |
-|Phase 4               |`/code-review --comment` (automatique) + `gh issue comment` (résultat tests browser : exécutés ou non requis)|
+|Phase 4 sans tests    |`/code-review` + `gh issue comment` (tests browser non requis)|
+|Phase 4 avec tests    |`/code-review` → Phase 6                             |
 |Phase 5               |`gh issue comment` (corrections code review)         |
-|Phase 6               |`agent-browser` (exécution tests) + `gh issue comment` (résultats)|
+|Phase 6               |`gh issue comment` (démarrage) + `agent-browser` + `gh issue comment` (résultats)|
 |Phase 7               |`gh issue comment` (corrections browser)             |
 |Fin                   |Retire `in progress`, ajoute `approved`              |
 
