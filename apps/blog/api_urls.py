@@ -5,6 +5,7 @@ from .api_views import (
     CommentDeleteAPIView,
     PostAutoSaveView,
     PostDetailAPIView,
+    PostImageUploadView,
     PostListCreateAPIView,
     PostPublishView,
     PostVersionDetailAPIView,
@@ -13,6 +14,11 @@ from .api_views import (
 )
 
 urlpatterns = [
+    path(
+        "upload-image/",
+        PostImageUploadView.as_view(),
+        name="api_post_image_upload",
+    ),
     path("posts/", PostListCreateAPIView.as_view(), name="api_post_list"),
     path(
         "posts/<slug:slug>/",

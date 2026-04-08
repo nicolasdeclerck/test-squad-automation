@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,6 +10,7 @@ from .serializers import (
     PostAutoSaveSerializer,
     PostCreateUpdateSerializer,
     PostDetailSerializer,
+    PostImageUploadSerializer,
     PostListSerializer,
     PostVersionSerializer,
 )
@@ -193,6 +195,22 @@ class PostVersionDetailAPIView(generics.RetrieveAPIView):
         if post.author != self.request.user:
             self.permission_denied(self.request)
         return PostVersion.objects.filter(post=post)
+
+
+class PostImageUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = PostImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(uploaded_by=request.user)
+        image_url = request.build_absolute_uri(
+            serializer.instance.image.url
+        )
+        return Response(
+            {"url": image_url}, status=status.HTTP_201_CREATED
+        )
 
 
 class PostVersionRestoreAPIView(APIView):

@@ -31,3 +31,6 @@ def api_version_detail_url(slug, version_number):
 
 def api_version_restore_url(slug, version_number):
     return f"/api/blog/posts/{slug}/versions/{version_number}/restore/"
+
+
+API_UPLOAD_IMAGE_URL = "/api/blog/upload-image/"

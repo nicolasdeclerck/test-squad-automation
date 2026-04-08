@@ -1,14 +1,18 @@
 import json
+from io import BytesIO
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
+from PIL import Image
 
 from apps.accounts.tests.factories import SuperUserFactory, UserFactory
-from apps.blog.models import Post
+from apps.blog.models import Post, PostImage
 
 from .factories import CommentFactory, PostFactory, PostVersionFactory
 from .helpers import (
     API_POSTS_URL,
+    API_UPLOAD_IMAGE_URL,
     api_autosave_url,
     api_comment_delete_url,
     api_comments_url,
@@ -868,3 +872,82 @@ class TestContinuousDraftWorkflow:
             (1, "Mon article V1", "Contenu V1"),
             (2, "Mon article V2", "Contenu V2"),
         ]
+
+
+def _create_test_image(fmt="JPEG", size=(100, 100)):
+    buf = BytesIO()
+    img = Image.new("RGB", size, color="red")
+    img.save(buf, format=fmt)
+    buf.seek(0)
+    ext = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}[fmt]
+    content_type = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}[fmt]
+    return SimpleUploadedFile(f"test.{ext}", buf.read(), content_type=content_type)
+
+
+@pytest.mark.django_db
+class TestPostImageUploadAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_upload_image_authenticated(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        image = _create_test_image()
+        response = self.client.post(
+            API_UPLOAD_IMAGE_URL, {"image": image}, format="multipart"
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert "url" in data
+        assert "/media/blog/images/" in data["url"]
+        assert PostImage.objects.count() == 1
+        assert PostImage.objects.first().uploaded_by == user
+
+    def test_upload_image_unauthenticated(self):
+        image = _create_test_image()
+        response = self.client.post(
+            API_UPLOAD_IMAGE_URL, {"image": image}, format="multipart"
+        )
+        assert response.status_code == 403
+
+    def test_upload_image_invalid_type(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        fake_file = SimpleUploadedFile(
+            "test.txt", b"not an image", content_type="text/plain"
+        )
+        response = self.client.post(
+            API_UPLOAD_IMAGE_URL, {"image": fake_file}, format="multipart"
+        )
+        assert response.status_code == 400
+
+    def test_upload_image_too_large(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        # Create a file > 5 MB
+        large_data = b"x" * (6 * 1024 * 1024)
+        large_file = SimpleUploadedFile(
+            "large.jpg", large_data, content_type="image/jpeg"
+        )
+        response = self.client.post(
+            API_UPLOAD_IMAGE_URL, {"image": large_file}, format="multipart"
+        )
+        assert response.status_code == 400
+
+    def test_upload_image_png(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        image = _create_test_image(fmt="PNG")
+        response = self.client.post(
+            API_UPLOAD_IMAGE_URL, {"image": image}, format="multipart"
+        )
+        assert response.status_code == 201
+
+    def test_upload_image_gif(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        image = _create_test_image(fmt="GIF")
+        response = self.client.post(
+            API_UPLOAD_IMAGE_URL, {"image": image}, format="multipart"
+        )
+        assert response.status_code == 201

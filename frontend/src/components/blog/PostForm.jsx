@@ -7,9 +7,20 @@ import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append("image", file);
+  const res = await api.post("/api/blog/upload-image/", formData);
+  if (res.ok) {
+    return res.data.url;
+  }
+  throw new Error(res.errors?.image?.[0] || "Erreur lors de l'upload de l'image");
+}
+
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {
   const editor = useCreateBlockNote({
     initialContent: initialContent || undefined,
+    uploadFile,
   });
 
   useEffect(() => {
