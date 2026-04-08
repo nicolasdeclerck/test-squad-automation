@@ -31,7 +31,7 @@ function BlockNoteRenderer({ content }) {
     if (editor && validBlocks) {
       editor.blocksToFullHTML(editor.document).then((rawHtml) => {
         setHtml(DOMPurify.sanitize(rawHtml));
-      });
+      }).catch(() => {});
     }
   }, [editor, validBlocks]);
 
