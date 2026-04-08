@@ -87,6 +87,14 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
+        if instance.status == Post.STATUS_PUBLISHED:
+            return Response(
+                {
+                    "error": "Un article publié ne peut pas être modifié directement. "
+                    "Utilisez l'endpoint autosave pour éditer le brouillon."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = self.get_serializer(
             instance, data=request.data, partial=partial
         )
