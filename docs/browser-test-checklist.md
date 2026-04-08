@@ -195,9 +195,20 @@
 
 - **URL** : `/` ou `/articles` (en tant qu'auteur d'un article publié avec `has_draft === true`)
 - **Vérifications** :
-  - Un badge ou icône discret (ex: icône crayon) est visible sur la carte de l'article
+  - Un badge "Brouillon en cours" est visible **en dessous du titre** de la carte de l'article (pas à côté du titre)
   - Le badge n'est PAS visible pour un utilisateur non-auteur
   - Le badge n'est PAS visible pour un visiteur non connecté
+
+### 3.8 — [AUTH/OWNER] Modale d'actions dans les listes d'articles
+
+- **URL** : `/` ou `/articles` (en tant qu'auteur superutilisateur d'un article)
+- **Vérifications** :
+  - Un bouton "..." (trois points) est visible à droite du titre de la carte
+  - Le bouton "..." n'est PAS visible pour un utilisateur non-auteur ou non-superutilisateur
+  - Clic sur "..." ouvre une modale contenant les actions "Modifier" et "Supprimer"
+  - Clic sur "Modifier" dans la modale redirige vers `/articles/{slug}/modifier`
+  - Clic sur "Supprimer" dans la modale redirige vers `/articles/{slug}/supprimer`
+  - La modale se ferme correctement via le bouton de fermeture ou clic extérieur
 
 ---
 
