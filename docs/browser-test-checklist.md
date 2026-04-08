@@ -49,7 +49,8 @@
   - Le nom d'utilisateur ou avatar apparaît dans le header
   - Un bouton "Ajouter un article" est visible **uniquement pour les superutilisateurs**
   - Un menu déroulant utilisateur est accessible (clic sur le nom/avatar)
-  - Le menu contient : "Mes brouillons", "Modifier profil", "Déconnexion"
+  - Le menu contient : "Modifier profil", "Déconnexion"
+  - Le menu contient "Mes brouillons" **uniquement pour les superutilisateurs**
 
 ### 1.3 — [PUBLIC] Affichage du footer
 
@@ -119,14 +120,14 @@
 - **Action** : Accéder directement à `/articles/creer` sans être connecté
 - **Vérifications** :
   - Redirection automatique vers `/comptes/connexion`
-  - Même comportement pour `/articles/mes-brouillons`, `/comptes/profil/modifier`
+  - Même comportement pour `/comptes/profil/modifier`
 
 ### 2.7 — [AUTH] Protection des routes superutilisateur
 
 - **Action** : Se connecter avec un utilisateur non-superutilisateur et accéder à `/articles/creer`
 - **Vérifications** :
   - L'accès est refusé (redirection ou message d'erreur 403)
-  - Même comportement pour `/articles/{slug}/modifier` et `/articles/{slug}/supprimer`
+  - Même comportement pour `/articles/{slug}/modifier`, `/articles/{slug}/supprimer` et `/articles/mes-brouillons`
 
 ---
 
@@ -336,21 +337,29 @@
 
 ## 6. Brouillons
 
-### 6.1 — [AUTH] Liste des brouillons
+### 6.1 — [AUTH/SUPERUSER] Liste des brouillons
 
-- **URL** : `/articles/mes-brouillons`
+- **URL** : `/articles/mes-brouillons` (accessible uniquement aux superutilisateurs)
 - **Vérifications** :
-  - Seuls les brouillons de l'utilisateur connecté sont affichés
+  - Seuls les brouillons du superutilisateur connecté sont affichés
   - Chaque brouillon est affiché sous forme de carte
   - La pagination fonctionne (10 par page)
   - Les articles publiés ne sont PAS dans cette liste
 
-### 6.2 — [AUTH] Accès aux brouillons depuis le menu
+### 6.2 — [AUTH/SUPERUSER] Accès aux brouillons depuis le menu
 
-- **Action** : Cliquer sur le menu utilisateur → "Mes brouillons"
+- **Action** : Se connecter en tant que superutilisateur, cliquer sur le menu utilisateur → "Mes brouillons"
 - **Vérifications** :
+  - Le lien "Mes brouillons" est visible dans le menu
   - Redirection vers `/articles/mes-brouillons`
   - La liste des brouillons s'affiche correctement
+
+### 6.3 — [AUTH] Brouillons inaccessibles pour un utilisateur non-superutilisateur
+
+- **Action** : Se connecter avec un utilisateur non-superutilisateur
+- **Vérifications** :
+  - Le lien "Mes brouillons" est ABSENT du menu utilisateur (desktop et mobile)
+  - L'accès direct à `/articles/mes-brouillons` redirige vers `/` (accès refusé)
 
 ---
 
