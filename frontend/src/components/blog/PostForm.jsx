@@ -4,7 +4,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {
@@ -60,11 +60,13 @@ export default function PostForm() {
   const [contentReady, setContentReady] = useState(!isEdit);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
   const titleRef = useRef(null);
   const editorRef = useRef(null);
   const autosaveTimerRef = useRef(null);
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const titleValueRef = useRef("");
   const lastSavedTitleRef = useRef("");
   const lastSavedContentRef = useRef("");
 
@@ -73,6 +75,7 @@ export default function PostForm() {
       api.get(`/api/blog/posts/${slug}/`).then((res) => {
         if (res.ok) {
           setTitle(res.data.title);
+          titleValueRef.current = res.data.title;
           lastSavedTitleRef.current = res.data.title;
           try {
             const parsed = JSON.parse(res.data.content);
@@ -92,16 +95,19 @@ export default function PostForm() {
   const performAutosave = useCallback(async () => {
     if (!slug || isSavingRef.current) return;
 
-    const currentTitle = document.getElementById("title")?.value || "";
+    const currentTitle = titleValueRef.current;
     const currentContent = editorRef.current
       ? JSON.stringify(editorRef.current.document)
       : "";
 
+    const trimmedTitle = currentTitle.trim();
+
     if (
-      currentTitle === lastSavedTitleRef.current &&
+      trimmedTitle === lastSavedTitleRef.current &&
       currentContent === lastSavedContentRef.current
     ) {
       isDirtyRef.current = false;
+      setIsDirty(false);
       return;
     }
 
@@ -109,7 +115,7 @@ export default function PostForm() {
     setSaveStatus("saving");
 
     const res = await api.patch(`/api/blog/posts/${slug}/autosave/`, {
-      draft_title: currentTitle.trim(),
+      draft_title: trimmedTitle,
       draft_content: currentContent,
     });
 
@@ -117,7 +123,8 @@ export default function PostForm() {
 
     if (res.ok) {
       isDirtyRef.current = false;
-      lastSavedTitleRef.current = currentTitle;
+      setIsDirty(false);
+      lastSavedTitleRef.current = trimmedTitle;
       lastSavedContentRef.current = currentContent;
       const now = new Date();
       setLastSavedAt(
@@ -126,12 +133,19 @@ export default function PostForm() {
       setSaveStatus("saved");
     } else {
       setSaveStatus("error");
+      // Keep dirty flag and schedule retry after 5s
+      isDirtyRef.current = true;
+      setIsDirty(true);
+      autosaveTimerRef.current = setTimeout(() => {
+        performAutosave();
+      }, 5000);
     }
   }, [slug]);
 
   const scheduleAutosave = useCallback(() => {
     if (!slug) return;
     isDirtyRef.current = true;
+    setIsDirty(true);
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
     }
@@ -142,6 +156,7 @@ export default function PostForm() {
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
+    titleValueRef.current = e.target.value;
     if (isEdit) {
       scheduleAutosave();
     }
@@ -153,7 +168,25 @@ export default function PostForm() {
     }
   }, [isEdit, scheduleAutosave]);
 
-  // beforeunload protection
+  // Block in-app navigation (React Router) when dirty
+  const blocker = useBlocker(
+    useCallback(() => isDirtyRef.current && isEdit, [isEdit])
+  );
+
+  // Flush autosave when blocker is triggered, then proceed
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      performAutosave().then(() => {
+        blocker.proceed();
+      });
+    }
+  }, [blocker, performAutosave]);
+
+  // beforeunload protection for full page navigations
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (isDirtyRef.current) {
@@ -166,14 +199,25 @@ export default function PostForm() {
     };
   }, []);
 
-  // Cleanup autosave timer on unmount
+  // Flush autosave on unmount (e.g. direct URL change)
   useEffect(() => {
     return () => {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
       }
+      if (isDirtyRef.current && slug) {
+        const currentTitle = titleValueRef.current.trim();
+        const currentContent = editorRef.current
+          ? JSON.stringify(editorRef.current.document)
+          : "";
+        // Fire-and-forget save on unmount
+        api.patch(`/api/blog/posts/${slug}/autosave/`, {
+          draft_title: currentTitle,
+          draft_content: currentContent,
+        });
+      }
     };
-  }, []);
+  }, [slug]);
 
   const autoResize = () => {
     if (titleRef.current) {
@@ -188,6 +232,8 @@ export default function PostForm() {
 
   const handleSubmit = async (e, { publish = false } = {}) => {
     e.preventDefault();
+    // In edit mode, autosave handles saving — no manual submit
+    if (isEdit) return;
     setErrors({});
 
     if (!title.trim()) {
@@ -200,7 +246,6 @@ export default function PostForm() {
       ? JSON.stringify(editorRef.current.document)
       : "";
 
-    // New article: create via POST then redirect to edit mode (autosave activates)
     const res = await api.post("/api/blog/posts/", {
       title: trimmedTitle,
       content,
