@@ -401,11 +401,15 @@
 ### 8.4 — [AUTH] Suppression d'avatar
 
 - **URL** : `/comptes/profil/modifier`
-- **Action** : Cliquer sur le bouton de suppression d'avatar
+- **Pré-requis** : L'utilisateur a un avatar uploadé (cf. test 8.2)
+- **Action** : Cliquer sur le bouton « Supprimer l'avatar »
 - **Vérifications** :
-  - Une confirmation est demandée avant suppression
+  - Des boutons de confirmation inline apparaissent (« Confirmer la suppression » et « Annuler »)
+  - Clic sur « Annuler » masque les boutons de confirmation et revient à l'état initial
+  - Clic sur « Confirmer la suppression » supprime l'avatar
   - Après suppression, l'avatar revient aux initiales par défaut
   - Le header est mis à jour (initiales au lieu de l'image)
+  - Un message de succès s'affiche
 
 ---
 

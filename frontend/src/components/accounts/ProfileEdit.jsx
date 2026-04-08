@@ -11,6 +11,8 @@ export default function ProfileEdit() {
   const [avatar, setAvatar] = useState(null);
   const [errors, setErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,16 +36,21 @@ export default function ProfileEdit() {
   };
 
   const handleDeleteAvatar = async () => {
-    if (
-      !window.confirm(
-        "\u00cates-vous s\u00fbr de vouloir supprimer votre avatar ?"
-      )
-    ) {
-      return;
-    }
-    const res = await deleteAvatar();
-    if (res.ok) {
-      setSuccessMsg("Votre avatar a \u00e9t\u00e9 supprim\u00e9.");
+    setSuccessMsg("");
+    setErrors({});
+    setIsDeleting(true);
+    try {
+      const res = await deleteAvatar();
+      if (res.ok) {
+        setSuccessMsg("Votre avatar a été supprimé.");
+      } else {
+        setErrors({ non_field_errors: ["Erreur lors de la suppression de l'avatar."] });
+      }
+    } catch {
+      setErrors({ non_field_errors: ["Erreur lors de la suppression de l'avatar."] });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -153,12 +160,33 @@ export default function ProfileEdit() {
 
       {user.avatar && (
         <div className="mt-4 text-center">
-          <button
-            onClick={handleDeleteAvatar}
-            className="text-sm text-red-600 hover:text-red-800 underline"
-          >
-            Supprimer l&apos;avatar
-          </button>
+          {!showDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Supprimer l&apos;avatar
+            </button>
+          ) : (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleDeleteAvatar}
+                disabled={isDeleting}
+                className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded disabled:opacity-50"
+              >
+                {isDeleting ? "Suppression..." : "Confirmer la suppression"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Annuler
+              </button>
+            </div>
+          )}
         </div>
       )}
 
