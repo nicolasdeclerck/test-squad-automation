@@ -38,6 +38,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
         if (
             status_filter == "draft"
             and self.request.user.is_authenticated
+            and self.request.user.is_superuser
         ):
             return qs.filter(
                 status=Post.STATUS_DRAFT, author=self.request.user
