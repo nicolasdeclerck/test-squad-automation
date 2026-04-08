@@ -159,7 +159,8 @@
   - Le contenu riche (BlockNote) est rendu correctement en HTML
   - L'auteur est affiché avec son avatar et son nom
   - La date de publication est affichée
-  - La section commentaires est visible en bas de page
+  - En desktop (≥ 1024px), les commentaires sont affichés dans une colonne à droite de l'article
+  - En mobile (< 1024px), les commentaires sont affichés sous l'article
 
 ### 3.4 — [AUTH/OWNER] Boutons d'action sur un article
 
@@ -381,13 +382,24 @@
   - Le formulaire de commentaire n'est PAS affiché
   - Un message invite l'utilisateur à se connecter pour commenter
 
-### 7.3 — [PUBLIC] Affichage des commentaires approuvés
+### 7.3 — [PUBLIC] Affichage des commentaires approuvés (composant Mantine)
 
 - **URL** : `/articles/{slug}` (article avec commentaires approuvés)
 - **Vérifications** :
-  - Les commentaires approuvés sont affichés avec : auteur, avatar, date, contenu
+  - Les commentaires approuvés sont affichés avec le composant Mantine comment-simple : avatar rond (Mantine Avatar), nom de l'auteur, date, contenu
+  - Chaque commentaire affiche l'avatar de l'auteur (image ou initiales) via le composant Mantine Avatar
+  - Le nom de l'auteur et la date sont affichés sur la même ligne (Mantine Group)
+  - Le contenu du commentaire est affiché sous le nom/date avec un retrait à gauche
   - Les commentaires non approuvés ne sont PAS visibles
   - Si plus de 10 commentaires, un bouton "Charger plus" est visible
+
+### 7.5 — [PUBLIC] Layout commentaires desktop vs mobile
+
+- **URL** : `/articles/{slug}` (article avec commentaires)
+- **Vérifications** :
+  - En desktop (≥ 1024px) : les commentaires et le formulaire sont affichés dans une colonne à droite de l'article
+  - En mobile (< 1024px) : les commentaires et le formulaire sont affichés sous l'article (layout vertical)
+  - Le formulaire de commentaire est positionné au-dessus de la liste des commentaires dans la colonne de droite (desktop)
 
 ### 7.4 — [AUTH/OWNER] Suppression d'un commentaire
 
