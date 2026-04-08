@@ -125,8 +125,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if self._is_author(instance) and instance.has_draft:
-            data["title"] = instance.draft_title
-            data["content"] = instance.draft_content
+            data["title"] = instance.draft_title or instance.title
+            data["content"] = instance.draft_content or instance.content
         return data
 
     def get_approved_comments(self, obj):

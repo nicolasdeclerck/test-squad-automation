@@ -273,6 +273,17 @@ class TestPostUpdateAPI:
         post.refresh_from_db()
         assert post.title != "Hacked Title"
 
+    def test_put_published_post_rejected(self):
+        user = UserFactory()
+        post = PostFactory(author=user, status=Post.STATUS_PUBLISHED)
+        self.client.force_login(user)
+        response = self.client.put(
+            api_post_url(post.slug),
+            data=json.dumps({"title": "Hacked Title", "content": "Hacked"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 403
+
     def test_update_other_user_post_forbidden(self):
         post = PostFactory()
         other = UserFactory()
@@ -752,6 +763,41 @@ class TestContinuousDraftWorkflow:
         assert data["count"] == 1
         assert data["results"][0]["title"] == "Published Title"
         assert "Published text" in data["results"][0]["plain_content"]
+
+    def test_list_author_with_draft_shows_published_content(self):
+        user = UserFactory()
+        PostFactory(
+            author=user,
+            title="Published Title",
+            content='[{"type":"paragraph","content":[{"type":"text","text":"Published text"}]}]',
+            status=Post.STATUS_PUBLISHED,
+            draft_title="Draft Title",
+            draft_content="Draft Content",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.get(API_POSTS_URL)
+        data = response.json()
+        assert data["count"] == 1
+        assert data["results"][0]["title"] == "Published Title"
+
+    def test_detail_author_partial_autosave_fallback(self):
+        """When only draft_content is set (partial autosave), title should fall back to published title."""
+        user = UserFactory()
+        post = PostFactory(
+            author=user,
+            title="Published Title",
+            content="Published Content",
+            status=Post.STATUS_PUBLISHED,
+            draft_title="",
+            draft_content="Draft Content Only",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.get(api_post_url(post.slug))
+        data = response.json()
+        assert data["title"] == "Published Title"
+        assert data["content"] == "Draft Content Only"
 
     def test_full_workflow_create_publish_edit_republish(self):
         user = UserFactory()
