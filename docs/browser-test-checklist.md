@@ -199,16 +199,16 @@
   - Le badge n'est PAS visible pour un utilisateur non-auteur
   - Le badge n'est PAS visible pour un visiteur non connecté
 
-### 3.8 — [AUTH/OWNER] Modale d'actions dans les listes d'articles
+### 3.8 — [AUTH/OWNER] Dropdown d'actions dans les listes d'articles
 
 - **URL** : `/` ou `/articles` (en tant qu'auteur superutilisateur d'un article)
 - **Vérifications** :
   - Un bouton "..." (trois points) est visible à droite du titre de la carte
   - Le bouton "..." n'est PAS visible pour un utilisateur non-auteur ou non-superutilisateur
-  - Clic sur "..." ouvre une modale contenant les actions "Modifier" et "Supprimer"
-  - Clic sur "Modifier" dans la modale redirige vers `/articles/{slug}/modifier`
-  - Clic sur "Supprimer" dans la modale redirige vers `/articles/{slug}/supprimer`
-  - La modale se ferme correctement via le bouton de fermeture ou clic extérieur
+  - Clic sur "..." ouvre un dropdown (menu déroulant) contenant les actions "Modifier" et "Supprimer"
+  - Clic sur "Modifier" dans le dropdown redirige vers `/articles/{slug}/modifier`
+  - Clic sur "Supprimer" dans le dropdown redirige vers `/articles/{slug}/supprimer`
+  - Le dropdown se ferme correctement au clic extérieur ou après sélection d'une action
 
 ---
 
