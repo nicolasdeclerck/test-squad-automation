@@ -1,8 +1,69 @@
+from io import BytesIO
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Max
 from django.utils import timezone
 from django.utils.text import slugify
+from PIL import Image, UnidentifiedImageError
+
+
+def validate_post_image(image):
+    max_size = 5 * 1024 * 1024  # 5 MB
+    try:
+        file_size = image.size
+    except (FileNotFoundError, OSError, ValueError, AttributeError):
+        raise ValidationError("Le fichier image est inaccessible.")
+    if file_size > max_size:
+        raise ValidationError(
+            "La taille de l'image ne doit pas dépasser 5 Mo."
+        )
+
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    content_type = getattr(image, "content_type", None)
+    if content_type and content_type not in allowed_types:
+        raise ValidationError(
+            "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
+        )
+
+    try:
+        if hasattr(image, "seek"):
+            image.seek(0)
+        if hasattr(image, "read"):
+            data = BytesIO(image.read())
+            image.seek(0)
+        elif hasattr(image, "temporary_file_path"):
+            data = image.temporary_file_path()
+        else:
+            raise UnidentifiedImageError("Impossible de lire le fichier.")
+        img = Image.open(data)
+        img.verify()
+        allowed_formats = {"JPEG", "PNG", "WEBP", "GIF"}
+        if img.format not in allowed_formats:
+            raise ValidationError(
+                "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
+            )
+    except (UnidentifiedImageError, OSError, SyntaxError):
+        raise ValidationError(
+            "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
+        )
+
+
+class PostImage(models.Model):
+    image = models.ImageField(
+        upload_to="blog/images/",
+        validators=[validate_post_image],
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="post_images",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image {self.pk} par {self.uploaded_by}"
 
 
 class Post(models.Model):

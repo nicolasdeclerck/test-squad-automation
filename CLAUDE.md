@@ -53,7 +53,7 @@ project/
 │   └── vite.config.js
 ├── templates/               # Templates HTML Django (admin, fallback)
 ├── static/                  # Fichiers statiques Django
-├── media/                   # Uploads utilisateurs (avatars)
+├── media/                   # Uploads utilisateurs (avatars, images articles)
 ├── docker/
 │   ├── django/Dockerfile
 │   ├── celery/Dockerfile
@@ -105,6 +105,12 @@ class Comment(models.Model):
     is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+class PostImage(models.Model):
+    image = models.ImageField(upload_to='blog/images/',
+                              validators=[validate_post_image])  # 5MB max, JPEG/PNG/WebP/GIF
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
 # apps/accounts/models.py
 
 class Profile(models.Model):
@@ -126,6 +132,7 @@ class Profile(models.Model):
 /api/blog/posts/<slug>/versions/   → Liste paginée des versions (auteur uniquement)
 /api/blog/posts/<slug>/versions/<version_number>/ → Détail d'une version (auteur uniquement)
 /api/blog/posts/<slug>/versions/<version_number>/restore/ → Restauration d'une version comme brouillon
+/api/blog/upload-image/            → Upload d'image pour l'éditeur (authentifié)
 
 # Accounts
 /api/accounts/csrf/                → Token CSRF

@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
 
-from .models import Comment, Post, PostVersion
+from .models import Comment, Post, PostImage, PostVersion
 
 User = get_user_model()
 
@@ -163,3 +163,10 @@ class PostAutoSaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ("draft_title", "draft_content")
+
+
+class PostImageUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostImage
+        fields = ("id", "image")
+        read_only_fields = ("id",)
