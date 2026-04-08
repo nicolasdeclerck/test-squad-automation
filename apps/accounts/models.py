@@ -68,40 +68,46 @@ class Profile(models.Model):
         verbose_name = "Profil"
         verbose_name_plural = "Profils"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_avatar_name = self.avatar.name if self.avatar else None
+
     def __str__(self):
         return f"Profil de {self.user.username}"
 
     def _compress_avatar(self):
         """Compress and resize avatar to JPEG, max 300x300."""
-        img = Image.open(self.avatar)
-        if img.mode in ("RGBA", "LA", "P"):
-            background = Image.new("RGB", img.size, (255, 255, 255))
-            background.paste(img, mask=img.convert("RGBA").split()[3])
-            img = background
-        elif img.mode != "RGB":
-            img = img.convert("RGB")
+        with Image.open(self.avatar) as img:
+            # Convert to RGBA first for safe alpha handling, then composite
+            if img.mode in ("RGBA", "LA", "P"):
+                rgba = img.convert("RGBA")
+                background = Image.new("RGB", rgba.size, (255, 255, 255))
+                background.paste(rgba, mask=rgba.split()[3])
+                result = background
+            elif img.mode != "RGB":
+                result = img.convert("RGB")
+            else:
+                result = img.copy()
 
-        img.thumbnail(self.AVATAR_MAX_SIZE, Image.LANCZOS)
+            result.thumbnail(self.AVATAR_MAX_SIZE, Image.LANCZOS)
 
-        buf = BytesIO()
-        img.save(buf, format="JPEG", quality=self.AVATAR_JPEG_QUALITY, optimize=True)
+            buf = BytesIO()
+            result.save(buf, format="JPEG", quality=self.AVATAR_JPEG_QUALITY, optimize=True)
 
         name = os.path.splitext(os.path.basename(self.avatar.name))[0] + ".jpg"
         self.avatar.save(name, ContentFile(buf.getvalue()), save=False)
 
     def save(self, *args, **kwargs):
-        if self.pk:
-            try:
-                old_avatar = Profile.objects.get(pk=self.pk).avatar.name
-            except Profile.DoesNotExist:
-                old_avatar = None
-        else:
-            old_avatar = None
+        avatar_changed = (
+            self.avatar
+            and self.avatar.name != self._original_avatar_name
+        )
 
-        if self.avatar and self.avatar.name != old_avatar:
+        if avatar_changed:
             self._compress_avatar()
 
         super().save(*args, **kwargs)
+        self._original_avatar_name = self.avatar.name if self.avatar else None
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
