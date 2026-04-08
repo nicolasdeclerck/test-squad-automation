@@ -4,7 +4,7 @@ import Avatar from "../ui/Avatar";
 
 export default function PostCard({ post }) {
   const { user } = useAuth();
-  const isOwner = user && post.author && user.id === post.author.id;
+  const canEdit = user && user.is_superuser && post.author && user.id === post.author.id;
 
   const authorName =
     post.author.first_name && post.author.last_name
@@ -26,7 +26,7 @@ export default function PostCard({ post }) {
                 {post.title}
               </Link>
             </h2>
-            {isOwner && post.has_draft && post.status === "published" && (
+            {canEdit && post.has_draft && post.status === "published" && (
               <span
                 className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
                 title="Brouillon en cours"
@@ -56,7 +56,7 @@ export default function PostCard({ post }) {
             </p>
           </div>
         </div>
-        {isOwner && (
+        {canEdit && (
           <div className="flex items-center gap-2 ml-4 shrink-0">
             <Link
               to={`/articles/${post.slug}/modifier`}

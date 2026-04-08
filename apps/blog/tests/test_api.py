@@ -3,44 +3,21 @@ import json
 import pytest
 from django.test import Client
 
-from apps.accounts.tests.factories import UserFactory
+from apps.accounts.tests.factories import SuperUserFactory, UserFactory
 from apps.blog.models import Post
 
 from .factories import CommentFactory, PostFactory, PostVersionFactory
-
-API_POSTS_URL = "/api/blog/posts/"
-
-
-def api_post_url(slug):
-    return f"/api/blog/posts/{slug}/"
-
-
-def api_autosave_url(slug):
-    return f"/api/blog/posts/{slug}/autosave/"
-
-
-def api_publish_url(slug):
-    return f"/api/blog/posts/{slug}/publish/"
-
-
-def api_comments_url(slug):
-    return f"/api/blog/posts/{slug}/comments/"
-
-
-def api_comment_delete_url(pk):
-    return f"/api/blog/comments/{pk}/"
-
-
-def api_versions_url(slug):
-    return f"/api/blog/posts/{slug}/versions/"
-
-
-def api_version_detail_url(slug, version_number):
-    return f"/api/blog/posts/{slug}/versions/{version_number}/"
-
-
-def api_version_restore_url(slug, version_number):
-    return f"/api/blog/posts/{slug}/versions/{version_number}/restore/"
+from .helpers import (
+    API_POSTS_URL,
+    api_autosave_url,
+    api_comment_delete_url,
+    api_comments_url,
+    api_post_url,
+    api_publish_url,
+    api_version_detail_url,
+    api_version_restore_url,
+    api_versions_url,
+)
 
 
 @pytest.mark.django_db
@@ -213,7 +190,7 @@ class TestPostCreateAPI:
         assert response.status_code == 403
 
     def test_create_post(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         self.client.force_login(user)
         response = self.client.post(
             API_POSTS_URL,
@@ -228,7 +205,7 @@ class TestPostCreateAPI:
         assert data["draft_title"] == "New Post"
 
     def test_create_post_auto_slug_dedup(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         PostFactory(title="Same Title")
         self.client.force_login(user)
         response = self.client.post(
@@ -247,7 +224,7 @@ class TestPostUpdateAPI:
         self.client = Client()
 
     def test_update_own_draft_post(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(
             author=user, status=Post.STATUS_DRAFT, title="Draft Title"
         )
@@ -261,7 +238,7 @@ class TestPostUpdateAPI:
         assert response.json()["title"] == "Updated Title"
 
     def test_patch_published_post_rejected(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(author=user, status=Post.STATUS_PUBLISHED)
         self.client.force_login(user)
         response = self.client.patch(
@@ -274,7 +251,7 @@ class TestPostUpdateAPI:
         assert post.title != "Hacked Title"
 
     def test_put_published_post_rejected(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(author=user, status=Post.STATUS_PUBLISHED)
         self.client.force_login(user)
         response = self.client.put(
@@ -285,8 +262,8 @@ class TestPostUpdateAPI:
         assert response.status_code == 403
 
     def test_update_other_user_post_forbidden(self):
-        post = PostFactory()
-        other = UserFactory()
+        post = PostFactory(author=SuperUserFactory())
+        other = SuperUserFactory()
         self.client.force_login(other)
         response = self.client.patch(
             api_post_url(post.slug),
@@ -302,15 +279,15 @@ class TestPostDeleteAPI:
         self.client = Client()
 
     def test_delete_own_post(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(author=user)
         self.client.force_login(user)
         response = self.client.delete(api_post_url(post.slug))
         assert response.status_code == 204
 
     def test_delete_other_user_post_forbidden(self):
-        post = PostFactory()
-        other = UserFactory()
+        post = PostFactory(author=SuperUserFactory())
+        other = SuperUserFactory()
         self.client.force_login(other)
         response = self.client.delete(api_post_url(post.slug))
         assert response.status_code == 403
@@ -380,7 +357,7 @@ class TestPostAutoSaveAPI:
         assert response.status_code == 403
 
     def test_autosave_updates_draft_fields(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(author=user)
         self.client.force_login(user)
         response = self.client.patch(
@@ -398,8 +375,8 @@ class TestPostAutoSaveAPI:
         assert post.has_draft is True
 
     def test_autosave_only_author(self):
-        post = PostFactory()
-        other = UserFactory()
+        post = PostFactory(author=SuperUserFactory())
+        other = SuperUserFactory()
         self.client.force_login(other)
         response = self.client.patch(
             api_autosave_url(post.slug),
@@ -409,7 +386,7 @@ class TestPostAutoSaveAPI:
         assert response.status_code == 404
 
     def test_autosave_partial_update(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(author=user)
         self.client.force_login(user)
         response = self.client.patch(
@@ -437,7 +414,7 @@ class TestPostPublishAPI:
         assert response.status_code == 403
 
     def test_publish_copies_draft_to_published(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(
             author=user,
             status=Post.STATUS_DRAFT,
@@ -462,11 +439,12 @@ class TestPostPublishAPI:
 
     def test_publish_only_author(self):
         post = PostFactory(
+            author=SuperUserFactory(),
             status=Post.STATUS_DRAFT,
             draft_title="Test",
             has_draft=True,
         )
-        other = UserFactory()
+        other = SuperUserFactory()
         self.client.force_login(other)
         response = self.client.post(
             api_publish_url(post.slug),
@@ -475,7 +453,7 @@ class TestPostPublishAPI:
         assert response.status_code == 404
 
     def test_publish_fails_without_title(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         post = PostFactory(
             author=user,
             title="",
@@ -493,7 +471,7 @@ class TestPostPublishAPI:
     def test_publish_preserves_published_at_on_republish(self):
         from django.utils import timezone
 
-        user = UserFactory()
+        user = SuperUserFactory()
         original_date = timezone.now()
         post = PostFactory(
             author=user,
@@ -617,6 +595,7 @@ class TestPostVersionRestoreAPI:
 
     def test_restore_version_as_draft(self):
         post = PostFactory(
+            author=SuperUserFactory(),
             title="Current Title",
             content="Current Content",
             status=Post.STATUS_PUBLISHED,
@@ -636,7 +615,7 @@ class TestPostVersionRestoreAPI:
 
     def test_restore_version_sets_has_draft(self):
         post = PostFactory(
-            has_draft=False, status=Post.STATUS_PUBLISHED
+            author=SuperUserFactory(), has_draft=False, status=Post.STATUS_PUBLISHED
         )
         PostVersionFactory(
             post=post, version_number=1, title="V1", content="C1"
@@ -648,6 +627,7 @@ class TestPostVersionRestoreAPI:
 
     def test_restore_version_does_not_modify_published_content(self):
         post = PostFactory(
+            author=SuperUserFactory(),
             title="Published Title",
             content="Published Content",
             status=Post.STATUS_PUBLISHED,
@@ -665,15 +645,15 @@ class TestPostVersionRestoreAPI:
         assert post.content == "Published Content"
 
     def test_restore_version_forbidden_for_non_author(self):
-        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        post = PostFactory(author=SuperUserFactory(), status=Post.STATUS_PUBLISHED)
         PostVersionFactory(post=post, version_number=1)
-        other_user = UserFactory()
+        other_user = SuperUserFactory()
         self.client.force_login(other_user)
         response = self.client.post(api_version_restore_url(post.slug, 1))
         assert response.status_code == 403
 
     def test_restore_version_not_found(self):
-        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        post = PostFactory(author=SuperUserFactory(), status=Post.STATUS_PUBLISHED)
         self.client.force_login(post.author)
         response = self.client.post(api_version_restore_url(post.slug, 999))
         assert response.status_code == 404
@@ -806,7 +786,7 @@ class TestContinuousDraftWorkflow:
         assert data["draft_content"] == "Draft Content Only"
 
     def test_full_workflow_create_publish_edit_republish(self):
-        user = UserFactory()
+        user = SuperUserFactory()
         self.client.force_login(user)
 
         # Step 1: Create a draft post

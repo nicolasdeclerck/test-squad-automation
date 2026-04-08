@@ -125,7 +125,7 @@ export default function PostDetail() {
       <article>
         <div className="flex items-start justify-between mb-4">
           <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
-          {post.is_owner && (
+          {post.is_owner && user?.is_superuser && (
             <div className="flex items-center gap-2 ml-4 shrink-0">
               <Link
                 to={`/articles/${post.slug}/modifier`}
@@ -228,6 +228,7 @@ export default function PostDetail() {
         </div>
 
         {post.is_owner &&
+          user?.is_superuser &&
           post.status === "published" &&
           post.has_draft && (
             <Alert color="blue" className="mb-4">
