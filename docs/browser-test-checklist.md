@@ -314,6 +314,24 @@
   - Le menu de blocs (slash `/`) est accessible
   - Aucune bordure bleue (outline) n'apparaît autour de la zone de saisie lorsqu'on clique ou saisit du texte (vérifier sur Firefox notamment)
 
+### 4.11 — [AUTH/SUPERUSER] Upload d'image dans l'éditeur BlockNote
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Action** : Insérer une image dans l'éditeur (via le menu slash `/` → Image, ou via copier-coller d'une image)
+- **Vérifications** :
+  - L'image s'affiche correctement dans l'éditeur après upload
+  - L'image est toujours visible après sauvegarde (autosave) et rechargement de la page
+  - L'image est servie depuis le serveur (URL commençant par `/media/blog/images/`)
+  - Pas de carré avec point d'interrogation ni d'icône d'image cassée
+
+### 4.12 — [AUTH/SUPERUSER] Upload d'image — Validation
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Actions et vérifications** :
+  - Upload d'un fichier non-image (ex: .txt, .pdf) → l'image n'est pas insérée ou un message d'erreur s'affiche
+  - Upload d'un fichier > 5 Mo → l'image n'est pas insérée ou un message d'erreur s'affiche
+  - Les formats JPEG, PNG, WebP et GIF sont acceptés
+
 ---
 
 ## 5. Articles — Suppression
