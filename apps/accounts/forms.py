@@ -41,8 +41,11 @@ class LoginForm(AuthenticationForm):
         self.fields["username"].label = "Adresse email"
 
     def clean(self):
-        email = self.cleaned_data.get("username")
-        password = self.cleaned_data.get("password")
+        # Ne pas appeler super().clean() car AuthenticationForm.clean()
+        # fait sa propre authentification qu'on remplace ici
+        cleaned_data = super(AuthenticationForm, self).clean()
+        email = cleaned_data.get("username")
+        password = cleaned_data.get("password")
 
         if email and password:
             try:
@@ -82,3 +85,8 @@ class ProfileForm(forms.ModelForm):
         labels = {
             "avatar": "Avatar",
         }
+
+    def save(self, commit=True):
+        if not self.files.get("avatar") and self.instance.avatar:
+            self.instance.avatar._committed = True
+        return super().save(commit=commit)
