@@ -48,8 +48,8 @@ jobs:
             --add-label "standby" \
             --remove-label "analyze"
 
-      - name: Run ticket-workflow Phases 1-5 (no env, STOP_BEFORE_PHASE_6)
-        id: run-phases-1-5
+      - name: Run ticket-workflow (Phases 1-5, no env, no browser tests)
+        id: run-workflow
         if: steps.check-session.outcome == 'success'
         continue-on-error: true
         uses: appleboy/ssh-action@v1
@@ -71,11 +71,9 @@ jobs:
             docker exec claude-worker git -C /workspace/test-squad-automation fetch origin main
             docker exec claude-worker git -C /workspace/test-squad-automation reset --hard origin/main
 
-            # Lance Claude → fait Phases 1-5 (analyse, plan, dev, code review)
-            # puis s'arrête à la frontière Phase 6 (STOP unconditionnel codé
-            # dans phase-4-review.md). State file PHASE=6 sauvegardé pour
-            # reprise par le step suivant après rebuild env.
-            # Pas de BASE_URL/API_URL : Phase 6 ne tournera pas dans ce run.
+            # Lance Claude → fait Phases 1-5 complètes (analyse, plan, dev,
+            # code review). Les tests browser sont planifiés en Phase 2 puis
+            # exécutés séparément via le workflow browser-tests.yml.
             printf 'Tu es un expert en developpement logiciel.\n\nExecutes le skill .claude/skills/ticket-workflow/SKILL.md pour le ticket #%s.\n\nTitre du ticket : %s\nDescription originale : %s' \
               "$ISSUE_NUMBER" \
               "$ISSUE_TITLE" \
@@ -84,78 +82,9 @@ jobs:
                 -w /workspace/test-squad-automation \
                 claude-worker \
                 claude -p - --dangerously-skip-permissions --output-format json 2>&1
-
-      - name: Run Phase 6 (browser tests) with env from PR branch
-        id: run-phase-6
-        if: steps.run-phases-1-5.outcome == 'success'
-        continue-on-error: true
-        uses: appleboy/ssh-action@v1
-        env:
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ubuntu
-          key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 60m
-          envs: ISSUE_NUMBER,ISSUE_TITLE,ISSUE_BODY
-          script: |
-            set -e
-
-            STATE_FILE="/workspace/test-squad-automation-issue-${ISSUE_NUMBER}/.claude-state.json"
-
-            # Lire l'état post-Phases-1-5 dans claude-worker pour décider
-            # si Phase 6 doit tourner et sur quelle branche builder l'env.
-            STATE=$(docker exec claude-worker bash -c "if [ -f $STATE_FILE ]; then python3 -c 'import json; d = json.load(open(\"$STATE_FILE\")); print(d.get(\"phase\", \"\") + \"|\" + d.get(\"branch\", \"\") + \"|\" + str(len(d.get(\"browser_tests\", []))))'; else echo '||0'; fi")
-
-            PHASE=$(echo "$STATE" | cut -d'|' -f1)
-            BRANCH=$(echo "$STATE" | cut -d'|' -f2)
-            COUNT=$(echo "$STATE" | cut -d'|' -f3)
-
-            echo "État détecté : phase=$PHASE | branch=$BRANCH | browser_tests=$COUNT"
-
-            if [ "$PHASE" != "6" ] || [ "$COUNT" = "0" ] || [ -z "$BRANCH" ]; then
-              echo "Pas de Phase 6 à exécuter (ticket terminé en Phases 1-5 ou pas de tests browser prévus)."
-              exit 0
-            fi
-
-            # Build env TNR depuis la branche PR (qui existe maintenant
-            # puisque Claude vient de la créer en Phase 3)
-            cd ~/test-squad-automation
-            git fetch origin "$BRANCH"
-            git checkout -B "$BRANCH" "origin/$BRANCH"
-            git reset --hard "origin/$BRANCH"
-            ./scripts/tnr-docker.sh up
-            docker network connect blog-tnr_default claude-worker || true
-
-            # Lance Claude une seconde fois — cette fois SANS STOP_BEFORE_PHASE_6
-            # → reprend automatiquement à Phase 6 grâce au state file PHASE=6
-            printf 'Tu es un expert en developpement logiciel.\n\nExecutes le skill .claude/skills/ticket-workflow/SKILL.md pour le ticket #%s.\n\nTitre du ticket : %s\nDescription originale : %s' \
-              "$ISSUE_NUMBER" \
-              "$ISSUE_TITLE" \
-              "${ISSUE_BODY:-Aucune description}" \
-              | docker exec -i \
-                -w /workspace/test-squad-automation \
-                -e BASE_URL=http://blog-tnr-nginx-1:80 \
-                -e API_URL=http://blog-tnr-nginx-1:80 \
-                claude-worker \
-                claude -p - --dangerously-skip-permissions --output-format json 2>&1
-
-      - name: Tear down test environment (idempotent)
-        if: always() && steps.check-session.outcome == 'success'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ubuntu
-          key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 5m
-          script: |
-            docker network disconnect blog-tnr_default claude-worker 2>/dev/null || true
-            cd ~/test-squad-automation 2>/dev/null && ./scripts/tnr-docker.sh down 2>/dev/null || true
 
       - name: Handle workflow failure
-        if: (steps.run-phases-1-5.outcome == 'failure' || steps.run-phase-6.outcome == 'failure') && steps.check-session.outcome == 'success'
+        if: steps.run-workflow.outcome == 'failure' && steps.check-session.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

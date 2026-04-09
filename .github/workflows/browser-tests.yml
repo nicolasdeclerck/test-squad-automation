@@ -1,0 +1,118 @@
+name: Browser Tests (on-demand)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branche Git à tester (ex: main, feat/issue-174-...)'
+        required: true
+        default: 'main'
+        type: string
+      test_filter:
+        description: 'Sélection des tests : "all", "issue:N", ou liste comma-séparée d''IDs (ex: "NAV-01,8.1")'
+        required: true
+        default: 'all'
+        type: string
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Claude MAX session
+        id: check-session
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 2m
+          script: |
+            docker exec claude-worker claude --version 2>/dev/null && echo 'SESSION_OK' || (echo 'SESSION_KO' && exit 1)
+
+      - name: Fail fast if session expired
+        if: steps.check-session.outcome == 'failure'
+        run: |
+          echo "::error::Session Claude MAX expirée sur claude-worker. Renouveler via : ssh ubuntu@vps puis docker exec -it claude-worker claude"
+          exit 1
+
+      - name: Build env from branch
+        id: start-env
+        if: steps.check-session.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        env:
+          BRANCH: ${{ inputs.branch }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
+          envs: BRANCH
+          script: |
+            set -e
+            cd ~/test-squad-automation
+            git fetch origin "$BRANCH"
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            ./scripts/tnr-docker.sh up
+            docker network connect blog-tnr_default claude-worker || true
+
+      - name: Run browser tests on VPS
+        id: run-tests
+        if: steps.start-env.outcome == 'success'
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1
+        env:
+          BRANCH: ${{ inputs.branch }}
+          TEST_FILTER: ${{ inputs.test_filter }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 60m
+          envs: BRANCH,TEST_FILTER
+          script: |
+            set -e
+
+            # Mettre à jour le clone interne au container claude-worker
+            # pour que Claude lise le SKILL.md à jour depuis la branche testée.
+            docker exec claude-worker git -C /workspace/test-squad-automation fetch origin "$BRANCH"
+            docker exec claude-worker git -C /workspace/test-squad-automation reset --hard "origin/$BRANCH"
+
+            # Lance Claude avec le skill browser-tests-on-demand,
+            # en injectant BRANCH/TEST_FILTER + les URLs de l'env éphémère.
+            printf 'Tu es un expert en tests browser automatises.\n\nExecute le skill .claude/skills/browser-tests-on-demand/SKILL.md.\n\nBranche testee : %s\nFiltre de tests : %s' \
+              "$BRANCH" \
+              "$TEST_FILTER" \
+              | docker exec -i \
+                -w /workspace/test-squad-automation \
+                -e BRANCH="$BRANCH" \
+                -e TEST_FILTER="$TEST_FILTER" \
+                -e BASE_URL=http://blog-tnr-nginx-1:80 \
+                -e API_URL=http://blog-tnr-nginx-1:80 \
+                claude-worker \
+                claude -p - --dangerously-skip-permissions --output-format json 2>&1
+
+      - name: Tear down test environment (idempotent)
+        if: always() && steps.start-env.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            docker network disconnect blog-tnr_default claude-worker 2>/dev/null || true
+            cd ~/test-squad-automation 2>/dev/null && ./scripts/tnr-docker.sh down 2>/dev/null || true
+
+      - name: Report failure summary
+        if: steps.run-tests.outcome == 'failure'
+        run: |
+          echo "::error::Le run browser-tests-on-demand a échoué. Voir les logs du step 'Run browser tests on VPS' pour le détail."
+          echo "Branche : ${{ inputs.branch }}"
+          echo "Filtre  : ${{ inputs.test_filter }}"
+          exit 1

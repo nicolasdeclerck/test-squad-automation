@@ -30,23 +30,56 @@ print(len(tests))
 
 **Si `BROWSER_TESTS > 0` :**
 
+Le ticket est approuvé côté code mais les tests browser sont à exécuter
+**séparément** via le workflow `browser-tests.yml` (sur un environnement
+Docker éphémère dédié, à la demande). Le ticket reçoit donc 2 labels en
+parallèle : `approved` (code OK) et `pending-browser-tests` (tests à lancer).
+
 ```bash
-write_state "6"
+APPROVED="True"
+write_state "done"
+
+# Récupère les infos pour le commentaire
+BRANCH_NAME=$(cat "$STATE_FILE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('branch',''))")
+TESTS_TABLE=$(cat "$STATE_FILE" | python3 -c "
+import sys,json
+d = json.load(sys.stdin)
+for t in d.get('browser_tests', []):
+    print(f\"| {t['id']} | {t['title']} | [{t['type']}] |\")
+")
+TESTS_COUNT=$(cat "$STATE_FILE" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('browser_tests',[])))")
+
+gh issue comment {ISSUE_NUMBER} --body "## ✅ Code approuvé — Tests browser en attente
+
+La code review automatique a approuvé le code. Les modifications sont prêtes à merger côté code.
+
+**$TESTS_COUNT scénarios de test browser** ont été planifiés et restent à exécuter :
+
+| ID | Scénario | Type |
+|----|----------|------|
+$TESTS_TABLE
+
+### Comment lancer les tests browser
+
+Les tests browser tournent à la demande sur un environnement Docker éphémère, via un workflow séparé :
+
+\`\`\`bash
+gh workflow run browser-tests.yml \\
+  -F branch=$BRANCH_NAME \\
+  -F test_filter=issue:{ISSUE_NUMBER}
+\`\`\`
+
+Ou via l'UI : **Actions → Browser Tests → Run workflow** → renseigner \`branch=$BRANCH_NAME\` et \`test_filter=issue:{ISSUE_NUMBER}\`.
+
+Le label \`pending-browser-tests\` sera retiré automatiquement si tous les tests passent."
+
+# Labels finaux : approved + pending-browser-tests en parallèle
+gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
+gh issue edit {ISSUE_NUMBER} --add-label 'approved'
+gh issue edit {ISSUE_NUMBER} --add-label 'pending-browser-tests'
 ```
 
-**ARRÊT OBLIGATOIRE ICI** — ne charge pas `references/phase-6-browser-tests.md`,
-ne fait aucune autre action, termine ton run.
-
-Phase 6 sera exécutée par un **second run de Claude** déclenché par GitHub
-Actions, après que l'environnement TNR ait été reconstruit à partir de la
-branche PR (qui n'existait pas avant que tu la crées en Phase 3). Le state
-file `PHASE=6` sera lu par le routing de la Phase 0 du second run, qui
-chargera directement `phase-6-browser-tests.md` sans repasser par Phase 4.
-
-Réponds simplement :
-> "Phases 1-5 terminées. État sauvegardé en PHASE=6 pour reprise par GitHub Actions à Phase 6 après rebuild env TNR."
-
-Puis termine ton run.
+→ **STOP** ✅ Ticket approuvé côté code, tests browser à lancer manuellement.
 
 **Si `BROWSER_TESTS = 0` (aucun test front, ex : refactoring backend pur) :**
 
@@ -61,7 +94,7 @@ La code review a été approuvée, le ticket est considéré comme terminé.
 
 **Tests browser : 0 prévu, 0 exécuté.**"
 
-# Labels finaux
+# Labels finaux : approved seul (pas de tests browser à attendre)
 gh issue edit {ISSUE_NUMBER} --remove-label 'in progress'
 gh issue edit {ISSUE_NUMBER} --add-label 'approved'
 ```

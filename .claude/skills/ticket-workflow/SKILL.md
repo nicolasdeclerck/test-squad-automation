@@ -26,11 +26,10 @@ les fichiers `references/`. Ce fichier ne contient que l'orchestration.
 | `references/state-management.md` | `write_state()`, structure JSON, gestion erreurs/interruptions |
 | `references/phase-1-analyze.md` | Analyse du ticket et du codebase |
 | `references/phase-2-plan.md` | Plan technique, tâches atomiques |
-| `references/browser-test-planning.md` | Planification TDD des tests browser (cahier + liste du ticket) |
+| `references/browser-test-planning.md` | Planification TDD des tests browser (cahier + liste du ticket pour exécution séparée via `browser-tests.yml`) |
 | `references/phase-3-develop.md` | Développement, tests, commit, PR, documentation |
 | `references/phase-4-review.md` | Code review automatique |
-| `references/phase-5-corrections.md` | Rapport des corrections (code review ET tests browser, unifié) |
-| `references/phase-6-browser-tests.md` | Exécution des tests browser via agent-browser |
+| `references/phase-5-corrections.md` | Rapport des corrections de code review |
 
 ---
 
@@ -111,9 +110,7 @@ cd "$WORKTREE_PATH"
 | `PHASE = 2` | → Lis `references/phase-2-plan.md` et exécute Phase 2 |
 | `PHASE = 3` | → Lis `references/phase-3-develop.md` et exécute Phase 3 |
 | `PHASE = 4` | → Lis `references/phase-4-review.md` et exécute Phase 4 |
-| `PHASE = 5` | → Lis `references/phase-5-corrections.md` et exécute (contexte : code review) |
-| `PHASE = 6` | → Lis `references/phase-6-browser-tests.md` et exécute Phase 6 |
-| `PHASE = 7` | → Lis `references/phase-5-corrections.md` et exécute (contexte : tests browser) |
+| `PHASE = 5` | → Lis `references/phase-5-corrections.md` et exécute Phase 5 |
 | `APPROVED = True` ou `PHASE = done` | → **STOP** : ticket terminé |
 
 > **Important :** Chaque fichier de référence contient les instructions complètes
@@ -138,19 +135,22 @@ Phase 3 (Dev + tests + PR)
   └── PR créée → Phase 4 directement
 
 Phase 4 (Code review)
-  ├── Approuvée + tests browser prévus → Phase 6 directement
-  ├── Approuvée + pas de tests browser → labels finaux + STOP ✅
+  ├── Approuvée + tests browser prévus → labels approved + pending-browser-tests → STOP ✅
+  ├── Approuvée + pas de tests browser → label approved → STOP ✅
   ├── Corrections + N_REVIEW < 3 → Phase 5 directement
   └── Corrections + N_REVIEW ≥ 3 → label help wanted → STOP ⚠️
 
-Phase 5 (Rapport corrections — code review OU tests browser)
+Phase 5 (Rapport corrections code review)
   └── Toujours → Phase 3 directement (nouveau cycle)
-
-Phase 6 (Tests browser via agent-browser)
-  ├── Tous les tests passent → labels finaux + STOP ✅
-  ├── Anomalies + N_BROWSER_TEST < 3 → Phase 7 directement (→ phase-5-corrections.md, contexte browser)
-  └── Anomalies + N_BROWSER_TEST ≥ 3 → label help wanted → STOP ⚠️
 ```
+
+> **Note tests browser :** depuis le découplage, les tests browser sont
+> exécutés à la demande via le workflow `.github/workflows/browser-tests.yml`
+> (skill séparé `browser-tests-on-demand`), pas dans le `ticket-workflow`.
+> Phase 2 continue de planifier les tests dans `.claude-state.json` et
+> dans `docs/browser-test-checklist.md`. Phase 4, quand des tests sont
+> prévus, marque le ticket `approved` + `pending-browser-tests` et explique
+> comment lancer le workflow dédié.
 
 **Interactions GitHub :**
 
@@ -159,16 +159,15 @@ Phase 6 (Tests browser via agent-browser)
 | Démarrage | Retire `analyze`, ajoute `in progress` |
 | Phase 1 | `gh issue comment` (notification : analyse terminée) |
 | Phase 1 si bloqué | `gh issue comment` (questions) + `help wanted` → STOP |
-| Phase 2 | `gh issue comment` (notification : plan défini + nb tests browser) + MAJ `docs/browser-test-checklist.md` |
+| Phase 2 | `gh issue comment` (notification : plan défini + nb tests browser planifiés) + MAJ `docs/browser-test-checklist.md` |
 | Phase 3 | `gh pr create/edit` + `gh issue comment` (documentation détaillée) |
 | Phase 3 si tests KO | `gh issue comment` (erreurs) + `help wanted` → STOP |
-| Phase 4 sans tests | `/code-review` + `gh issue comment` (tests browser non requis) |
-| Phase 4 avec tests | `/code-review` → Phase 6 |
-| Phase 5 | `gh issue comment` (corrections code review ou browser) |
-| Phase 6 | `gh issue comment` (démarrage) + `agent-browser` + `gh issue comment` (résultats) |
-| Fin | Retire `in progress`, ajoute `approved` |
+| Phase 4 (avec tests browser) | `/code-review` + `gh issue comment` (instructions launch tests browser) + labels `approved` + `pending-browser-tests` |
+| Phase 4 (sans tests browser) | `/code-review` + `gh issue comment` + label `approved` |
+| Phase 5 | `gh issue comment` (corrections code review) |
+| Fin | Retire `in progress`, ajoute `approved` (+ `pending-browser-tests` si applicable) |
 
-**Total : 2 changements de labels sur tout le cycle**, quelle que soit la durée.
+**Total : 2 changements de labels sur tout le cycle** (3 si tests browser planifiés).
 
 > **Note :** En cas d'interruption involontaire, voir `references/state-management.md`
 > pour la procédure de reprise (label `standby`, commentaire d'arrêt).
