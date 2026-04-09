@@ -445,9 +445,11 @@
 - **Action** : Modifier le prénom et/ou le nom de famille, soumettre
 - **Vérifications** :
   - Le formulaire affiche les champs : prénom, nom de famille
+  - L'email de l'utilisateur est affiché en lecture seule (non modifiable)
   - Les champs sont pré-remplis avec les valeurs actuelles
   - Un message de succès s'affiche après la sauvegarde
   - Les modifications sont reflétées dans le header (nom/avatar)
+  - L'avatar sur la page de profil est affiché en taille xl (environ 120px, soit 1,5× la taille lg)
 
 ### 8.2 — [AUTH] Upload d'avatar
 
@@ -528,7 +530,7 @@
 - **Vérifications** :
   - Les utilisateurs sans avatar affichent leurs initiales
   - Les initiales sont correctes (première lettre prénom + nom)
-  - L'avatar est affiché en différentes tailles selon le contexte (sm/md/lg)
+  - L'avatar est affiché en différentes tailles selon le contexte (sm/md/lg/xl)
 
 ### 11.2 — [PUBLIC] Pagination
 
