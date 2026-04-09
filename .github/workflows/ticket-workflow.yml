@@ -61,8 +61,7 @@ jobs:
             set -e
             cd ~/test-squad-automation
             git fetch origin main
-            git checkout main
-            git pull origin main
+            git reset --hard origin/main
             ./scripts/tnr-docker.sh up
             docker network connect blog-tnr_default claude-worker || true
 
@@ -85,10 +84,12 @@ jobs:
             set -e
 
             # Mettre à jour le clone interne au container claude-worker
-            # pour que Claude lise le SKILL.md à jour depuis main
+            # pour que Claude lise le SKILL.md à jour depuis main.
+            # reset --hard écrase toute modif résiduelle d'un run précédent
+            # (le clone in-container est lecture-seule pour Claude, rien à
+            # préserver — les worktrees de travail sont créés ailleurs).
             docker exec claude-worker git -C /workspace/test-squad-automation fetch origin main
-            docker exec claude-worker git -C /workspace/test-squad-automation checkout main
-            docker exec claude-worker git -C /workspace/test-squad-automation pull origin main
+            docker exec claude-worker git -C /workspace/test-squad-automation reset --hard origin/main
 
             # Construire le prompt avec printf (gère proprement title/body
             # avec caractères spéciaux, sans souci d'échappement shell) et
