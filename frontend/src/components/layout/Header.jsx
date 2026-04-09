@@ -43,9 +43,6 @@ export default function Header() {
           <Link to="/articles" className="nav-link">
             Articles
           </Link>
-          <Link to="/a-propos" className="nav-link">
-            &Agrave; propos
-          </Link>
           <Link to="/contact" className="nav-link">
             Contact
           </Link>
@@ -166,13 +163,6 @@ export default function Header() {
               onClick={() => setMobileOpen(false)}
             >
               Articles
-            </Link>
-            <Link
-              to="/a-propos"
-              className="nav-link"
-              onClick={() => setMobileOpen(false)}
-            >
-              &Agrave; propos
             </Link>
             <Link
               to="/contact"

@@ -19,7 +19,6 @@ import PostForm from "./components/blog/PostForm";
 import PostList from "./components/blog/PostList";
 import VersionDetail from "./components/blog/VersionDetail";
 import VersionHistory from "./components/blog/VersionHistory";
-import About from "./components/core/About";
 import Contact from "./components/core/Contact";
 import DevTracking from "./components/core/DevTracking";
 import Layout from "./components/layout/Layout";
@@ -127,7 +126,6 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/a-propos", element: <About /> },
       { path: "/contact", element: <Contact /> },
       {
         path: "/suivi-des-devs",
