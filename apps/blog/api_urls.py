@@ -11,9 +11,11 @@ from .api_views import (
     PostVersionDetailAPIView,
     PostVersionListAPIView,
     PostVersionRestoreAPIView,
+    TagListAPIView,
 )
 
 urlpatterns = [
+    path("tags/", TagListAPIView.as_view(), name="api_tag_list"),
     path(
         "upload-image/",
         PostImageUploadView.as_view(),

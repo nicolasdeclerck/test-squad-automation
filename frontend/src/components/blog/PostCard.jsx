@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Menu } from "@mantine/core";
+import { Badge, Menu } from "@mantine/core";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
 
@@ -26,6 +26,15 @@ export default function PostCard({ post }) {
               {post.title}
             </Link>
           </h2>
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {post.tags.map((tag) => (
+                <Badge key={tag.id} size="xs" variant="light" color="blue">
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          )}
           {canEdit && post.has_draft && post.status === "published" && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 mt-1"

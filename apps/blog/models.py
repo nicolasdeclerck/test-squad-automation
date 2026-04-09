@@ -66,6 +66,22 @@ class PostImage(models.Model):
         return f"Image {self.pk} par {self.uploaded_by}"
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
 class Post(models.Model):
     STATUS_DRAFT = "draft"
     STATUS_PUBLISHED = "published"
@@ -83,6 +99,7 @@ class Post(models.Model):
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT
     )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="posts")
     draft_title = models.CharField(max_length=200, blank=True)
     draft_content = models.TextField(blank=True)
     has_draft = models.BooleanField(default=False)

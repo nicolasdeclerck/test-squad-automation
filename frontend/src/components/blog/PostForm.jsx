@@ -2,6 +2,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
+import { TagsInput } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
@@ -65,6 +66,8 @@ export default function PostForm() {
   const navigate = useNavigate();
   const isEdit = Boolean(slug);
   const [title, setTitle] = useState("");
+  const [tags, setTags] = useState([]);
+  const [tagSuggestions, setTagSuggestions] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
   const [initialContent, setInitialContent] = useState(undefined);
@@ -78,8 +81,10 @@ export default function PostForm() {
   const isSavingRef = useRef(false);
   const retryCountRef = useRef(0);
   const titleValueRef = useRef("");
+  const tagsValueRef = useRef([]);
   const lastSavedTitleRef = useRef("");
   const lastSavedContentRef = useRef("");
+  const lastSavedTagsRef = useRef([]);
 
   useEffect(() => {
     if (isEdit) {
@@ -94,6 +99,10 @@ export default function PostForm() {
           setTitle(editTitle);
           titleValueRef.current = editTitle;
           lastSavedTitleRef.current = editTitle;
+          const postTags = (res.data.tags || []).map((t) => t.name);
+          setTags(postTags);
+          tagsValueRef.current = postTags;
+          lastSavedTagsRef.current = postTags;
           try {
             const parsed = JSON.parse(editContent);
             setInitialContent(parsed);
@@ -109,6 +118,25 @@ export default function PostForm() {
     }
   }, [slug, isEdit]);
 
+  const searchTags = useCallback(async (query) => {
+    if (!query.trim()) {
+      setTagSuggestions([]);
+      return;
+    }
+    const res = await api.get(`/api/blog/tags/?search=${encodeURIComponent(query)}`);
+    if (res.ok) {
+      setTagSuggestions(res.data.map((t) => t.name));
+    }
+  }, []);
+
+  const handleTagsChange = (newTags) => {
+    setTags(newTags);
+    tagsValueRef.current = newTags;
+    if (isEdit) {
+      scheduleAutosave();
+    }
+  };
+
   const performAutosave = useCallback(async () => {
     if (!slug || isSavingRef.current) return;
 
@@ -116,12 +144,14 @@ export default function PostForm() {
     const currentContent = editorRef.current
       ? JSON.stringify(editorRef.current.document)
       : "";
+    const currentTags = tagsValueRef.current;
 
     const trimmedTitle = currentTitle.trim();
 
     if (
       trimmedTitle === lastSavedTitleRef.current &&
-      currentContent === lastSavedContentRef.current
+      currentContent === lastSavedContentRef.current &&
+      JSON.stringify(currentTags) === JSON.stringify(lastSavedTagsRef.current)
     ) {
       isDirtyRef.current = false;
       return;
@@ -133,6 +163,7 @@ export default function PostForm() {
     const res = await api.patch(`/api/blog/posts/${slug}/autosave/`, {
       draft_title: trimmedTitle,
       draft_content: currentContent,
+      tags: currentTags,
     });
 
     isSavingRef.current = false;
@@ -142,6 +173,7 @@ export default function PostForm() {
       retryCountRef.current = 0;
       lastSavedTitleRef.current = trimmedTitle;
       lastSavedContentRef.current = currentContent;
+      lastSavedTagsRef.current = [...currentTags];
       const now = new Date();
       setLastSavedAt(
         now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
@@ -232,6 +264,7 @@ export default function PostForm() {
         api.patch(`/api/blog/posts/${slug}/autosave/`, {
           draft_title: currentTitle,
           draft_content: currentContent,
+          tags: tagsValueRef.current,
         });
       }
     };
@@ -267,6 +300,7 @@ export default function PostForm() {
     const res = await api.post("/api/blog/posts/", {
       title: trimmedTitle,
       content,
+      tags,
     });
 
     if (res.ok) {
@@ -346,6 +380,19 @@ export default function PostForm() {
                 {err}
               </p>
             ))}
+        </div>
+
+        <div className="mb-5">
+          <TagsInput
+            label="Tags"
+            placeholder="Ajouter des tags"
+            value={tags}
+            onChange={handleTagsChange}
+            data={tagSuggestions}
+            onSearchChange={searchTags}
+            maxDropdownHeight={200}
+            clearable
+          />
         </div>
 
         {isEdit && <SaveStatusIndicator saveStatus={saveStatus} lastSavedAt={lastSavedAt} />}
