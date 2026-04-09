@@ -116,7 +116,7 @@ export default function PostDetail() {
       : post.author.username;
 
   const displayTitle =
-    post.is_owner && post.status === "draft" && !post.content && post.draft_title
+    post.is_owner && post.status === "draft" && !post.title && post.draft_title
       ? post.draft_title
       : post.title;
   const displayContent =
