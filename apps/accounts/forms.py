@@ -71,11 +71,22 @@ class LoginForm(AuthenticationForm):
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ("first_name", "last_name")
+        fields = ("first_name", "last_name", "email")
         labels = {
             "first_name": "Prénom",
             "last_name": "Nom",
+            "email": "Adresse email",
         }
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if (
+            User.objects.filter(email__iexact=email)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("Un compte avec cet email existe déjà.")
+        return email
 
 
 class ProfileForm(forms.ModelForm):

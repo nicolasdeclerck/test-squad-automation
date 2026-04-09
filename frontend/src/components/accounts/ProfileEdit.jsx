@@ -8,6 +8,7 @@ export default function ProfileEdit() {
   const { user, updateProfile, deleteAvatar } = useAuth();
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [avatar, setAvatar] = useState(null);
   const [errors, setErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState("");
@@ -22,6 +23,7 @@ export default function ProfileEdit() {
     const formData = new FormData();
     formData.append("first_name", firstName);
     formData.append("last_name", lastName);
+    formData.append("email", email);
     if (avatar) {
       formData.append("avatar", avatar);
     }
@@ -66,7 +68,7 @@ export default function ProfileEdit() {
 
       <Helmet>
         <title>Modifier mon profil</title>
-        <meta name="description" content="Modifiez votre profil : pr\u00e9nom, nom et avatar." />
+        <meta name="description" content="Modifiez votre profil : pr\u00e9nom, nom, email et avatar." />
       </Helmet>
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
         Modifier mon profil
@@ -125,6 +127,27 @@ export default function ProfileEdit() {
           />
           {errors.last_name &&
             errors.last_name.map((err, i) => (
+              <p key={i} className="form-error">
+                {err}
+              </p>
+            ))}
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="email" className="form-label">
+            Adresse email
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={`form-input${
+              errors.email ? " border-red-500" : ""
+            }`}
+          />
+          {errors.email &&
+            errors.email.map((err, i) => (
               <p key={i} className="form-error">
                 {err}
               </p>
