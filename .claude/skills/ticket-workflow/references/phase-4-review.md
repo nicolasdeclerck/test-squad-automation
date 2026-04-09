@@ -32,8 +32,32 @@ print(len(tests))
 
 ```bash
 write_state "6"
-# → Exécuter Phase 6 directement (tests browser)
 ```
+
+Vérifie ensuite si tu dois enchaîner Phase 6 immédiatement ou t'arrêter ici
+pour laisser GitHub Actions reconstruire l'environnement TNR avec le code
+de la branche PR (qui n'existait pas avant que tu la crées en Phase 3) :
+
+```bash
+if [ -n "$STOP_BEFORE_PHASE_6" ]; then
+  echo "DECISION_PHASE_6=stop_here_for_env_rebuild"
+else
+  echo "DECISION_PHASE_6=continue_directly"
+fi
+```
+
+**Examine la sortie du bash ci-dessus** :
+
+- Si elle contient `DECISION_PHASE_6=stop_here_for_env_rebuild` :
+  **arrête immédiatement ton exécution du skill**. Ne charge pas
+  `references/phase-6-browser-tests.md`. Le state file `PHASE=6` sera
+  repris par un second run de Claude après que GitHub Actions ait
+  reconstruit l'environnement TNR à partir de la branche PR.
+  → **STOP** ici.
+
+- Si elle contient `DECISION_PHASE_6=continue_directly` :
+  charge `references/phase-6-browser-tests.md` et exécute Phase 6
+  directement (l'environnement TNR est déjà prêt côté appelant).
 
 **Si `BROWSER_TESTS = 0` (aucun test front, ex : refactoring backend pur) :**
 
