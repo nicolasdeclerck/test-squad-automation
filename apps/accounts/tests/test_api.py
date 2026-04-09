@@ -165,6 +165,81 @@ class TestProfileUpdateAPI:
 
 
 @pytest.mark.django_db
+class TestProfileUpdateEmailAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_update_email(self):
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+
+        user = UserFactory(email="old@example.com")
+        self.client.force_login(user)
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "email": "new@example.com"},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == "new@example.com"
+
+    def test_update_email_duplicate(self):
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+
+        UserFactory(email="taken@example.com")
+        user = UserFactory(email="mine@example.com")
+        self.client.force_login(user)
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "email": "taken@example.com"},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert "email" in data
+
+    def test_update_email_invalid_format(self):
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+
+        user = UserFactory(email="valid@example.com")
+        self.client.force_login(user)
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "email": "invalid-email"},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert "email" in data
+
+    def test_update_keeps_same_email(self):
+        from django.test.client import MULTIPART_CONTENT, encode_multipart
+
+        user = UserFactory(email="same@example.com")
+        self.client.force_login(user)
+        response = self.client.put(
+            "/api/accounts/profile/",
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"first_name": "Jean", "last_name": "Dupont", "email": "same@example.com"},
+            ),
+            content_type=MULTIPART_CONTENT,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == "same@example.com"
+
+
+@pytest.mark.django_db
 class TestProfileUpdateAvatarValidationAPI:
     def setup_method(self):
         self.client = Client()
