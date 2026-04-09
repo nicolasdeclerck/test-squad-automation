@@ -22,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name", "avatar", "is_superuser")
-        read_only_fields = ("id", "username", "is_superuser")
+        read_only_fields = ("id", "username", "email", "is_superuser")
 
     def get_avatar(self, obj):
         if hasattr(obj, "profile") and obj.profile.avatar:

@@ -68,7 +68,7 @@ export default function ProfileEdit() {
 
       <Helmet>
         <title>Modifier mon profil</title>
-        <meta name="description" content="Modifiez votre profil : pr\u00e9nom, nom et avatar." />
+        <meta name="description" content="Modifiez votre profil : pr\u00e9nom, nom, email et avatar." />
       </Helmet>
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
         Modifier mon profil
