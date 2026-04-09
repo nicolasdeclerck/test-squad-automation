@@ -118,15 +118,21 @@ export default function PostForm() {
     }
   }, [slug, isEdit]);
 
-  const searchTags = useCallback(async (query) => {
+  const tagSearchTimerRef = useRef(null);
+  const searchTags = useCallback((query) => {
+    if (tagSearchTimerRef.current) {
+      clearTimeout(tagSearchTimerRef.current);
+    }
     if (!query.trim()) {
       setTagSuggestions([]);
       return;
     }
-    const res = await api.get(`/api/blog/tags/?search=${encodeURIComponent(query)}`);
-    if (res.ok) {
-      setTagSuggestions(res.data.map((t) => t.name));
-    }
+    tagSearchTimerRef.current = setTimeout(async () => {
+      const res = await api.get(`/api/blog/tags/?search=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        setTagSuggestions(res.data.map((t) => t.name));
+      }
+    }, 300);
   }, []);
 
   const handleTagsChange = (newTags) => {
