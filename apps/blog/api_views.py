@@ -208,11 +208,9 @@ class PostImageUploadView(APIView):
         serializer = PostImageUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(uploaded_by=request.user)
-        image_url = request.build_absolute_uri(
-            serializer.instance.image.url
-        )
         return Response(
-            {"url": image_url}, status=status.HTTP_201_CREATED
+            {"url": serializer.instance.image.url},
+            status=status.HTTP_201_CREATED,
         )
 
 
