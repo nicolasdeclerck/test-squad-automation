@@ -38,7 +38,7 @@
 - **Action** : Ouvrir `{BASE_URL}`
 - **Vérifications** :
   - Le logo/nom "NICKORP" est visible dans le header
-  - Les liens "Accueil", "Articles", "A propos", "Contact" sont visibles
+  - Les liens "Accueil", "Articles", "Contact" sont visibles
   - Les boutons "Connexion" et "Inscription" sont visibles (utilisateur non connecté)
 
 ### 1.2 — [AUTH] Header utilisateur connecté
@@ -493,14 +493,7 @@
 
 ## 9. Pages statiques
 
-### 9.1 — [PUBLIC] Page "A propos"
-
-- **URL** : `/a-propos`
-- **Vérifications** :
-  - La page s'affiche correctement
-  - Le contenu de présentation est visible
-
-### 9.2 — [PUBLIC] Page "Contact"
+### 9.1 — [PUBLIC] Page "Contact"
 
 - **URL** : `/contact`
 - **Vérifications** :
