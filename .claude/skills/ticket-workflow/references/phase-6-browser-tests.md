@@ -31,6 +31,11 @@ tests de non-régression. Cet environnement inclut le code de la branche PR.
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 API_URL="${API_URL:-http://localhost:8080}"
 
+# Forcer Chrome à démarrer sans sandbox (nécessaire dans le container
+# claude-worker, sans effet en local). AGENT_BROWSER_ARGS est documenté
+# dans `agent-browser --help` comme alternative à --args.
+export AGENT_BROWSER_ARGS=--no-sandbox
+
 # Vérifier l'accessibilité de l'application
 agent-browser open "$BASE_URL"
 agent-browser wait --load networkidle
