@@ -387,6 +387,7 @@
   - Le titre du brouillon est affiché correctement
   - Le contenu du brouillon est affiché correctement (rendu BlockNote non vide)
   - Les boutons d'action (Modifier, Supprimer) sont visibles pour l'auteur superutilisateur
+  - La zone de commentaires (formulaire + liste) n'est PAS affichée
 
 ---
 
