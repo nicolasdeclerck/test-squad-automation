@@ -139,7 +139,8 @@
 - **Vérifications** :
   - Les articles publiés sont affichés sous forme de cartes
   - Maximum 10 articles affichés
-  - Chaque carte affiche : titre, auteur (nom + avatar), date, extrait du contenu
+  - Chaque carte affiche : titre, auteur (nom + avatar), date, extrait du contenu, et les tags de l'article (s'il en a)
+  - Les tags sont affichés en dessous du titre de chaque carte
   - Un lien "Voir tous les articles" est présent si plus de 10 articles existent
 
 ### 3.2 — [PUBLIC] Page articles — Pagination
@@ -156,6 +157,7 @@
 - **URL** : `/articles/{slug}`
 - **Vérifications** :
   - Le titre de l'article est affiché
+  - Les tags de l'article sont affichés en dessous du titre (s'il en a)
   - Le contenu riche (BlockNote) est rendu correctement en HTML
   - L'auteur est affiché avec son avatar et son nom
   - La date de publication est affichée
@@ -331,6 +333,31 @@
   - Upload d'un fichier non-image (ex: .txt, .pdf) → l'image n'est pas insérée ou un message d'erreur s'affiche
   - Upload d'un fichier > 5 Mo → l'image n'est pas insérée ou un message d'erreur s'affiche
   - Les formats JPEG, PNG, WebP et GIF sont acceptés
+
+---
+
+### 4.13 — [AUTH/SUPERUSER] Ajout de tags à un article
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Action** : Utiliser le champ TagsInput pour ajouter des tags à l'article
+- **Vérifications** :
+  - Un champ de saisie de tags (TagsInput Mantine) est visible dans le formulaire
+  - L'utilisateur peut taper un nouveau tag et l'ajouter (touche Entrée ou virgule)
+  - Lors de la saisie, les tags existants correspondants sont proposés en autocomplétion (5 maximum)
+  - L'autocomplétion filtre les tags contenant la chaîne saisie
+  - Les tags ajoutés sont affichés comme des badges dans le champ
+  - L'utilisateur peut supprimer un tag en cliquant sur la croix du badge
+  - Après sauvegarde (brouillon ou publication), les tags sont persistés
+  - En édition, les tags existants de l'article sont pré-remplis dans le champ
+
+### 4.14 — [AUTH/SUPERUSER] Tags — Autocomplétion avec tags existants
+
+- **URL** : `/articles/creer`
+- **Action** : Créer un article avec des tags, puis créer un nouvel article et taper un tag existant
+- **Vérifications** :
+  - Les tags créés précédemment apparaissent dans les suggestions d'autocomplétion
+  - Maximum 5 suggestions sont affichées
+  - Les suggestions se mettent à jour au fur et à mesure de la saisie
 
 ---
 

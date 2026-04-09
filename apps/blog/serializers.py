@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
 
-from .models import Comment, Post, PostImage, PostVersion
+from .models import Comment, Post, PostImage, PostVersion, Tag
 
 User = get_user_model()
 
@@ -11,6 +11,13 @@ User = get_user_model()
 class AuthorSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = ("id", "username", "first_name", "last_name", "avatar")
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ("id", "name", "slug")
+        read_only_fields = ("id", "slug")
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -38,6 +45,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class PostListSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     plain_content = serializers.SerializerMethodField()
     has_draft = serializers.SerializerMethodField()
 
@@ -49,6 +57,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "slug",
             "author",
             "status",
+            "tags",
             "plain_content",
             "has_draft",
             "published_at",
@@ -84,6 +93,7 @@ class PostListSerializer(serializers.ModelSerializer):
 
 class PostDetailSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     is_owner = serializers.SerializerMethodField()
     approved_comments = serializers.SerializerMethodField()
     has_draft = serializers.SerializerMethodField()
@@ -99,6 +109,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "author",
             "content",
             "status",
+            "tags",
             "is_owner",
             "approved_comments",
             "has_draft",
@@ -142,9 +153,15 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
 
 class PostCreateUpdateSerializer(serializers.ModelSerializer):
+    tags = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+        default=list,
+    )
+
     class Meta:
         model = Post
-        fields = ("title", "content")
+        fields = ("title", "content", "tags")
 
     def validate_title(self, value):
         if not value or not value.strip():
@@ -160,9 +177,14 @@ class PostVersionSerializer(serializers.ModelSerializer):
 
 
 class PostAutoSaveSerializer(serializers.ModelSerializer):
+    tags = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+    )
+
     class Meta:
         model = Post
-        fields = ("draft_title", "draft_content")
+        fields = ("draft_title", "draft_content", "tags")
 
 
 class PostImageUploadSerializer(serializers.ModelSerializer):

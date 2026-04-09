@@ -1,7 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
-import { Alert } from "@mantine/core";
+import { Alert, Badge } from "@mantine/core";
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -135,7 +135,16 @@ export default function PostDetail() {
         {/* Article — colonne gauche */}
         <div className="flex-1 min-w-0">
           <article>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{displayTitle}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{displayTitle}</h1>
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-4">
+                {post.tags.map((tag) => (
+                  <Badge key={tag.id} size="sm" variant="light" color="blue">
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {post.is_owner && user?.is_superuser && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Link

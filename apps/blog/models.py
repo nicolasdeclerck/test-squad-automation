@@ -66,6 +66,28 @@ class PostImage(models.Model):
         return f"Image {self.pk} par {self.uploaded_by}"
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name) or "tag"
+            slug = base_slug
+            counter = 1
+            while Tag.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+
 class Post(models.Model):
     STATUS_DRAFT = "draft"
     STATUS_PUBLISHED = "published"
@@ -83,6 +105,7 @@ class Post(models.Model):
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT
     )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="posts")
     draft_title = models.CharField(max_length=200, blank=True)
     draft_content = models.TextField(blank=True)
     has_draft = models.BooleanField(default=False)

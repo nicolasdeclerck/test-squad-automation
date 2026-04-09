@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -5,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import Comment, Post, PostVersion
+from .models import Comment, Post, PostVersion, Tag
 from .serializers import (
     CommentSerializer,
     PostAutoSaveSerializer,
@@ -14,6 +15,7 @@ from .serializers import (
     PostImageUploadSerializer,
     PostListSerializer,
     PostVersionSerializer,
+    TagSerializer,
 )
 
 
@@ -29,6 +31,42 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
+def _set_tags(post, tag_names):
+    """Get or create tags by name and set them on the post."""
+    if tag_names is None:
+        return
+    tags = []
+    for name in tag_names:
+        name = name.strip()
+        if not name:
+            continue
+        try:
+            tag, _ = Tag.objects.get_or_create(
+                name__iexact=name,
+                defaults={"name": name},
+            )
+        except IntegrityError:
+            tag = Tag.objects.get(name__iexact=name)
+        tags.append(tag)
+    current_ids = set(post.tags.values_list("id", flat=True))
+    new_ids = {t.id for t in tags}
+    if current_ids != new_ids:
+        post.tags.set(tags)
+
+
+class TagListAPIView(generics.ListAPIView):
+    serializer_class = TagSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Tag.objects.all()
+        search = self.request.query_params.get("search", "").strip()
+        if search:
+            return qs.filter(name__icontains=search)[:5]
+        return qs[:20]
+
+
 class PostListCreateAPIView(generics.ListCreateAPIView):
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -36,7 +74,11 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
         return PostListSerializer
 
     def get_queryset(self):
-        qs = Post.objects.select_related("author__profile").order_by("-created_at")
+        qs = (
+            Post.objects.select_related("author__profile")
+            .prefetch_related("tags")
+            .order_by("-created_at")
+        )
         status_filter = self.request.query_params.get("status")
         if (
             status_filter == "draft"
@@ -54,6 +96,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
         return [permissions.AllowAny()]
 
     def perform_create(self, serializer):
+        tag_names = serializer.validated_data.pop("tags", [])
         serializer.save(
             author=self.request.user,
             status=Post.STATUS_DRAFT,
@@ -61,6 +104,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
             draft_content=serializer.validated_data.get("content", ""),
             has_draft=True,
         )
+        _set_tags(serializer.instance, tag_names)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -89,7 +133,7 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         qs = (
             Post.objects.select_related("author__profile")
-            .prefetch_related("comments__author__profile")
+            .prefetch_related("comments__author__profile", "tags")
         )
         if self.request.user.is_authenticated:
             return qs.filter(
@@ -112,7 +156,9 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
             instance, data=request.data, partial=partial
         )
         serializer.is_valid(raise_exception=True)
+        tag_names = serializer.validated_data.pop("tags", None)
         self.perform_update(serializer)
+        _set_tags(instance, tag_names)
         detail_serializer = PostDetailSerializer(
             instance, context={"request": request}
         )
@@ -141,7 +187,9 @@ class PostAutoSaveView(APIView):
         )
         serializer = PostAutoSaveSerializer(post, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        tag_names = serializer.validated_data.pop("tags", None)
         serializer.save(has_draft=True)
+        _set_tags(post, tag_names)
         return Response({"status": "saved"})
 
 

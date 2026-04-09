@@ -2,7 +2,15 @@ import factory
 from django.utils import timezone
 
 from apps.accounts.tests.factories import UserFactory
-from apps.blog.models import Comment, Post, PostVersion
+from apps.blog.models import Comment, Post, PostVersion, Tag
+
+
+class TagFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Tag
+
+    name = factory.Sequence(lambda n: f"tag-{n}")
+    slug = factory.LazyAttribute(lambda o: o.name)
 
 
 class PostFactory(factory.django.DjangoModelFactory):

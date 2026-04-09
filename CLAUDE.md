@@ -72,6 +72,10 @@ project/
 ```python
 # apps/blog/models.py
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)  # auto-generated from name
+
 class Post(models.Model):
     STATUS_DRAFT = 'draft'
     STATUS_PUBLISHED = 'published'
@@ -82,6 +86,7 @@ class Post(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    tags = models.ManyToManyField(Tag, blank=True, related_name='posts')
     draft_title = models.CharField(max_length=200, blank=True)
     draft_content = models.TextField(blank=True)
     has_draft = models.BooleanField(default=False)
@@ -123,7 +128,8 @@ class Profile(models.Model):
 
 ```
 # Blog
-/api/blog/posts/                   → Liste et création d'articles
+/api/blog/tags/                    → Liste des tags (avec ?search= pour autocomplétion, 5 max)
+/api/blog/posts/                   → Liste et création d'articles (tags inclus dans la réponse et acceptés en création)
 /api/blog/posts/<slug>/            → Détail, mise à jour, suppression
 /api/blog/posts/<slug>/autosave/   → Sauvegarde auto du brouillon
 /api/blog/posts/<slug>/publish/    → Publication d'un article
