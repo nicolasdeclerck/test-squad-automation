@@ -1,7 +1,7 @@
 ---
 name: ticket-workflow
 description: Workflow complet de traitement d'un ticket GitHub pour test-squad-automation, de l'analyse initiale jusqu'à l'approbation finale. Gère N cycles de review et corrections via un fichier d'état local (.claude-state.json). Déclencher sur le label "analyze" posé par un humain. Inclut : analyse, plan technique, développement, tests unitaires, PR, code review, tests browser via agent-browser, corrections post-review et post-tests-browser. Un seul label au démarrage (in progress), un seul à la fin (approved).
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker:*), Bash(agent-browser:*), Bash(npx agent-browser:*), Read, Write, Glob, LS, Edit
+allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker:*), Bash(agent-browser:*), Bash(npx agent-browser:*), Bash(python3:*), Bash(cat:*), Bash(pkill:*), Read, Write, Glob, LS, Edit
 ---
 
 # Skill : ticket-workflow

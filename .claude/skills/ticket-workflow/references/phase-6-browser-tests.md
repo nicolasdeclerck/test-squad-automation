@@ -25,9 +25,11 @@ tests de non-régression. Cet environnement inclut le code de la branche PR.
 # Démarrer l'environnement éphémère (build, migrate, seed test data)
 ./scripts/tnr-docker.sh up
 
-# Définir les URLs de test
-BASE_URL=http://localhost:8080
-API_URL=http://localhost:8080
+# Définir les URLs de test (surchargeables via variables d'env si déjà
+# définies, ex : BASE_URL=http://blog-tnr-nginx-1:80 quand on tourne dans
+# claude-worker connecté au réseau Docker éphémère)
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+API_URL="${API_URL:-http://localhost:8080}"
 
 # Vérifier l'accessibilité de l'application
 agent-browser open "$BASE_URL"
@@ -75,16 +77,20 @@ Utilise des sessions nommées selon le type de test, conformément au skill `age
 - `--session user1` pour les tests `[AUTH]` (connexion avec `testuser@example.com` / `Testpass123!`)
 - `--session user2` pour les tests `[OWNER]` nécessitant un deuxième utilisateur
 
-Si une session authentifiée n'existe pas encore, connecte-toi d'abord :
+Si une session authentifiée n'existe pas encore, connecte-toi d'abord. **Important :**
+les refs `@e1`, `@e2`… retournés par `snapshot -i` sont dynamiques — il faut snapshotter
+puis utiliser les refs réels (pas de placeholders type `@emailInput`).
 
 ```bash
-agent-browser open "$BASE_URL/login" --session user1
-agent-browser snapshot -i
-# Remplir le formulaire de connexion
-agent-browser fill @emailInput "testuser@example.com"
-agent-browser fill @passwordInput "Testpass123!"
-agent-browser click @submitButton
-agent-browser wait --load networkidle
+agent-browser --session user1 open "$BASE_URL/comptes/connexion"
+agent-browser --session user1 wait --load networkidle
+agent-browser --session user1 snapshot -i
+# Lis les refs retournés (ex: @e1 = email, @e2 = password, @e3 = bouton submit)
+# puis interagis avec ces refs réels :
+agent-browser --session user1 fill @e1 "testuser@example.com"
+agent-browser --session user1 fill @e2 "Testpass123!"
+agent-browser --session user1 click @e3
+agent-browser --session user1 wait --load networkidle
 ```
 
 ## 6.4 Exécution des tests
