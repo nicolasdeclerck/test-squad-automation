@@ -444,10 +444,26 @@
 - **URL** : `/comptes/profil/modifier`
 - **Action** : Modifier le prénom et/ou le nom de famille, soumettre
 - **Vérifications** :
-  - Le formulaire affiche les champs : prénom, nom de famille
+  - Le formulaire affiche les champs : prénom, nom de famille, email
   - Les champs sont pré-remplis avec les valeurs actuelles
   - Un message de succès s'affiche après la sauvegarde
   - Les modifications sont reflétées dans le header (nom/avatar)
+
+### 8.5 — [AUTH] Modification de l'email
+
+- **URL** : `/comptes/profil/modifier`
+- **Action** : Modifier l'adresse email avec une adresse valide, soumettre
+- **Vérifications** :
+  - Le champ email est pré-rempli avec l'adresse actuelle
+  - Après modification, un message de succès s'affiche
+  - Le champ email affiche la nouvelle adresse après rechargement
+
+### 8.6 — [AUTH] Modification de l'email — Validation
+
+- **URL** : `/comptes/profil/modifier`
+- **Actions et vérifications** :
+  - Email invalide (format incorrect) → message d'erreur affiché
+  - Email déjà utilisé par un autre utilisateur → message d'erreur affiché
 
 ### 8.2 — [AUTH] Upload d'avatar
 
