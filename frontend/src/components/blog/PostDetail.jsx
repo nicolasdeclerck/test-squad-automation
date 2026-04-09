@@ -115,18 +115,27 @@ export default function PostDetail() {
       ? `${post.author.first_name} ${post.author.last_name}`
       : post.author.username;
 
+  const displayTitle =
+    post.is_owner && post.status === "draft" && !post.content && post.draft_title
+      ? post.draft_title
+      : post.title;
+  const displayContent =
+    post.is_owner && post.status === "draft" && !post.content && post.draft_content
+      ? post.draft_content
+      : post.content;
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
       <Helmet>
-        <title>{post.title}</title>
-        <meta name="description" content={post.title} />
+        <title>{displayTitle}</title>
+        <meta name="description" content={displayTitle} />
       </Helmet>
 
       <div className="flex flex-col lg:flex-row lg:gap-8">
         {/* Article — colonne gauche */}
         <div className="flex-1 min-w-0">
           <article>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{displayTitle}</h1>
             {post.is_owner && user?.is_superuser && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Link
@@ -257,7 +266,7 @@ export default function PostDetail() {
               </p>
             </div>
 
-            <BlockNoteRenderer content={post.content} />
+            <BlockNoteRenderer content={displayContent} />
           </article>
 
           <div className="mt-10">
