@@ -380,6 +380,14 @@
   - Le lien "Mes brouillons" est ABSENT du menu utilisateur (desktop et mobile)
   - L'accès direct à `/articles/mes-brouillons` redirige vers `/` (accès refusé)
 
+### 6.4 — [AUTH/OWNER] Affichage du détail d'un brouillon non publié
+
+- **URL** : `/articles/{slug}` (article en statut "draft", jamais publié, en tant qu'auteur)
+- **Vérifications** :
+  - Le titre du brouillon est affiché correctement
+  - Le contenu du brouillon est affiché correctement (rendu BlockNote non vide)
+  - Les boutons d'action (Modifier, Supprimer) sont visibles pour l'auteur superutilisateur
+
 ---
 
 ## 7. Commentaires
