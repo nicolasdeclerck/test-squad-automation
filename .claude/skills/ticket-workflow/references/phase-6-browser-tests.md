@@ -15,19 +15,21 @@ for t in tests:
 ")
 ```
 
-## 6.2 Préparation de l'environnement éphémère
+## 6.2 Vérification de l'environnement éphémère
 
-Lance un environnement Docker éphémère identique à la production
-(`docker-compose.test.yml`) via le script `tnr-docker.sh`, comme pour les
-tests de non-régression. Cet environnement inclut le code de la branche PR.
+L'environnement Docker éphémère (`docker-compose.test.yml`) est démarré
+**par le workflow GitHub Actions `ticket-workflow.yml`** avant le lancement
+de Claude, puis détruit après (étape `Tear down test environment`,
+`if: always()`). Le skill ne touche jamais à `tnr-docker.sh` car
+`claude-worker` ne dispose pas d'accès au socket Docker du host.
+
+Le workflow injecte `BASE_URL=http://blog-tnr-nginx-1:80` et `API_URL=...`
+dans le `docker exec claude-worker`, et connecte au préalable
+`claude-worker` au réseau `blog-tnr_default`.
 
 ```bash
-# Démarrer l'environnement éphémère (build, migrate, seed test data)
-./scripts/tnr-docker.sh up
-
-# Définir les URLs de test (surchargeables via variables d'env si déjà
-# définies, ex : BASE_URL=http://blog-tnr-nginx-1:80 quand on tourne dans
-# claude-worker connecté au réseau Docker éphémère)
+# URLs de test — surchargées par l'appelant via -e BASE_URL=... -e API_URL=...
+# Défaut http://localhost:8080 utile uniquement pour un run local sur Mac.
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 API_URL="${API_URL:-http://localhost:8080}"
 
@@ -36,15 +38,16 @@ API_URL="${API_URL:-http://localhost:8080}"
 # dans `agent-browser --help` comme alternative à --args.
 export AGENT_BROWSER_ARGS=--no-sandbox
 
-# Vérifier l'accessibilité de l'application
+# Vérifier l'accessibilité de l'application avant de lancer les tests
 agent-browser open "$BASE_URL"
 agent-browser wait --load networkidle
 agent-browser snapshot -i
 ```
 
-> **Note :** Ne pas utiliser `docker compose up -d` (environnement de dev).
-> L'environnement éphémère (`tnr-docker.sh`) reproduit fidèlement la production :
-> gunicorn, nginx, frontend buildé, PostgreSQL, Redis, Celery.
+> **Si `agent-browser open` échoue** (env non démarré ou réseau Docker non
+> connecté), Phase 6 ne peut pas s'exécuter. Marque tous les scénarios
+> `browser_tests` en SKIP, poste un commentaire d'erreur sur le ticket
+> avec le label `help wanted`, et termine sans `approved`.
 
 ### 6.2.1 Commentaire de démarrage des tests
 
@@ -207,7 +210,8 @@ Des anomalies ont été détectées lors des tests browser.
 ```bash
 # Fermer toutes les sessions browser
 agent-browser close --all
-
-# Détruire l'environnement éphémère
-./scripts/tnr-docker.sh down
 ```
+
+> La destruction de l'environnement éphémère est gérée **par le workflow
+> GitHub Actions** `ticket-workflow.yml` (étape `Tear down test environment`,
+> `if: always()`) après la fin de l'exécution Claude.

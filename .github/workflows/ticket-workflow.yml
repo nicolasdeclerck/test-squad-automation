@@ -1,0 +1,137 @@
+name: Ticket Workflow
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  ticket-workflow:
+    if: github.event.label.name == 'analyze'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Claude MAX session
+        id: check-session
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 2m
+          script: |
+            docker exec claude-worker claude --version 2>/dev/null && echo 'SESSION_OK' || (echo 'SESSION_KO' && exit 1)
+
+      - name: Handle session expired
+        if: steps.check-session.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "## ⚠️ Session Claude MAX expirée
+
+          La session Claude MAX sur \`claude-worker\` est expirée.
+
+          **Renouveler avec :**
+          \`\`\`bash
+          ssh ubuntu@vps
+          docker exec -it claude-worker claude
+          \`\`\`
+
+          Une fois renouvelée, reposer le label \`analyze\` sur ce ticket pour relancer."
+          gh issue edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --add-label "standby" \
+            --remove-label "analyze"
+
+      - name: Start ephemeral test environment
+        id: start-env
+        if: steps.check-session.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd ~/test-squad-automation
+            git fetch origin main
+            git checkout main
+            git pull origin main
+            ./scripts/tnr-docker.sh up
+            docker network connect blog-tnr_default claude-worker || true
+
+      - name: Run ticket-workflow on VPS
+        id: run-workflow
+        if: steps.start-env.outcome == 'success'
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 60m
+          envs: ISSUE_NUMBER,ISSUE_TITLE,ISSUE_BODY
+          script: |
+            set -e
+
+            # Mettre à jour le clone interne au container claude-worker
+            # pour que Claude lise le SKILL.md à jour depuis main
+            docker exec claude-worker git -C /workspace/test-squad-automation fetch origin main
+            docker exec claude-worker git -C /workspace/test-squad-automation checkout main
+            docker exec claude-worker git -C /workspace/test-squad-automation pull origin main
+
+            # Construire le prompt avec printf (gère proprement title/body
+            # avec caractères spéciaux, sans souci d'échappement shell) et
+            # pipe vers claude -p - dans le container, avec BASE_URL/API_URL
+            # pointant sur l'env Docker éphémère pour la Phase 6 browser.
+            printf 'Tu es un expert en developpement logiciel.\n\nExecutes le skill .claude/skills/ticket-workflow/SKILL.md pour le ticket #%s.\n\nTitre du ticket : %s\nDescription originale : %s' \
+              "$ISSUE_NUMBER" \
+              "$ISSUE_TITLE" \
+              "${ISSUE_BODY:-Aucune description}" \
+              | docker exec -i \
+                -w /workspace/test-squad-automation \
+                -e BASE_URL=http://blog-tnr-nginx-1:80 \
+                -e API_URL=http://blog-tnr-nginx-1:80 \
+                claude-worker \
+                claude -p - --dangerously-skip-permissions --output-format json 2>&1
+
+      - name: Tear down test environment
+        if: always() && steps.start-env.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            docker network disconnect blog-tnr_default claude-worker || true
+            cd ~/test-squad-automation
+            ./scripts/tnr-docker.sh down
+
+      - name: Handle workflow failure
+        if: steps.run-workflow.outcome == 'failure' && steps.check-session.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "## ⚠️ Exécution ticket-workflow interrompue
+
+          Le ticket-workflow a été interrompu (dépassement de quota Claude MAX, erreur technique, ou timeout).
+
+          **Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          L'état est sauvegardé dans \`.claude-state.json\`. Pour relancer après résolution, reposer le label \`analyze\` sur ce ticket."
+          gh issue edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --add-label "standby"
