@@ -899,7 +899,7 @@ class TestPostImageUploadAPI:
         assert response.status_code == 201
         data = response.json()
         assert "url" in data
-        assert "/media/blog/images/" in data["url"]
+        assert data["url"].startswith("/media/blog/images/")
         assert PostImage.objects.count() == 1
         assert PostImage.objects.first().uploaded_by == user
 
