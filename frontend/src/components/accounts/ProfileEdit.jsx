@@ -60,7 +60,7 @@ export default function ProfileEdit() {
     <div className="max-w-sm mx-auto px-4 py-16">
       {user.avatar && (
         <div className="mb-6 flex justify-center">
-          <Avatar user={user} size="xl" />
+          <Avatar user={user} size="lg" />
         </div>
       )}
 
@@ -71,10 +71,6 @@ export default function ProfileEdit() {
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
         Modifier mon profil
       </h1>
-
-      {user.email && (
-        <p className="text-sm text-gray-500 text-center mb-6">{user.email}</p>
-      )}
 
       {successMsg && (
         <div className="mb-6 p-3 border border-green-200 bg-green-50 rounded">
