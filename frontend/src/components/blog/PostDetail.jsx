@@ -280,23 +280,25 @@ export default function PostDetail() {
         </div>
 
         {/* Commentaires — colonne droite en desktop, sous l'article en mobile */}
-        <div className="mt-10 lg:mt-0 lg:w-80 lg:shrink-0">
-          <div className="lg:sticky lg:top-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Commentaires</h2>
+        {post.status !== "draft" && (
+          <div className="mt-10 lg:mt-0 lg:w-80 lg:shrink-0">
+            <div className="lg:sticky lg:top-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Commentaires</h2>
 
-            <CommentForm
-              slug={post.slug}
-              onCommentAdded={() => setRefreshKey((k) => k + 1)}
-            />
-
-            <div className="mt-6">
-              <CommentSection
-                comments={post.approved_comments}
+              <CommentForm
                 slug={post.slug}
+                onCommentAdded={() => setRefreshKey((k) => k + 1)}
               />
+
+              <div className="mt-6">
+                <CommentSection
+                  comments={post.approved_comments}
+                  slug={post.slug}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
