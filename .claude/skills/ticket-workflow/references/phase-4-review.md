@@ -34,30 +34,19 @@ print(len(tests))
 write_state "6"
 ```
 
-Vérifie ensuite si tu dois enchaîner Phase 6 immédiatement ou t'arrêter ici
-pour laisser GitHub Actions reconstruire l'environnement TNR avec le code
-de la branche PR (qui n'existait pas avant que tu la crées en Phase 3) :
+**ARRÊT OBLIGATOIRE ICI** — ne charge pas `references/phase-6-browser-tests.md`,
+ne fait aucune autre action, termine ton run.
 
-```bash
-if [ -n "$STOP_BEFORE_PHASE_6" ]; then
-  echo "DECISION_PHASE_6=stop_here_for_env_rebuild"
-else
-  echo "DECISION_PHASE_6=continue_directly"
-fi
-```
+Phase 6 sera exécutée par un **second run de Claude** déclenché par GitHub
+Actions, après que l'environnement TNR ait été reconstruit à partir de la
+branche PR (qui n'existait pas avant que tu la crées en Phase 3). Le state
+file `PHASE=6` sera lu par le routing de la Phase 0 du second run, qui
+chargera directement `phase-6-browser-tests.md` sans repasser par Phase 4.
 
-**Examine la sortie du bash ci-dessus** :
+Réponds simplement :
+> "Phases 1-5 terminées. État sauvegardé en PHASE=6 pour reprise par GitHub Actions à Phase 6 après rebuild env TNR."
 
-- Si elle contient `DECISION_PHASE_6=stop_here_for_env_rebuild` :
-  **arrête immédiatement ton exécution du skill**. Ne charge pas
-  `references/phase-6-browser-tests.md`. Le state file `PHASE=6` sera
-  repris par un second run de Claude après que GitHub Actions ait
-  reconstruit l'environnement TNR à partir de la branche PR.
-  → **STOP** ici.
-
-- Si elle contient `DECISION_PHASE_6=continue_directly` :
-  charge `references/phase-6-browser-tests.md` et exécute Phase 6
-  directement (l'environnement TNR est déjà prêt côté appelant).
+Puis termine ton run.
 
 **Si `BROWSER_TESTS = 0` (aucun test front, ex : refactoring backend pur) :**
 

@@ -71,9 +71,10 @@ jobs:
             docker exec claude-worker git -C /workspace/test-squad-automation fetch origin main
             docker exec claude-worker git -C /workspace/test-squad-automation reset --hard origin/main
 
-            # Lance Claude avec STOP_BEFORE_PHASE_6=1 → fait Phases 1-5
-            # (analyse, plan, dev, code review) puis s'arrête à la frontière
-            # Phase 6 (state file PHASE=6 sauvegardé pour reprise).
+            # Lance Claude → fait Phases 1-5 (analyse, plan, dev, code review)
+            # puis s'arrête à la frontière Phase 6 (STOP unconditionnel codé
+            # dans phase-4-review.md). State file PHASE=6 sauvegardé pour
+            # reprise par le step suivant après rebuild env.
             # Pas de BASE_URL/API_URL : Phase 6 ne tournera pas dans ce run.
             printf 'Tu es un expert en developpement logiciel.\n\nExecutes le skill .claude/skills/ticket-workflow/SKILL.md pour le ticket #%s.\n\nTitre du ticket : %s\nDescription originale : %s' \
               "$ISSUE_NUMBER" \
@@ -81,7 +82,6 @@ jobs:
               "${ISSUE_BODY:-Aucune description}" \
               | docker exec -i \
                 -w /workspace/test-squad-automation \
-                -e STOP_BEFORE_PHASE_6=1 \
                 claude-worker \
                 claude -p - --dangerously-skip-permissions --output-format json 2>&1
 
