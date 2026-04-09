@@ -3,7 +3,6 @@ export default function Avatar({ user, size = "sm" }) {
     sm: "w-6 h-6 text-xs",
     md: "w-8 h-8 text-sm",
     lg: "w-20 h-20 text-2xl",
-    xl: "w-[120px] h-[120px] text-4xl",
   };
 
   const initial = (
