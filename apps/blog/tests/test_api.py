@@ -924,8 +924,8 @@ class TestPostImageUploadAPI:
     def test_upload_image_too_large(self):
         user = UserFactory()
         self.client.force_login(user)
-        # Create a file > 5 MB
-        large_data = b"x" * (6 * 1024 * 1024)
+        # Create a file > 10 MB
+        large_data = b"x" * (11 * 1024 * 1024)
         large_file = SimpleUploadedFile(
             "large.jpg", large_data, content_type="image/jpeg"
         )

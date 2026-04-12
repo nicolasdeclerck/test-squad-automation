@@ -10,21 +10,14 @@ from PIL import Image, UnidentifiedImageError
 
 
 def validate_post_image(image):
-    max_size = 5 * 1024 * 1024  # 5 MB
+    max_size = 10 * 1024 * 1024  # 10 MB
     try:
         file_size = image.size
     except (FileNotFoundError, OSError, ValueError, AttributeError):
         raise ValidationError("Le fichier image est inaccessible.")
     if file_size > max_size:
         raise ValidationError(
-            "La taille de l'image ne doit pas dépasser 5 Mo."
-        )
-
-    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-    content_type = getattr(image, "content_type", None)
-    if content_type and content_type not in allowed_types:
-        raise ValidationError(
-            "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
+            "La taille de l'image ne doit pas dépasser 10 Mo."
         )
 
     try:
