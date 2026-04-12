@@ -62,6 +62,27 @@ project/
 └── manage.py
 ```
 
+## Monitoring d'erreurs (Sentry)
+
+Sentry est intégré côté backend (Django + Celery) et côté frontend (React).
+L'intégration est **désactivée par défaut** : elle ne s'active que si un DSN est
+fourni via les variables d'environnement.
+
+1. Créer un projet Sentry (Django d'un côté, React/Browser de l'autre) et
+   récupérer les DSN.
+2. Renseigner les variables dans `.env` (voir `.env.example`) :
+   - Backend : `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`,
+     `SENTRY_TRACES_SAMPLE_RATE`, `SENTRY_PROFILES_SAMPLE_RATE`,
+     `SENTRY_SEND_DEFAULT_PII`
+   - Frontend : `VITE_SENTRY_DSN`, `VITE_SENTRY_ENVIRONMENT`,
+     `VITE_SENTRY_RELEASE`, `VITE_SENTRY_TRACES_SAMPLE_RATE`,
+     `VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE`,
+     `VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE`
+3. Redémarrer les services Django/Celery et rebuild le frontend.
+
+Les exceptions non gérées (Django, DRF, Celery, React via `ErrorBoundary`)
+sont automatiquement remontées.
+
 ## Licence
 
 Projet prive — tous droits reserves.
