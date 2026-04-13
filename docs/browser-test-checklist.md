@@ -140,6 +140,7 @@
   - Les articles publiés sont affichés sous forme de cartes
   - Maximum 10 articles affichés
   - Chaque carte affiche : titre, auteur (nom + avatar), date, extrait du contenu, les tags de l'article (s'il en a), et l'image de couverture en miniature (si définie)
+  - L'image de couverture est correctement alignée avec le contenu de la carte (pas de décalage horizontal)
   - Les tags sont affichés en dessous du titre de chaque carte
   - Un lien "Voir tous les articles" est présent si plus de 10 articles existent
 
