@@ -1,9 +1,25 @@
-import pytest
-from django.db import IntegrityError
+from io import BytesIO
 
-from apps.blog.models import Comment, Post, PostVersion
+import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
+from PIL import Image
+
+from apps.accounts.tests.factories import UserFactory
+from apps.blog.models import Comment, Post, PostImage, PostVersion
 
 from .factories import CommentFactory, PostFactory, PostVersionFactory
+
+
+def _make_test_image(width, height, fmt="JPEG", mode="RGB"):
+    buf = BytesIO()
+    img = Image.new(mode, (width, height), color="red")
+    img.save(buf, format=fmt)
+    buf.seek(0)
+    ext = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}[fmt]
+    return SimpleUploadedFile(
+        f"test.{ext}", buf.read(), content_type=f"image/{ext}"
+    )
 
 
 @pytest.mark.django_db
@@ -158,3 +174,70 @@ class TestPostVersionModel:
     def test_str_representation(self):
         version = PostVersionFactory(version_number=2)
         assert str(version) == f"{version.post} — v2"
+
+
+@pytest.mark.django_db
+class TestPostImageCompression:
+    def test_large_image_is_resized(self):
+        """Image larger than 1920x1080 is resized down."""
+        user = UserFactory()
+        post_image = PostImage(
+            image=_make_test_image(3000, 2000), uploaded_by=user
+        )
+        post_image.save()
+
+        img = Image.open(post_image.image)
+        assert img.size[0] <= 1920
+        assert img.size[1] <= 1080
+        assert img.format == "JPEG"
+
+    def test_small_image_not_upscaled(self):
+        """Image smaller than max size keeps its dimensions."""
+        user = UserFactory()
+        post_image = PostImage(
+            image=_make_test_image(800, 600), uploaded_by=user
+        )
+        post_image.save()
+
+        img = Image.open(post_image.image)
+        assert img.size == (800, 600)
+        assert img.format == "JPEG"
+
+    def test_png_converted_to_jpeg(self):
+        """PNG is converted to JPEG."""
+        user = UserFactory()
+        post_image = PostImage(
+            image=_make_test_image(500, 500, fmt="PNG"), uploaded_by=user
+        )
+        post_image.save()
+
+        img = Image.open(post_image.image)
+        assert img.format == "JPEG"
+        assert post_image.image.name.endswith(".jpg")
+
+    def test_png_with_transparency_converted(self):
+        """PNG with alpha channel is converted to JPEG with white background."""
+        user = UserFactory()
+        post_image = PostImage(
+            image=_make_test_image(500, 500, fmt="PNG", mode="RGBA"),
+            uploaded_by=user,
+        )
+        post_image.save()
+
+        img = Image.open(post_image.image)
+        assert img.format == "JPEG"
+        assert img.mode == "RGB"
+
+    def test_compressed_file_is_smaller(self):
+        """Compressed file should be significantly smaller than a large original."""
+        user = UserFactory()
+        original = _make_test_image(3000, 2000)
+        original_size = len(original.read())
+        original.seek(0)
+
+        post_image = PostImage(image=original, uploaded_by=user)
+        post_image.save()
+
+        post_image.image.seek(0, 2)
+        compressed_size = post_image.image.tell()
+        assert compressed_size < original_size
