@@ -139,7 +139,7 @@
 - **Vérifications** :
   - Les articles publiés sont affichés sous forme de cartes
   - Maximum 10 articles affichés
-  - Chaque carte affiche : titre, auteur (nom + avatar), date, extrait du contenu, et les tags de l'article (s'il en a)
+  - Chaque carte affiche : titre, auteur (nom + avatar), date, extrait du contenu, les tags de l'article (s'il en a), et l'image de couverture en miniature (si définie)
   - Les tags sont affichés en dessous du titre de chaque carte
   - Un lien "Voir tous les articles" est présent si plus de 10 articles existent
 
@@ -157,6 +157,7 @@
 - **URL** : `/articles/{slug}`
 - **Vérifications** :
   - Le titre de l'article est affiché
+  - L'image de couverture est affichée en grand au-dessus du contenu (si définie)
   - Les tags de l'article sont affichés en dessous du titre (s'il en a)
   - Le contenu riche (BlockNote) est rendu correctement en HTML
   - L'auteur est affiché avec son avatar et son nom
@@ -304,6 +305,34 @@
 - **Vérifications** :
   - Le navigateur affiche un avertissement de confirmation avant de quitter (dialogue `beforeunload`)
   - Si l'utilisateur annule, il reste sur la page et l'autosave se termine normalement
+
+### 4.17 — [AUTH/SUPERUSER] Ajout d'une image de couverture à un article
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Action** : Cliquer sur la zone d'upload d'image de couverture et sélectionner une image JPEG/PNG/WebP < 10 Mo
+- **Vérifications** :
+  - Une zone d'upload d'image de couverture est visible au-dessus du titre
+  - Après sélection de l'image, un aperçu de l'image est affiché dans la zone
+  - L'image de couverture est sauvegardée avec l'article (brouillon ou publication)
+  - Après rechargement de la page d'édition, l'image de couverture est toujours affichée
+  - Un bouton de suppression permet de retirer l'image de couverture
+
+### 4.18 — [AUTH/SUPERUSER] Image de couverture — Validation
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Actions et vérifications** :
+  - Upload d'un fichier non-image (ex: .txt, .pdf) → message d'erreur affiché
+  - Upload d'un fichier > 10 Mo → message d'erreur affiché
+  - Les formats JPEG, PNG, WebP et GIF sont acceptés
+
+### 4.19 — [AUTH/SUPERUSER] Image de couverture — Suppression
+
+- **URL** : `/articles/{slug}/modifier` (article avec une image de couverture)
+- **Action** : Cliquer sur le bouton de suppression de l'image de couverture
+- **Vérifications** :
+  - L'image de couverture disparaît de la zone d'upload
+  - Après sauvegarde/autosave, l'image de couverture n'est plus associée à l'article
+  - La carte de l'article dans les listes n'affiche plus de miniature
 
 ### 4.5 — [AUTH] Éditeur BlockNote — Fonctionnalités
 
