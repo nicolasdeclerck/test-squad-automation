@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Max
 from django.utils import timezone
@@ -81,6 +82,9 @@ class PostVideo(models.Model):
 
 
 class PostImage(models.Model):
+    IMAGE_MAX_SIZE = (1920, 1080)
+    IMAGE_JPEG_QUALITY = 85
+
     image = models.ImageField(
         upload_to="blog/images/",
         validators=[validate_post_image],
@@ -94,6 +98,38 @@ class PostImage(models.Model):
 
     def __str__(self):
         return f"Image {self.pk} par {self.uploaded_by}"
+
+    def _compress_image(self):
+        """Compress and resize image to JPEG, max 1920x1080."""
+        with Image.open(self.image) as img:
+            if img.mode in ("RGBA", "LA", "P"):
+                rgba = img.convert("RGBA")
+                background = Image.new("RGB", rgba.size, (255, 255, 255))
+                background.paste(rgba, mask=rgba.split()[3])
+                result = background
+            elif img.mode != "RGB":
+                result = img.convert("RGB")
+            else:
+                result = img.copy()
+
+            result.thumbnail(self.IMAGE_MAX_SIZE, Image.LANCZOS)
+
+            buf = BytesIO()
+            result.save(
+                buf,
+                format="JPEG",
+                quality=self.IMAGE_JPEG_QUALITY,
+                optimize=True,
+            )
+
+        name = os.path.splitext(os.path.basename(self.image.name))[0] + ".jpg"
+        self.image.save(name, ContentFile(buf.getvalue()), save=False)
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if is_new and self.image:
+            self._compress_image()
+        super().save(*args, **kwargs)
 
 
 class Tag(models.Model):
