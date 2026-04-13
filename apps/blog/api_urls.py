@@ -11,6 +11,7 @@ from .api_views import (
     PostVersionDetailAPIView,
     PostVersionListAPIView,
     PostVersionRestoreAPIView,
+    PostVideoUploadView,
     TagListAPIView,
 )
 
@@ -20,6 +21,11 @@ urlpatterns = [
         "upload-image/",
         PostImageUploadView.as_view(),
         name="api_post_image_upload",
+    ),
+    path(
+        "upload-video/",
+        PostVideoUploadView.as_view(),
+        name="api_post_video_upload",
     ),
     path("posts/", PostListCreateAPIView.as_view(), name="api_post_list"),
     path(

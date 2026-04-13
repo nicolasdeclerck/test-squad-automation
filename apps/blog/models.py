@@ -1,3 +1,4 @@
+import os
 from io import BytesIO
 
 from django.conf import settings
@@ -41,6 +42,42 @@ def validate_post_image(image):
         raise ValidationError(
             "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
         )
+
+
+def validate_post_video(video):
+    max_size = 50 * 1024 * 1024  # 50 MB
+    try:
+        file_size = video.size
+    except (FileNotFoundError, OSError, ValueError, AttributeError):
+        raise ValidationError("Le fichier vidéo est inaccessible.")
+    if file_size > max_size:
+        raise ValidationError(
+            "La taille de la vidéo ne doit pas dépasser 50 Mo."
+        )
+
+    allowed_extensions = {".mp4", ".webm", ".ogg", ".ogv"}
+    name = getattr(video, "name", "")
+    _, ext = os.path.splitext(name.lower())
+    if ext not in allowed_extensions:
+        raise ValidationError(
+            "Format non autorisé. Utilisez MP4, WebM ou OGG."
+        )
+
+
+class PostVideo(models.Model):
+    video = models.FileField(
+        upload_to="blog/videos/",
+        validators=[validate_post_video],
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="post_videos",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Video {self.pk} par {self.uploaded_by}"
 
 
 class PostImage(models.Model):

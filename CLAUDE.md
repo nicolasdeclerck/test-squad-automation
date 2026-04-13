@@ -112,7 +112,13 @@ class Comment(models.Model):
 
 class PostImage(models.Model):
     image = models.ImageField(upload_to='blog/images/',
-                              validators=[validate_post_image])  # 5MB max, JPEG/PNG/WebP/GIF
+                              validators=[validate_post_image])  # 10MB max, JPEG/PNG/WebP/GIF
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class PostVideo(models.Model):
+    video = models.FileField(upload_to='blog/videos/',
+                             validators=[validate_post_video])  # 50MB max, MP4/WebM/OGG
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -139,6 +145,7 @@ class Profile(models.Model):
 /api/blog/posts/<slug>/versions/<version_number>/ → Détail d'une version (auteur uniquement)
 /api/blog/posts/<slug>/versions/<version_number>/restore/ → Restauration d'une version comme brouillon
 /api/blog/upload-image/            → Upload d'image pour l'éditeur (authentifié)
+/api/blog/upload-video/            → Upload de vidéo pour l'éditeur (authentifié, 50 Mo max, MP4/WebM/OGG)
 
 # Accounts
 /api/accounts/csrf/                → Token CSRF

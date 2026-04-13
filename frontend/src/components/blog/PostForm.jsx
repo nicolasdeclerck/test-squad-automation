@@ -8,14 +8,19 @@ import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg"];
+
 async function uploadFile(file) {
+  const isVideo = VIDEO_TYPES.includes(file.type);
   const formData = new FormData();
-  formData.append("image", file);
-  const res = await api.post("/api/blog/upload-image/", formData);
+  formData.append(isVideo ? "video" : "image", file);
+  const endpoint = isVideo ? "/api/blog/upload-video/" : "/api/blog/upload-image/";
+  const res = await api.post(endpoint, formData);
   if (res.ok) {
     return res.data.url;
   }
-  throw new Error(res.errors?.image?.[0] || res.errors?.detail || "Erreur lors de l'upload de l'image");
+  const fieldErrors = isVideo ? res.errors?.video : res.errors?.image;
+  throw new Error(fieldErrors?.[0] || res.errors?.detail || "Erreur lors de l'upload du fichier");
 }
 
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {

@@ -7,12 +7,13 @@ from django.test import Client
 from PIL import Image
 
 from apps.accounts.tests.factories import SuperUserFactory, UserFactory
-from apps.blog.models import Post, PostImage
+from apps.blog.models import Post, PostImage, PostVideo
 
 from .factories import CommentFactory, PostFactory, PostVersionFactory
 from .helpers import (
     API_POSTS_URL,
     API_UPLOAD_IMAGE_URL,
+    API_UPLOAD_VIDEO_URL,
     api_autosave_url,
     api_comment_delete_url,
     api_comments_url,
@@ -951,3 +952,85 @@ class TestPostImageUploadAPI:
             API_UPLOAD_IMAGE_URL, {"image": image}, format="multipart"
         )
         assert response.status_code == 201
+
+
+def _create_test_video(fmt="mp4", size_bytes=1024):
+    content_types = {
+        "mp4": "video/mp4",
+        "webm": "video/webm",
+        "ogg": "video/ogg",
+    }
+    # Minimal valid-looking video content (not a real video, but enough for
+    # the validator which checks mime type by extension, not file content)
+    data = b"\x00" * size_bytes
+    return SimpleUploadedFile(
+        f"test.{fmt}", data, content_type=content_types[fmt]
+    )
+
+
+@pytest.mark.django_db
+class TestPostVideoUploadAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_upload_video_authenticated_mp4(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        video = _create_test_video(fmt="mp4")
+        response = self.client.post(
+            API_UPLOAD_VIDEO_URL, {"video": video}, format="multipart"
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert "url" in data
+        assert data["url"].startswith("/media/blog/videos/")
+        assert PostVideo.objects.count() == 1
+        assert PostVideo.objects.first().uploaded_by == user
+
+    def test_upload_video_authenticated_webm(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        video = _create_test_video(fmt="webm")
+        response = self.client.post(
+            API_UPLOAD_VIDEO_URL, {"video": video}, format="multipart"
+        )
+        assert response.status_code == 201
+
+    def test_upload_video_authenticated_ogg(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        video = _create_test_video(fmt="ogg")
+        response = self.client.post(
+            API_UPLOAD_VIDEO_URL, {"video": video}, format="multipart"
+        )
+        assert response.status_code == 201
+
+    def test_upload_video_unauthenticated(self):
+        video = _create_test_video(fmt="mp4")
+        response = self.client.post(
+            API_UPLOAD_VIDEO_URL, {"video": video}, format="multipart"
+        )
+        assert response.status_code == 403
+
+    def test_upload_video_invalid_type(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        fake_file = SimpleUploadedFile(
+            "test.txt", b"not a video", content_type="text/plain"
+        )
+        response = self.client.post(
+            API_UPLOAD_VIDEO_URL, {"video": fake_file}, format="multipart"
+        )
+        assert response.status_code == 400
+
+    def test_upload_video_too_large(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        large_data = b"\x00" * (51 * 1024 * 1024)
+        large_file = SimpleUploadedFile(
+            "large.mp4", large_data, content_type="video/mp4"
+        )
+        response = self.client.post(
+            API_UPLOAD_VIDEO_URL, {"video": large_file}, format="multipart"
+        )
+        assert response.status_code == 400
