@@ -205,9 +205,19 @@ DJANGO_SETTINGS_MODULE=config.settings.production
 POSTGRES_DB=blog_db
 POSTGRES_USER=blog_user
 POSTGRES_PASSWORD=<mot-de-passe-fort>
+SENTRY_DSN=<dsn-du-projet-backend-sentry>
+SENTRY_ENV=production
 ```
 
-> **Important** : ne jamais commiter `.env.prod`. Le fichier est dans `.gitignore`.
+Creer aussi un fichier `.env` a la racine (utilise par `docker compose` pour la substitution de variables au build du frontend) :
+
+```
+VITE_SENTRY_DSN=<dsn-du-projet-frontend-sentry>
+```
+
+Voir [docs/sentry.md](docs/sentry.md) pour la configuration des projets Sentry et des alertes.
+
+> **Important** : ne jamais commiter `.env.prod` ni `.env`. Les deux sont dans `.gitignore`.
 
 ### 2. Construire et demarrer les services
 

@@ -1,5 +1,7 @@
 import os
 
+import sentry_sdk
+
 from .base import *  # noqa: F401, F403
 
 DEBUG = False
@@ -26,3 +28,12 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CORS_ALLOWED_ORIGINS = [
     "https://blog.nickorp.com",
 ]
+
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=0.1,
+        send_default_pii=True,
+        environment=os.environ.get("SENTRY_ENV", "production"),
+    )

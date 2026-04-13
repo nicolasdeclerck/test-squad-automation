@@ -35,6 +35,10 @@ pytest --cov=apps
 
 Voir la section [Lancer les tests](INSTALL.md#lancer-les-tests) dans le guide d'installation pour plus de details.
 
+## Monitoring des erreurs
+
+Les erreurs backend et frontend sont remontees dans Sentry avec creation automatique de tickets GitHub sur erreur high priority. Voir [docs/sentry.md](docs/sentry.md).
+
 ## Structure du projet
 
 ```

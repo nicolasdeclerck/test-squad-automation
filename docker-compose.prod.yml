@@ -17,6 +17,8 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     volumes:
       - frontend_dist:/output
     restart: "no"
