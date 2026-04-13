@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import generics, permissions, status
@@ -293,7 +294,16 @@ class PostCoverImageUploadView(APIView):
                 {"error": "Aucune image fournie."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Delete old cover image file if replacing
+        if post.cover_image:
+            post.cover_image.delete(save=False)
         post.cover_image = cover_image
+        try:
+            post.full_clean()
+        except ValidationError as e:
+            return Response(
+                e.message_dict, status=status.HTTP_400_BAD_REQUEST
+            )
         post.save()
         return Response(
             {"url": post.cover_image.url},

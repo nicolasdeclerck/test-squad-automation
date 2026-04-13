@@ -88,6 +88,8 @@ export default function PostForm() {
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
   const [coverImageUploading, setCoverImageUploading] = useState(false);
+  const coverImageFileRef = useRef(null);
+  const coverBlobUrlRef = useRef(null);
   const titleRef = useRef(null);
   const editorRef = useRef(null);
   const autosaveTimerRef = useRef(null);
@@ -272,11 +274,14 @@ export default function PostForm() {
     };
   }, []);
 
-  // Flush autosave on unmount (e.g. direct URL change)
+  // Flush autosave on unmount (e.g. direct URL change) + cleanup blob URLs
   useEffect(() => {
     return () => {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
+      }
+      if (coverBlobUrlRef.current) {
+        URL.revokeObjectURL(coverBlobUrlRef.current);
       }
       if (isDirtyRef.current && slug) {
         const currentTitle = titleValueRef.current.trim();
@@ -307,10 +312,17 @@ export default function PostForm() {
   const handleCoverImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Revoke previous blob URL if any
+    if (coverBlobUrlRef.current) {
+      URL.revokeObjectURL(coverBlobUrlRef.current);
+      coverBlobUrlRef.current = null;
+    }
     const currentSlug = slug;
     if (!currentSlug) {
       // For new posts, store the file and upload after creation
-      setCoverImage(URL.createObjectURL(file));
+      const blobUrl = URL.createObjectURL(file);
+      coverBlobUrlRef.current = blobUrl;
+      setCoverImage(blobUrl);
       coverImageFileRef.current = file;
       return;
     }
@@ -336,6 +348,10 @@ export default function PostForm() {
   };
 
   const handleCoverImageDelete = async () => {
+    if (coverBlobUrlRef.current) {
+      URL.revokeObjectURL(coverBlobUrlRef.current);
+      coverBlobUrlRef.current = null;
+    }
     if (!slug) {
       setCoverImage(null);
       coverImageFileRef.current = null;
@@ -346,8 +362,6 @@ export default function PostForm() {
       setCoverImage(null);
     }
   };
-
-  const coverImageFileRef = useRef(null);
 
   const handleSubmit = async (e, { publish = false } = {}) => {
     e.preventDefault();
@@ -445,7 +459,8 @@ export default function PostForm() {
               <button
                 type="button"
                 onClick={handleCoverImageDelete}
-                className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                aria-label="Supprimer l'image de couverture"
                 title="Supprimer l'image de couverture"
               >
                 ✕

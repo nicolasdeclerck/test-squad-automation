@@ -1174,3 +1174,54 @@ class TestPostCoverImageAPI:
             api_cover_image_url(post.slug), {}, format="multipart"
         )
         assert response.status_code == 400
+
+    def test_upload_cover_image_invalid_type(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        fake_file = SimpleUploadedFile(
+            "test.txt", b"not an image", content_type="text/plain"
+        )
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": fake_file},
+            format="multipart",
+        )
+        assert response.status_code == 400
+
+    def test_upload_cover_image_too_large(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        large_data = b"x" * (11 * 1024 * 1024)
+        large_file = SimpleUploadedFile(
+            "large.jpg", large_data, content_type="image/jpeg"
+        )
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": large_file},
+            format="multipart",
+        )
+        assert response.status_code == 400
+
+    def test_upload_cover_image_replaces_old(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        image1 = _create_test_image()
+        self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image1},
+            format="multipart",
+        )
+        post.refresh_from_db()
+        old_url = post.cover_image.url
+        image2 = _create_test_image()
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image2},
+            format="multipart",
+        )
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.cover_image.url != old_url

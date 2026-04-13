@@ -11,6 +11,28 @@ from django.utils.text import slugify
 from PIL import Image, UnidentifiedImageError
 
 
+def compress_image_to_jpeg(image_field, max_size, quality=85):
+    """Compress and resize an image field to JPEG with given max dimensions."""
+    with Image.open(image_field) as img:
+        if img.mode in ("RGBA", "LA", "P"):
+            rgba = img.convert("RGBA")
+            background = Image.new("RGB", rgba.size, (255, 255, 255))
+            background.paste(rgba, mask=rgba.split()[3])
+            result = background
+        elif img.mode != "RGB":
+            result = img.convert("RGB")
+        else:
+            result = img.copy()
+
+        result.thumbnail(max_size, Image.LANCZOS)
+
+        buf = BytesIO()
+        result.save(buf, format="JPEG", quality=quality, optimize=True)
+
+    name = os.path.splitext(os.path.basename(image_field.name))[0] + ".jpg"
+    return name, ContentFile(buf.getvalue())
+
+
 def validate_post_image(image):
     max_size = 10 * 1024 * 1024  # 10 MB
     try:
@@ -101,29 +123,10 @@ class PostImage(models.Model):
 
     def _compress_image(self):
         """Compress and resize image to JPEG, max 1920x1080."""
-        with Image.open(self.image) as img:
-            if img.mode in ("RGBA", "LA", "P"):
-                rgba = img.convert("RGBA")
-                background = Image.new("RGB", rgba.size, (255, 255, 255))
-                background.paste(rgba, mask=rgba.split()[3])
-                result = background
-            elif img.mode != "RGB":
-                result = img.convert("RGB")
-            else:
-                result = img.copy()
-
-            result.thumbnail(self.IMAGE_MAX_SIZE, Image.LANCZOS)
-
-            buf = BytesIO()
-            result.save(
-                buf,
-                format="JPEG",
-                quality=self.IMAGE_JPEG_QUALITY,
-                optimize=True,
-            )
-
-        name = os.path.splitext(os.path.basename(self.image.name))[0] + ".jpg"
-        self.image.save(name, ContentFile(buf.getvalue()), save=False)
+        name, content = compress_image_to_jpeg(
+            self.image, self.IMAGE_MAX_SIZE, self.IMAGE_JPEG_QUALITY
+        )
+        self.image.save(name, content, save=False)
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -219,32 +222,10 @@ class Post(models.Model):
 
     def _compress_cover_image(self):
         """Compress and resize cover image to JPEG, max 1200x630."""
-        with Image.open(self.cover_image) as img:
-            if img.mode in ("RGBA", "LA", "P"):
-                rgba = img.convert("RGBA")
-                background = Image.new("RGB", rgba.size, (255, 255, 255))
-                background.paste(rgba, mask=rgba.split()[3])
-                result = background
-            elif img.mode != "RGB":
-                result = img.convert("RGB")
-            else:
-                result = img.copy()
-
-            result.thumbnail(self.COVER_MAX_SIZE, Image.LANCZOS)
-
-            buf = BytesIO()
-            result.save(
-                buf,
-                format="JPEG",
-                quality=self.COVER_JPEG_QUALITY,
-                optimize=True,
-            )
-
-        name = (
-            os.path.splitext(os.path.basename(self.cover_image.name))[0]
-            + ".jpg"
+        name, content = compress_image_to_jpeg(
+            self.cover_image, self.COVER_MAX_SIZE, self.COVER_JPEG_QUALITY
         )
-        self.cover_image.save(name, ContentFile(buf.getvalue()), save=False)
+        self.cover_image.save(name, content, save=False)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -273,7 +254,7 @@ class Post(models.Model):
                 "cover_image", flat=True
             ).first()
             return old != self.cover_image.name
-        except Exception:
+        except Post.DoesNotExist:
             return True
 
 
