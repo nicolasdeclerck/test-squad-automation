@@ -36,3 +36,5 @@ def api_version_restore_url(slug, version_number):
 API_TAGS_URL = "/api/blog/tags/"
 
 API_UPLOAD_IMAGE_URL = "/api/blog/upload-image/"
+
+API_UPLOAD_VIDEO_URL = "/api/blog/upload-video/"

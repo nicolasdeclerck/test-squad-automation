@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
 
-from .models import Comment, Post, PostImage, PostVersion, Tag
+from .models import Comment, Post, PostImage, PostVersion, PostVideo, Tag
 
 User = get_user_model()
 
@@ -191,4 +191,11 @@ class PostImageUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostImage
         fields = ("id", "image")
+        read_only_fields = ("id",)
+
+
+class PostVideoUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostVideo
+        fields = ("id", "video")
         read_only_fields = ("id",)
