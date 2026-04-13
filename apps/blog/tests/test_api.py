@@ -1022,6 +1022,7 @@ class TestPostVideoUploadAPI:
             API_UPLOAD_VIDEO_URL, {"video": fake_file}, format="multipart"
         )
         assert response.status_code == 400
+        assert "Format non autorisé" in response.data["video"][0]
 
     def test_upload_video_too_large(self):
         user = UserFactory()
@@ -1034,3 +1035,4 @@ class TestPostVideoUploadAPI:
             API_UPLOAD_VIDEO_URL, {"video": large_file}, format="multipart"
         )
         assert response.status_code == 400
+        assert "50 Mo" in response.data["video"][0]
