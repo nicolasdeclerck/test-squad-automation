@@ -25,7 +25,23 @@
       "Bash(pkill -f \"agent-browser\")",
       "Bash(pkill -f \"chrome\")",
       "Bash(pkill -f agent-browser)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(mkdir -p /home/ubuntu/infra-template/.claude/skills/agent-browser /home/ubuntu/infra-template/.claude/skills/ticket-workflow/references /home/ubuntu/infra-template/.claude/skills/browser-tests-on-demand /home/ubuntu/infra-template/.claude/skills/regression-tests /home/ubuntu/infra-template/.github/workflows /home/ubuntu/infra-template/scripts /home/ubuntu/infra-template/docs)",
+      "Read(//home/ubuntu/**)",
+      "Bash(cp /home/ubuntu/test-squad-automation/.claude/skills/agent-browser/SKILL.md /home/ubuntu/infra-template/.claude/skills/agent-browser/SKILL.md)",
+      "Bash(cp -r /home/ubuntu/test-squad-automation/.claude/skills/agent-browser/references /home/ubuntu/infra-template/.claude/skills/agent-browser/)",
+      "Bash(cp -r /home/ubuntu/test-squad-automation/.claude/skills/agent-browser/templates /home/ubuntu/infra-template/.claude/skills/agent-browser/)",
+      "Bash(chmod +x /home/ubuntu/infra-template/scripts/tnr-docker.sh)",
+      "Bash(du:*)",
+      "Bash(chmod +x:*)",
+      "Bash(rm -rf /tmp/studio-site-bootstrap)",
+      "Bash(cp -r /home/ubuntu/infra-template-nextjs-wagtail /tmp/studio-site-bootstrap)",
+      "Bash(export REPO_OWNER=myorg REPO_NAME=studio-site WORKSPACE_PATH=/workspace/studio-site COMPOSE_PROJECT=studio-site DOMAIN=studio.example.com MEDIA_DOMAIN=media.studio.example.com TRAEFIK_NETWORK=traefik_default CERT_RESOLVER=myresolver TEST_USER_EMAIL=testuser@example.com TEST_USER_PASSWORD='Testpass123!' LOGIN_URL_PATH=/admin/login/ PROD_BASE_URL=https://studio.example.com POSTGRES_DB=app_test_db WORKER_GIT_EMAIL=claude-worker@example.com WORKER_GIT_NAME='Claude Worker')",
+      "Bash(cp .env.example .env.dev)",
+      "Bash(cp .env.example .env.preprod)",
+      "Bash(cp .env.example .env.test)",
+      "Bash(cp .env.example .env.prod)",
+      "Read(//tmp/**)"
     ]
   }
 }
