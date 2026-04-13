@@ -17,6 +17,7 @@ from .helpers import (
     api_autosave_url,
     api_comment_delete_url,
     api_comments_url,
+    api_cover_image_url,
     api_post_url,
     api_publish_url,
     api_version_detail_url,
@@ -1036,3 +1037,140 @@ class TestPostVideoUploadAPI:
         )
         assert response.status_code == 400
         assert "50 Mo" in response.data["video"][0]
+
+
+@pytest.mark.django_db
+class TestPostCoverImageAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_upload_cover_image(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        image = _create_test_image()
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "url" in data
+        assert data["url"].startswith("/media/blog/covers/")
+        post.refresh_from_db()
+        assert post.cover_image
+
+    def test_upload_cover_image_compression(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        image = _create_test_image(size=(2400, 1600))
+        self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        post.refresh_from_db()
+        with Image.open(post.cover_image) as img:
+            assert img.size[0] <= 1200
+            assert img.size[1] <= 630
+
+    def test_upload_cover_image_unauthenticated(self):
+        post = PostFactory()
+        image = _create_test_image()
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        assert response.status_code == 403
+
+    def test_upload_cover_image_not_author(self):
+        user = SuperUserFactory()
+        other_user = SuperUserFactory()
+        post = PostFactory(author=other_user, status="draft")
+        self.client.force_login(user)
+        image = _create_test_image()
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        assert response.status_code == 404
+
+    def test_upload_cover_image_non_superuser(self):
+        user = UserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        image = _create_test_image()
+        response = self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        assert response.status_code == 403
+
+    def test_delete_cover_image(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        # Upload first
+        image = _create_test_image()
+        self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        post.refresh_from_db()
+        assert post.cover_image
+        # Delete
+        response = self.client.delete(api_cover_image_url(post.slug))
+        assert response.status_code == 204
+        post.refresh_from_db()
+        assert not post.cover_image
+
+    def test_cover_image_in_list_response(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user)
+        self.client.force_login(user)
+        image = _create_test_image()
+        self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        response = self.client.get(API_POSTS_URL)
+        data = response.json()
+        assert "cover_image" in data["results"][0]
+        assert data["results"][0]["cover_image"] is not None
+
+    def test_cover_image_in_detail_response(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user)
+        self.client.force_login(user)
+        image = _create_test_image()
+        self.client.post(
+            api_cover_image_url(post.slug),
+            {"cover_image": image},
+            format="multipart",
+        )
+        response = self.client.get(api_post_url(post.slug))
+        data = response.json()
+        assert "cover_image" in data
+        assert data["cover_image"] is not None
+
+    def test_cover_image_null_when_not_set(self):
+        PostFactory()
+        response = self.client.get(API_POSTS_URL)
+        data = response.json()
+        assert data["results"][0]["cover_image"] is None
+
+    def test_upload_cover_image_no_file(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status="draft")
+        self.client.force_login(user)
+        response = self.client.post(
+            api_cover_image_url(post.slug), {}, format="multipart"
+        )
+        assert response.status_code == 400

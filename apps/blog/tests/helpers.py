@@ -38,3 +38,7 @@ API_TAGS_URL = "/api/blog/tags/"
 API_UPLOAD_IMAGE_URL = "/api/blog/upload-image/"
 
 API_UPLOAD_VIDEO_URL = "/api/blog/upload-video/"
+
+
+def api_cover_image_url(slug):
+    return f"/api/blog/posts/{slug}/cover-image/"

@@ -279,6 +279,36 @@ class PostVideoUploadView(APIView):
         )
 
 
+class PostCoverImageUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
+    parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "uploads"
+
+    def post(self, request, slug):
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
+        cover_image = request.FILES.get("cover_image")
+        if not cover_image:
+            return Response(
+                {"error": "Aucune image fournie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        post.cover_image = cover_image
+        post.save()
+        return Response(
+            {"url": post.cover_image.url},
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, slug):
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
+        if post.cover_image:
+            post.cover_image.delete(save=False)
+            post.cover_image = None
+            post.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class PostVersionRestoreAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 

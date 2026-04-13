@@ -16,6 +16,16 @@ export default function PostCard({ post }) {
 
   return (
     <article className="card">
+      {post.cover_image && (
+        <Link to={`/articles/${post.slug}`}>
+          <img
+            src={post.cover_image}
+            alt={post.title}
+            className="w-full h-48 object-cover rounded-t-lg -mt-6 -mx-6 mb-4"
+            style={{ width: "calc(100% + 3rem)" }}
+          />
+        </Link>
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">

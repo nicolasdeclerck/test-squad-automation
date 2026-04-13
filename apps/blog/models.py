@@ -175,8 +175,17 @@ class Post(models.Model):
     draft_title = models.CharField(max_length=200, blank=True)
     draft_content = models.TextField(blank=True)
     has_draft = models.BooleanField(default=False)
+    cover_image = models.ImageField(
+        upload_to="blog/covers/",
+        blank=True,
+        null=True,
+        validators=[validate_post_image],
+    )
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    COVER_MAX_SIZE = (1200, 630)
+    COVER_JPEG_QUALITY = 85
 
     class Meta:
         ordering = ["-created_at"]
@@ -208,6 +217,35 @@ class Post(models.Model):
             created_by=self.author,
         )
 
+    def _compress_cover_image(self):
+        """Compress and resize cover image to JPEG, max 1200x630."""
+        with Image.open(self.cover_image) as img:
+            if img.mode in ("RGBA", "LA", "P"):
+                rgba = img.convert("RGBA")
+                background = Image.new("RGB", rgba.size, (255, 255, 255))
+                background.paste(rgba, mask=rgba.split()[3])
+                result = background
+            elif img.mode != "RGB":
+                result = img.convert("RGB")
+            else:
+                result = img.copy()
+
+            result.thumbnail(self.COVER_MAX_SIZE, Image.LANCZOS)
+
+            buf = BytesIO()
+            result.save(
+                buf,
+                format="JPEG",
+                quality=self.COVER_JPEG_QUALITY,
+                optimize=True,
+            )
+
+        name = (
+            os.path.splitext(os.path.basename(self.cover_image.name))[0]
+            + ".jpg"
+        )
+        self.cover_image.save(name, ContentFile(buf.getvalue()), save=False)
+
     def save(self, *args, **kwargs):
         if not self.slug:
             source_title = self.draft_title or self.title or "article"
@@ -220,7 +258,23 @@ class Post(models.Model):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug
+
+        if self.cover_image and self._cover_image_changed():
+            self._compress_cover_image()
+
         super().save(*args, **kwargs)
+
+    def _cover_image_changed(self):
+        """Check if cover_image has changed since last save."""
+        if self.pk is None:
+            return bool(self.cover_image)
+        try:
+            old = Post.objects.filter(pk=self.pk).values_list(
+                "cover_image", flat=True
+            ).first()
+            return old != self.cover_image.name
+        except Exception:
+            return True
 
 
 class PostVersion(models.Model):
