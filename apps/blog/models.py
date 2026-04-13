@@ -249,13 +249,10 @@ class Post(models.Model):
         """Check if cover_image has changed since last save."""
         if self.pk is None:
             return bool(self.cover_image)
-        try:
-            old = Post.objects.filter(pk=self.pk).values_list(
-                "cover_image", flat=True
-            ).first()
-            return old != self.cover_image.name
-        except Post.DoesNotExist:
-            return True
+        old = Post.objects.filter(pk=self.pk).values_list(
+            "cover_image", flat=True
+        ).first()
+        return old != self.cover_image.name
 
 
 class PostVersion(models.Model):

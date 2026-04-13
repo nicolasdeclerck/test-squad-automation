@@ -390,8 +390,19 @@ export default function PostForm() {
       if (coverImageFileRef.current) {
         const formData = new FormData();
         formData.append("cover_image", coverImageFileRef.current);
-        await api.post(`/api/blog/posts/${res.data.slug}/cover-image/`, formData);
+        const coverRes = await api.post(`/api/blog/posts/${res.data.slug}/cover-image/`, formData);
         coverImageFileRef.current = null;
+        if (!coverRes.ok) {
+          const errorMsg =
+            coverRes.errors?.cover_image?.[0] ||
+            coverRes.errors?.error ||
+            "Erreur lors de l'upload de l'image de couverture";
+          notifications.show({
+            title: "Erreur d'upload",
+            message: errorMsg,
+            color: "red",
+          });
+        }
       }
       if (publish) {
         const publishRes = await api.post(
