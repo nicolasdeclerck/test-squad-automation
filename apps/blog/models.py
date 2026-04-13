@@ -1,3 +1,4 @@
+import os
 from io import BytesIO
 
 from django.conf import settings
@@ -53,8 +54,6 @@ def validate_post_video(video):
         raise ValidationError(
             "La taille de la vidéo ne doit pas dépasser 50 Mo."
         )
-
-    import os
 
     allowed_extensions = {".mp4", ".webm", ".ogg", ".ogv"}
     name = getattr(video, "name", "")
