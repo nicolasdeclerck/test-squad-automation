@@ -15,6 +15,7 @@ from .serializers import (
     PostImageUploadSerializer,
     PostListSerializer,
     PostVersionSerializer,
+    PostVideoUploadSerializer,
     TagSerializer,
 )
 
@@ -258,6 +259,22 @@ class PostImageUploadView(APIView):
         serializer.save(uploaded_by=request.user)
         return Response(
             {"url": serializer.instance.image.url},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PostVideoUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "uploads"
+
+    def post(self, request):
+        serializer = PostVideoUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(uploaded_by=request.user)
+        return Response(
+            {"url": serializer.instance.video.url},
             status=status.HTTP_201_CREATED,
         )
 

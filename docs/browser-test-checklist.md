@@ -334,6 +334,25 @@
   - Upload d'un fichier > 5 Mo → l'image n'est pas insérée ou un message d'erreur s'affiche
   - Les formats JPEG, PNG, WebP et GIF sont acceptés
 
+### 4.15 — [AUTH/SUPERUSER] Upload de vidéo dans l'éditeur BlockNote
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Action** : Insérer une vidéo dans l'éditeur (via le menu slash `/` → Video, ou via le bouton d'ajout de bloc)
+- **Vérifications** :
+  - La vidéo s'affiche correctement dans l'éditeur après upload
+  - La vidéo est toujours visible après sauvegarde (autosave) et rechargement de la page
+  - La vidéo est servie depuis le serveur (URL commençant par `/media/blog/videos/`)
+  - Le lecteur vidéo est fonctionnel (lecture, pause)
+
+### 4.16 — [AUTH/SUPERUSER] Upload de vidéo — Validation
+
+- **URL** : `/articles/creer` ou `/articles/{slug}/modifier`
+- **Actions et vérifications** :
+  - Upload d'un fichier vidéo MP4 valide (< 50 Mo) → la vidéo est insérée avec succès
+  - Upload d'un fichier vidéo WebM valide → la vidéo est insérée avec succès
+  - Upload d'un fichier > 50 Mo → la vidéo n'est pas insérée ou un message d'erreur s'affiche
+  - Les formats MP4, WebM et OGG sont acceptés
+
 ---
 
 ### 4.13 — [AUTH/SUPERUSER] Ajout de tags à un article
