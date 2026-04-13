@@ -21,8 +21,7 @@ export default function PostCard({ post }) {
           <img
             src={post.cover_image}
             alt={post.title}
-            className="w-full h-48 object-cover rounded-t-lg -mt-6 -mx-6 mb-4"
-            style={{ width: "calc(100% + 3rem)" }}
+            className="w-full h-48 object-cover rounded-t-lg -mt-6 mb-4"
           />
         </Link>
       )}
