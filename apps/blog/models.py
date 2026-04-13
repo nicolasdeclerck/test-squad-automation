@@ -11,6 +11,28 @@ from django.utils.text import slugify
 from PIL import Image, UnidentifiedImageError
 
 
+def compress_image_to_jpeg(image_field, max_size, quality=85):
+    """Compress and resize an image field to JPEG with given max dimensions."""
+    with Image.open(image_field) as img:
+        if img.mode in ("RGBA", "LA", "P"):
+            rgba = img.convert("RGBA")
+            background = Image.new("RGB", rgba.size, (255, 255, 255))
+            background.paste(rgba, mask=rgba.split()[3])
+            result = background
+        elif img.mode != "RGB":
+            result = img.convert("RGB")
+        else:
+            result = img.copy()
+
+        result.thumbnail(max_size, Image.LANCZOS)
+
+        buf = BytesIO()
+        result.save(buf, format="JPEG", quality=quality, optimize=True)
+
+    name = os.path.splitext(os.path.basename(image_field.name))[0] + ".jpg"
+    return name, ContentFile(buf.getvalue())
+
+
 def validate_post_image(image):
     max_size = 10 * 1024 * 1024  # 10 MB
     try:
@@ -101,29 +123,10 @@ class PostImage(models.Model):
 
     def _compress_image(self):
         """Compress and resize image to JPEG, max 1920x1080."""
-        with Image.open(self.image) as img:
-            if img.mode in ("RGBA", "LA", "P"):
-                rgba = img.convert("RGBA")
-                background = Image.new("RGB", rgba.size, (255, 255, 255))
-                background.paste(rgba, mask=rgba.split()[3])
-                result = background
-            elif img.mode != "RGB":
-                result = img.convert("RGB")
-            else:
-                result = img.copy()
-
-            result.thumbnail(self.IMAGE_MAX_SIZE, Image.LANCZOS)
-
-            buf = BytesIO()
-            result.save(
-                buf,
-                format="JPEG",
-                quality=self.IMAGE_JPEG_QUALITY,
-                optimize=True,
-            )
-
-        name = os.path.splitext(os.path.basename(self.image.name))[0] + ".jpg"
-        self.image.save(name, ContentFile(buf.getvalue()), save=False)
+        name, content = compress_image_to_jpeg(
+            self.image, self.IMAGE_MAX_SIZE, self.IMAGE_JPEG_QUALITY
+        )
+        self.image.save(name, content, save=False)
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -175,8 +178,17 @@ class Post(models.Model):
     draft_title = models.CharField(max_length=200, blank=True)
     draft_content = models.TextField(blank=True)
     has_draft = models.BooleanField(default=False)
+    cover_image = models.ImageField(
+        upload_to="blog/covers/",
+        blank=True,
+        null=True,
+        validators=[validate_post_image],
+    )
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    COVER_MAX_SIZE = (1200, 630)
+    COVER_JPEG_QUALITY = 85
 
     class Meta:
         ordering = ["-created_at"]
@@ -208,6 +220,13 @@ class Post(models.Model):
             created_by=self.author,
         )
 
+    def _compress_cover_image(self):
+        """Compress and resize cover image to JPEG, max 1200x630."""
+        name, content = compress_image_to_jpeg(
+            self.cover_image, self.COVER_MAX_SIZE, self.COVER_JPEG_QUALITY
+        )
+        self.cover_image.save(name, content, save=False)
+
     def save(self, *args, **kwargs):
         if not self.slug:
             source_title = self.draft_title or self.title or "article"
@@ -220,7 +239,20 @@ class Post(models.Model):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug
+
+        if self.cover_image and self._cover_image_changed():
+            self._compress_cover_image()
+
         super().save(*args, **kwargs)
+
+    def _cover_image_changed(self):
+        """Check if cover_image has changed since last save."""
+        if self.pk is None:
+            return bool(self.cover_image)
+        old = Post.objects.filter(pk=self.pk).values_list(
+            "cover_image", flat=True
+        ).first()
+        return old != self.cover_image.name
 
 
 class PostVersion(models.Model):

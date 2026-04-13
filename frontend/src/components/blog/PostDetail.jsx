@@ -275,6 +275,15 @@ export default function PostDetail() {
               </p>
             </div>
 
+            {post.cover_image && (
+              <img
+                src={post.cover_image}
+                alt={displayTitle}
+                className="w-full h-auto rounded-lg mb-8 object-cover"
+                style={{ maxHeight: "400px" }}
+              />
+            )}
+
             <BlockNoteRenderer content={displayContent} />
           </article>
 

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import generics, permissions, status
@@ -277,6 +278,45 @@ class PostVideoUploadView(APIView):
             {"url": serializer.instance.video.url},
             status=status.HTTP_201_CREATED,
         )
+
+
+class PostCoverImageUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
+    parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "uploads"
+
+    def post(self, request, slug):
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
+        cover_image = request.FILES.get("cover_image")
+        if not cover_image:
+            return Response(
+                {"error": "Aucune image fournie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Delete old cover image file if replacing
+        if post.cover_image:
+            post.cover_image.delete(save=False)
+        post.cover_image = cover_image
+        try:
+            post.full_clean()
+        except ValidationError as e:
+            return Response(
+                e.message_dict, status=status.HTTP_400_BAD_REQUEST
+            )
+        post.save()
+        return Response(
+            {"url": post.cover_image.url},
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, slug):
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
+        if post.cover_image:
+            post.cover_image.delete(save=False)
+            post.cover_image = None
+            post.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PostVersionRestoreAPIView(APIView):

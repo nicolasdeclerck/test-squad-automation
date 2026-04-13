@@ -48,6 +48,7 @@ class PostListSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     plain_content = serializers.SerializerMethodField()
     has_draft = serializers.SerializerMethodField()
+    cover_image = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Post
@@ -58,6 +59,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "author",
             "status",
             "tags",
+            "cover_image",
             "plain_content",
             "has_draft",
             "published_at",
@@ -99,6 +101,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
     has_draft = serializers.SerializerMethodField()
     draft_title = serializers.SerializerMethodField()
     draft_content = serializers.SerializerMethodField()
+    cover_image = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Post
@@ -110,6 +113,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "content",
             "status",
             "tags",
+            "cover_image",
             "is_owner",
             "approved_comments",
             "has_draft",

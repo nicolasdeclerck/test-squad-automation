@@ -86,6 +86,10 @@ export default function PostForm() {
   const [contentReady, setContentReady] = useState(!isEdit);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverImageUploading, setCoverImageUploading] = useState(false);
+  const coverImageFileRef = useRef(null);
+  const coverBlobUrlRef = useRef(null);
   const titleRef = useRef(null);
   const editorRef = useRef(null);
   const autosaveTimerRef = useRef(null);
@@ -115,6 +119,9 @@ export default function PostForm() {
           setTags(postTags);
           tagsValueRef.current = postTags;
           lastSavedTagsRef.current = postTags;
+          if (res.data.cover_image) {
+            setCoverImage(res.data.cover_image);
+          }
           try {
             const parsed = JSON.parse(editContent);
             setInitialContent(parsed);
@@ -267,11 +274,14 @@ export default function PostForm() {
     };
   }, []);
 
-  // Flush autosave on unmount (e.g. direct URL change)
+  // Flush autosave on unmount (e.g. direct URL change) + cleanup blob URLs
   useEffect(() => {
     return () => {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
+      }
+      if (coverBlobUrlRef.current) {
+        URL.revokeObjectURL(coverBlobUrlRef.current);
       }
       if (isDirtyRef.current && slug) {
         const currentTitle = titleValueRef.current.trim();
@@ -299,6 +309,60 @@ export default function PostForm() {
     autoResize();
   }, [title]);
 
+  const handleCoverImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Revoke previous blob URL if any
+    if (coverBlobUrlRef.current) {
+      URL.revokeObjectURL(coverBlobUrlRef.current);
+      coverBlobUrlRef.current = null;
+    }
+    const currentSlug = slug;
+    if (!currentSlug) {
+      // For new posts, store the file and upload after creation
+      const blobUrl = URL.createObjectURL(file);
+      coverBlobUrlRef.current = blobUrl;
+      setCoverImage(blobUrl);
+      coverImageFileRef.current = file;
+      return;
+    }
+    setCoverImageUploading(true);
+    const formData = new FormData();
+    formData.append("cover_image", file);
+    const res = await api.post(`/api/blog/posts/${currentSlug}/cover-image/`, formData);
+    setCoverImageUploading(false);
+    if (res.ok) {
+      setCoverImage(res.data.url);
+    } else {
+      const errorMessage =
+        res.errors?.cover_image?.[0] ||
+        res.errors?.error ||
+        res.errors?.detail ||
+        "Erreur lors de l'upload de l'image de couverture";
+      notifications.show({
+        title: "Erreur d'upload",
+        message: errorMessage,
+        color: "red",
+      });
+    }
+  };
+
+  const handleCoverImageDelete = async () => {
+    if (coverBlobUrlRef.current) {
+      URL.revokeObjectURL(coverBlobUrlRef.current);
+      coverBlobUrlRef.current = null;
+    }
+    if (!slug) {
+      setCoverImage(null);
+      coverImageFileRef.current = null;
+      return;
+    }
+    const res = await api.delete(`/api/blog/posts/${slug}/cover-image/`);
+    if (res.ok) {
+      setCoverImage(null);
+    }
+  };
+
   const handleSubmit = async (e, { publish = false } = {}) => {
     e.preventDefault();
     // In edit mode, autosave handles saving — no manual submit
@@ -322,6 +386,24 @@ export default function PostForm() {
     });
 
     if (res.ok) {
+      // Upload cover image if one was selected before creation
+      if (coverImageFileRef.current) {
+        const formData = new FormData();
+        formData.append("cover_image", coverImageFileRef.current);
+        const coverRes = await api.post(`/api/blog/posts/${res.data.slug}/cover-image/`, formData);
+        coverImageFileRef.current = null;
+        if (!coverRes.ok) {
+          const errorMsg =
+            coverRes.errors?.cover_image?.[0] ||
+            coverRes.errors?.error ||
+            "Erreur lors de l'upload de l'image de couverture";
+          notifications.show({
+            title: "Erreur d'upload",
+            message: errorMsg,
+            color: "red",
+          });
+        }
+      }
       if (publish) {
         const publishRes = await api.post(
           `/api/blog/posts/${res.data.slug}/publish/`
@@ -374,6 +456,58 @@ export default function PostForm() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Image de couverture
+          </label>
+          {coverImage ? (
+            <div className="relative group">
+              <img
+                src={coverImage}
+                alt="Image de couverture"
+                className="w-full h-48 object-cover rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={handleCoverImageDelete}
+                className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                aria-label="Supprimer l'image de couverture"
+                title="Supprimer l'image de couverture"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="cover-image-input"
+              className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+            >
+              <div className="text-center">
+                {coverImageUploading ? (
+                  <p className="text-sm text-gray-400">Upload en cours...</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-500">
+                      Cliquer pour ajouter une image de couverture
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      JPEG, PNG, WebP ou GIF — 10 Mo max
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                id="cover-image-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleCoverImageChange}
+                className="hidden"
+                disabled={coverImageUploading}
+              />
+            </label>
+          )}
+        </div>
+
         <div className="mb-5">
           <label htmlFor="title" className="sr-only">
             Titre
