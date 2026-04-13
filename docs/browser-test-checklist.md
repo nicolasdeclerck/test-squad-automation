@@ -350,7 +350,8 @@
 - **Actions et vérifications** :
   - Upload d'un fichier vidéo MP4 valide (< 50 Mo) → la vidéo est insérée avec succès
   - Upload d'un fichier vidéo WebM valide → la vidéo est insérée avec succès
-  - Upload d'un fichier > 50 Mo → la vidéo n'est pas insérée ou un message d'erreur s'affiche
+  - Upload d'un fichier au format non autorisé (ex: .avi, .mov) → une notification d'erreur s'affiche avec le message précisant le format (ex: « Format non autorisé. Utilisez MP4, WebM ou OGG. »)
+  - Upload d'un fichier > 50 Mo → une notification d'erreur s'affiche avec le message précisant la taille (ex: « La taille de la vidéo ne doit pas dépasser 50 Mo. »)
   - Les formats MP4, WebM et OGG sont acceptés
 
 ---

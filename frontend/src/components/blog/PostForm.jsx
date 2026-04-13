@@ -6,6 +6,7 @@ import { TagsInput } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
 import { api } from "../../api/client";
 
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg"];
@@ -20,7 +21,13 @@ async function uploadFile(file) {
     return res.data.url;
   }
   const fieldErrors = isVideo ? res.errors?.video : res.errors?.image;
-  throw new Error(fieldErrors?.[0] || res.errors?.detail || "Erreur lors de l'upload du fichier");
+  const errorMessage = fieldErrors?.[0] || res.errors?.detail || "Erreur lors de l'upload du fichier";
+  notifications.show({
+    title: "Erreur d'upload",
+    message: errorMessage,
+    color: "red",
+  });
+  throw new Error(errorMessage);
 }
 
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {
