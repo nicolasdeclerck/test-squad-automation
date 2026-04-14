@@ -1,5 +1,6 @@
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import { useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import {
   createBrowserRouter,
@@ -9,6 +10,7 @@ import {
   RouterProvider,
   useRouteError,
 } from "react-router-dom";
+import * as Sentry from "@sentry/react";
 import LoginForm from "./components/accounts/LoginForm";
 import ProfileEdit from "./components/accounts/ProfileEdit";
 import SignupForm from "./components/accounts/SignupForm";
@@ -26,6 +28,15 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function ErrorPage() {
   const error = useRouteError();
+
+  useEffect(() => {
+    // React Router attrape l'erreur via errorElement : elle n'atteint donc
+    // pas les handlers globaux du SDK Sentry. On la remonte manuellement.
+    if (error) {
+      Sentry.captureException(error);
+    }
+  }, [error]);
+
   return (
     <div className="max-w-xl mx-auto px-4 py-20 text-center">
       <h1 className="text-2xl font-bold text-gray-900 mb-4">
