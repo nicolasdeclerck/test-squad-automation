@@ -59,13 +59,9 @@ Redis, Celery — mais sans Traefik ni certificat TLS.
 
 ### 1.3 Vérification de l'environnement
 
-Vérifie que l'application est accessible :
-
-```bash
-agent-browser open ${BASE_URL} && agent-browser wait --load networkidle && agent-browser snapshot -i
-```
-
-Si l'application n'est pas accessible, affiche un message d'erreur et **STOP**.
+Lis la référence partagée `.claude/skills/_shared/browser-tests/environment.md`
+et applique le healthcheck. Pour `regression-tests`, si l'environnement n'est
+pas joignable : afficher un message d'erreur et **STOP**.
 
 ### 1.4 Initialisation du rapport
 
@@ -130,62 +126,23 @@ Pour chaque test :
 
 ### 2.2 Gestion de l'authentification
 
-Utilise des sessions nommées pour gérer les contextes d'auth :
-
-```bash
-# Session non connectée (tests [PUBLIC])
-agent-browser --session public open ${BASE_URL}
-
-# Connexion utilisateur 1 (tests [AUTH] et [OWNER])
-agent-browser --session user1 open ${BASE_URL}/comptes/connexion
-agent-browser --session user1 snapshot -i
-agent-browser --session user1 fill @eN "testuser@example.com"
-agent-browser --session user1 fill @eM "Testpass123!"
-agent-browser --session user1 click @eK
-agent-browser --session user1 wait --load networkidle
-
-# Connexion utilisateur 2 (tests inter-utilisateurs)
-agent-browser --session user2 open ${BASE_URL}/comptes/connexion
-# ... même flow avec testuser2@example.com ...
-```
-
-**Important :** Réutilise les sessions entre les tests du même type pour
-éviter de se reconnecter à chaque test.
+Lis la référence partagée `.claude/skills/_shared/browser-tests/sessions.md`
+pour les conventions de sessions (`public` / `user1` / `user2`) et le flow
+de connexion avec refs dynamiques.
 
 ### 2.3 Exécution d'un test unitaire
 
-Pour chaque scénario, le pattern est :
-
-```bash
-# 1. Navigation
-agent-browser --session {session} open {url}
-agent-browser --session {session} wait --load networkidle
-
-# 2. Snapshot pour découvrir les éléments
-agent-browser --session {session} snapshot -i
-
-# 3. Actions (fill, click, select selon le scénario)
-agent-browser --session {session} fill @eN "valeur"
-agent-browser --session {session} click @eM
-
-# 4. Vérification
-agent-browser --session {session} snapshot -i
-agent-browser --session {session} get text @eX
-agent-browser --session {session} get url
-```
+Lis la référence partagée `.claude/skills/_shared/browser-tests/execution.md`
+pour le pattern d'exécution complet.
 
 ### 2.4 Évaluation du résultat
 
-Pour chaque vérification décrite dans le cahier :
+Les règles `PASS` / `FAIL` / `SKIP` sont décrites dans
+`.claude/skills/_shared/browser-tests/execution.md`. Pour la TNR :
 
-- **PASS** : le comportement observé correspond au résultat attendu
-- **FAIL** : le comportement observé diffère du résultat attendu
-- **SKIP** : le test ne peut pas être exécuté (prérequis manquant, donnée de test absente)
-
-En cas de **FAIL**, capture systématiquement :
-```bash
-agent-browser --session {session} screenshot /tmp/regression-fail-{test_id}.png
-```
+- En cas de `FAIL`, nomme le screenshot `/tmp/regression-fail-{test_id}.png`
+  (convention spécifique au skill `regression-tests` pour suivi des runs
+  nightly).
 
 ### 2.5 Enregistrement du résultat
 

@@ -95,7 +95,7 @@ else
     || echo "Worktree déjà existant, réutilisation"
 fi
 
-cd "$WORKTREE_PATH"
+cd "$WORKTREE_PATH" || { echo "❌ Worktree introuvable: $WORKTREE_PATH"; exit 1; }
 ```
 
 **Critère de sortie :** `git worktree list` affiche `$WORKTREE_PATH`.
