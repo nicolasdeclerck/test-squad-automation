@@ -99,21 +99,9 @@ Pour chaque ID retenu, lis la définition complète du scénario depuis
 
 ## PHASE 2 — Préparation de l'environnement
 
-L'environnement Docker éphémère est déjà démarré par le workflow appelant.
-Vérifie qu'il est joignable avant de lancer les tests :
-
-```bash
-# Forcer Chrome à démarrer sans sandbox dans claude-worker
-export AGENT_BROWSER_ARGS=--no-sandbox
-
-agent-browser open "$BASE_URL"
-agent-browser wait --load networkidle
-agent-browser snapshot -i
-```
-
-> **Si l'env n'est pas joignable** : marque tous les scénarios SKIP,
-> compile un rapport d'erreur et termine. Le workflow appelant détruira
-> l'env de toute façon (`if: always()`).
+Lis la référence partagée `.claude/skills/_shared/browser-tests/environment.md`
+et applique le healthcheck initial. Si l'environnement n'est pas joignable,
+marque tous les scénarios `SKIP` et passe à la compilation du rapport.
 
 ---
 
@@ -121,47 +109,15 @@ agent-browser snapshot -i
 
 ### 3.1 Gestion des sessions d'authentification
 
-Utilise des sessions nommées selon le type de test :
-
-- `--session public` pour les tests `[PUBLIC]`
-- `--session user1` pour les tests `[AUTH]` (`testuser@example.com` / `Testpass123!`)
-- `--session user2` pour les tests `[OWNER]` nécessitant un deuxième utilisateur
-
-Si une session authentifiée n'existe pas encore, connecte-toi d'abord.
-**Important** : les refs `@e1`, `@e2`… retournés par `snapshot -i` sont
-dynamiques — il faut snapshotter puis utiliser les refs réels (pas de
-placeholders type `@emailInput`).
-
-```bash
-agent-browser --session user1 open "$BASE_URL/comptes/connexion"
-agent-browser --session user1 wait --load networkidle
-agent-browser --session user1 snapshot -i
-# Lis les refs retournés (ex: @e1 = email, @e2 = password, @e3 = bouton submit)
-agent-browser --session user1 fill @e1 "testuser@example.com"
-agent-browser --session user1 fill @e2 "Testpass123!"
-agent-browser --session user1 click @e3
-agent-browser --session user1 wait --load networkidle
-```
+Lis la référence partagée `.claude/skills/_shared/browser-tests/sessions.md`
+pour les conventions de sessions (`public` / `user1` / `user2`) et la
+procédure de connexion avec refs dynamiques.
 
 ### 3.2 Exécution d'un scénario
 
-Pour chaque test à exécuter :
-
-1. **Identifie le type** (`[PUBLIC]` / `[AUTH]` / `[OWNER]`) → choisis la session
-2. **Suis les étapes** décrites dans le scénario via `agent-browser`
-   (open, snapshot, click, fill, wait, get text, etc.)
-3. **Vérifie chaque assertion** (présence d'éléments, texte attendu, navigation correcte)
-4. **En cas d'échec** : capture un screenshot et enregistre le détail
-5. **Enregistre le résultat** : `PASS` / `FAIL` (avec détail) / `SKIP` (avec raison)
-
-```bash
-# Exemple générique
-agent-browser --session user1 open "$BASE_URL/page-cible"
-agent-browser --session user1 wait --load networkidle
-agent-browser --session user1 snapshot -i
-# Vérifications via agent-browser get text / get url / etc.
-agent-browser --session user1 screenshot --full  # En cas d'échec, pour preuve
-```
+Lis la référence partagée `.claude/skills/_shared/browser-tests/execution.md`
+pour le pattern d'exécution, les règles d'évaluation (PASS/FAIL/SKIP), la
+capture de screenshots et la structure du résultat à conserver.
 
 ---
 
@@ -219,47 +175,50 @@ Construis le corps de l'issue avec :
 - Section détaillée pour chaque FAIL
 - Lien vers le run GitHub Actions
 
-Puis crée l'issue avec le label `non-regression tests` :
+Puis crée l'issue avec le label `non-regression tests`.
+
+> **Important :** `gh issue create` ne supporte **pas** `--json` ; il sort
+> l'URL de l'issue créée sur stdout. On extrait le numéro de l'URL.
 
 ```bash
-TRACKING_ISSUE=$(gh issue create \
+# Écris d'abord le corps dans un fichier temporaire pour éviter les pièges
+# de quoting multi-niveau (backticks, $, guillemets imbriqués).
+BODY_FILE=$(mktemp)
+{
+  echo "## 🧪 Tests browser on-demand"
+  echo ""
+  echo "**Date :** $(date -u '+%Y-%m-%d %H:%M UTC')"
+  echo "**Branche testée :** \`$BRANCH\`"
+  echo "**Filtre :** \`$TEST_FILTER\`"
+  echo "**Statut :** $STATUS_EMOJI $STATUS_TEXT"
+  [ -n "$LINKED_ISSUE" ] && echo "**Issue liée :** #$LINKED_ISSUE"
+  echo "**Run GitHub Actions :** $RUN_URL"
+  echo ""
+  echo "---"
+  echo ""
+  echo "### Résultats ($PASS_COUNT ✅ / $FAIL_COUNT ❌ / $SKIP_COUNT ⏭️ sur $TOTAL)"
+  echo ""
+  echo "| ID | Scénario | Type | Résultat |"
+  echo "|----|----------|------|----------|"
+  # [une ligne par test, emoji selon status]
+  # [Si FAIL_COUNT > 0 : section "Détail des échecs" avec un bloc par FAIL]
+} > "$BODY_FILE"
+
+ISSUE_URL=$(gh issue create \
   --repo nicolasdeclerck/test-squad-automation \
   --title "Tests browser on-demand — $(date -u '+%Y-%m-%d %H:%M') — ${STATUS_EMOJI}" \
   --label "non-regression tests" \
-  --body "## 🧪 Tests browser on-demand
+  --body-file "$BODY_FILE")
 
-**Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
-**Branche testée :** \`$BRANCH\`
-**Filtre :** \`$TEST_FILTER\`
-**Statut :** $STATUS_EMOJI $STATUS_TEXT
-$([ -n \"\$LINKED_ISSUE\" ] && echo \"**Issue liée :** #\$LINKED_ISSUE\")
-**Run GitHub Actions :** $RUN_URL
+TRACKING_ISSUE=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
 
----
-
-### Résultats ($PASS_COUNT ✅ / $FAIL_COUNT ❌ / $SKIP_COUNT ⏭️ sur $TOTAL)
-
-| ID | Scénario | Type | Résultat |
-|----|----------|------|----------|
-[une ligne par test, emoji selon status]
-
-[Si FAIL_COUNT > 0 :]
----
-
-### Détail des échecs
-
-#### [TEST_ID] — [titre du test]
-- **Type :** [PUBLIC/AUTH/OWNER]
-- **URL testée :** [url]
-- **Comportement observé :** [détail]
-- **Comportement attendu :** [extrait du cahier]
-- **Screenshot :** \`[chemin]\`
-
-[... pour chaque FAIL ...]
-" \
-  --json number --jq '.number')
+if [ -z "$TRACKING_ISSUE" ]; then
+  echo "❌ Impossible d'extraire le numéro d'issue depuis : $ISSUE_URL"
+  exit 1
+fi
 
 echo "Issue de suivi créée : #$TRACKING_ISSUE"
+rm -f "$BODY_FILE"
 ```
 
 #### 4.2.3 Fermeture de l'issue si tout passe

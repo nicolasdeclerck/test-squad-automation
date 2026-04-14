@@ -141,6 +141,6 @@ gh pr review "$PR_NUMBER" --request-changes \
 ## 4.3 Nettoyage
 
 ```bash
-cd /workspace/test-squad-automation
+cd /workspace/test-squad-automation || exit 1
 git worktree remove "$REVIEW_WORKTREE" --force 2>/dev/null || true
 ```
