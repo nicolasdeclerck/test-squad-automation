@@ -124,17 +124,23 @@ export default function PostDetail() {
       ? post.draft_content
       : post.content;
 
+  // Sujet principal (utilisé pour le fil d'Ariane et le partage social).
+  const primaryTopic = post.tags[0].name.toUpperCase();
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
       <Helmet>
         <title>{displayTitle}</title>
-        <meta name="description" content={displayTitle} />
+        <meta name="description" content={`${primaryTopic} — ${displayTitle}`} />
       </Helmet>
 
       <div className="flex flex-col lg:flex-row lg:gap-8">
         {/* Article — colonne gauche */}
         <div className="flex-1 min-w-0">
           <article>
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+              {primaryTopic}
+            </p>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{displayTitle}</h1>
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-4">
