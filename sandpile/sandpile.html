@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tas de sable — simulation</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --border: #d9d9d9;
+    --text: #222;
+    --muted: #666;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+  }
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  header p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .field input {
+    width: 80px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  button:hover { background: #f3f4f6; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .canvas-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+    overflow: auto;
+  }
+  canvas {
+    display: block;
+    background: #fff;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .status {
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .status strong { color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+    margin-right: 2px;
+  }
+  .help {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .help kbd {
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Tas de sable — simulation</h1>
+    <p>Pose des grains dans les cases. Quand une case a <strong>plus de 8 grains</strong>, elle en distribue 1 à chaque case adjacente, en cascade jusqu'à stabilité.</p>
+  </header>
+
+  <section class="panel controls">
+    <div class="field">
+      <label for="rows">Lignes</label>
+      <input type="number" id="rows" min="2" max="60" value="15">
+    </div>
+    <div class="field">
+      <label for="cols">Colonnes</label>
+      <input type="number" id="cols" min="2" max="60" value="15">
+    </div>
+    <div class="field">
+      <label for="threshold">Seuil (&gt;)</label>
+      <input type="number" id="threshold" min="1" max="99" value="8">
+    </div>
+    <div class="field">
+      <label for="grains">Grains / clic</label>
+      <input type="number" id="grains" min="1" max="99" value="4">
+    </div>
+    <div class="field">
+      <label for="speed">Vitesse (ms)</label>
+      <input type="number" id="speed" min="0" max="2000" step="20" value="80">
+    </div>
+    <div class="actions">
+      <button id="btn-step">Pas à pas</button>
+      <button id="btn-run" class="primary">Lancer</button>
+      <button id="btn-fill">Remplir…</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+  </section>
+
+  <section class="panel canvas-wrapper">
+    <canvas id="grid" width="540" height="540"></canvas>
+  </section>
+
+  <section class="panel status">
+    <span>Pas : <strong id="stat-steps">0</strong></span>
+    <span>Grains : <strong id="stat-total">0</strong></span>
+    <span>État : <strong id="stat-state">stable</strong></span>
+  </section>
+
+  <section class="panel help">
+    <div><strong>Commandes :</strong>
+      <kbd>Clic gauche</kbd> ajouter des grains &nbsp;·&nbsp;
+      <kbd>Clic droit</kbd> retirer &nbsp;·&nbsp;
+      <kbd>Shift + clic</kbd> fixer exactement N &nbsp;·&nbsp;
+      <kbd>Glisser</kbd> peindre en continu
+    </div>
+    <div class="legend" style="margin-top: 8px;">
+      <span>Légende :</span>
+      <span><span class="swatch" style="background:#f5f5f5"></span>0</span>
+      <span><span class="swatch" style="background:#c8edc8"></span>1–2</span>
+      <span><span class="swatch" style="background:#7fd17f"></span>3–4</span>
+      <span><span class="swatch" style="background:#f4d35e"></span>5</span>
+      <span><span class="swatch" style="background:#ee964b"></span>6</span>
+      <span><span class="swatch" style="background:#f3722c"></span>7</span>
+      <span><span class="swatch" style="background:#d00000"></span>8</span>
+      <span><span class="swatch" style="background:#6a0572"></span>&gt;8 (instable)</span>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const MOORE = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [ 0, -1],          [ 0, 1],
+    [ 1, -1], [ 1, 0], [ 1, 1],
+  ];
+
+  const PALETTE = [
+    "#f5f5f5", "#e3f6e3", "#c8edc8", "#a6e0a6", "#7fd17f",
+    "#f4d35e", "#ee964b", "#f3722c", "#d00000",
+  ];
+  const UNSTABLE_COLOR = "#6a0572";
+
+  function colorFor(value) {
+    if (value <= 0) return PALETTE[0];
+    if (value < PALETTE.length) return PALETTE[value];
+    return UNSTABLE_COLOR;
+  }
+
+  // --- Moteur de simulation ---------------------------------------------
+  class Sandpile {
+    constructor(rows, cols, threshold = 8) {
+      this.rows = rows;
+      this.cols = cols;
+      this.threshold = threshold;
+      this.grid = Array.from({ length: rows }, () => new Int32Array(cols));
+    }
+
+    inBounds(r, c) {
+      return r >= 0 && r < this.rows && c >= 0 && c < this.cols;
+    }
+
+    neighbors(r, c) {
+      const out = [];
+      for (const [dr, dc] of MOORE) {
+        const nr = r + dr, nc = c + dc;
+        if (this.inBounds(nr, nc)) out.push([nr, nc]);
+      }
+      return out;
+    }
+
+    add(r, c, n = 1) {
+      if (!this.inBounds(r, c)) return;
+      const v = this.grid[r][c] + n;
+      this.grid[r][c] = Math.max(0, v);
+    }
+
+    set(r, c, n) {
+      if (!this.inBounds(r, c)) return;
+      this.grid[r][c] = Math.max(0, n | 0);
+    }
+
+    fill(n) {
+      const v = Math.max(0, n | 0);
+      for (let r = 0; r < this.rows; r++)
+        for (let c = 0; c < this.cols; c++)
+          this.grid[r][c] = v;
+    }
+
+    reset() { this.fill(0); }
+
+    totalGrains() {
+      let t = 0;
+      for (let r = 0; r < this.rows; r++)
+        for (let c = 0; c < this.cols; c++) t += this.grid[r][c];
+      return t;
+    }
+
+    unstableCount() {
+      let n = 0;
+      for (let r = 0; r < this.rows; r++)
+        for (let c = 0; c < this.cols; c++)
+          if (this.grid[r][c] > this.threshold) n++;
+      return n;
+    }
+
+    isStable() { return this.unstableCount() === 0; }
+
+    /** Un pas d'effondrement simultané. Retourne true si la grille a changé. */
+    step() {
+      const toTopple = [];
+      for (let r = 0; r < this.rows; r++)
+        for (let c = 0; c < this.cols; c++)
+          if (this.grid[r][c] > this.threshold) toTopple.push([r, c]);
+
+      if (toTopple.length === 0) return false;
+
+      const deltas = Array.from({ length: this.rows }, () => new Int32Array(this.cols));
+      for (const [r, c] of toTopple) {
+        const neigh = this.neighbors(r, c);
+        deltas[r][c] -= neigh.length;
+        for (const [nr, nc] of neigh) deltas[nr][nc] += 1;
+      }
+      for (let r = 0; r < this.rows; r++)
+        for (let c = 0; c < this.cols; c++)
+          this.grid[r][c] += deltas[r][c];
+      return true;
+    }
+  }
+
+  // --- Application UI ---------------------------------------------------
+  const canvas = document.getElementById("grid");
+  const ctx = canvas.getContext("2d");
+
+  const inputs = {
+    rows: document.getElementById("rows"),
+    cols: document.getElementById("cols"),
+    threshold: document.getElementById("threshold"),
+    grains: document.getElementById("grains"),
+    speed: document.getElementById("speed"),
+  };
+  const buttons = {
+    step: document.getElementById("btn-step"),
+    run: document.getElementById("btn-run"),
+    fill: document.getElementById("btn-fill"),
+    reset: document.getElementById("btn-reset"),
+  };
+  const statEl = {
+    steps: document.getElementById("stat-steps"),
+    total: document.getElementById("stat-total"),
+    state: document.getElementById("stat-state"),
+  };
+
+  let sandpile;
+  let cellSize = 36;
+  let stepCount = 0;
+  let running = false;
+  let timer = null;
+  let painting = false;
+  let paintButton = 0; // 0 = gauche, 2 = droite
+  let lastPainted = null;
+
+  function rebuild() {
+    stopRun();
+    const rows = clampInt(inputs.rows.value, 2, 60, 15);
+    const cols = clampInt(inputs.cols.value, 2, 60, 15);
+    const threshold = clampInt(inputs.threshold.value, 1, 99, 8);
+    inputs.rows.value = rows;
+    inputs.cols.value = cols;
+    inputs.threshold.value = threshold;
+
+    sandpile = new Sandpile(rows, cols, threshold);
+    stepCount = 0;
+
+    // Ajuste la taille du canvas pour tenir dans la fenêtre.
+    const maxWidth = Math.min(window.innerWidth - 80, 960);
+    const maxHeight = Math.min(window.innerHeight - 320, 720);
+    cellSize = Math.max(
+      12,
+      Math.floor(Math.min(maxWidth / cols, maxHeight / rows))
+    );
+    canvas.width = cols * cellSize;
+    canvas.height = rows * cellSize;
+
+    draw();
+    updateStatus();
+  }
+
+  function clampInt(v, min, max, fallback) {
+    const n = parseInt(v, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function draw() {
+    const font = `${Math.max(10, Math.floor(cellSize * 0.4))}px -apple-system, sans-serif`;
+    ctx.font = font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (let r = 0; r < sandpile.rows; r++) {
+      for (let c = 0; c < sandpile.cols; c++) {
+        const v = sandpile.grid[r][c];
+        const x = c * cellSize;
+        const y = r * cellSize;
+        ctx.fillStyle = colorFor(v);
+        ctx.fillRect(x, y, cellSize, cellSize);
+        ctx.strokeStyle = "#d9d9d9";
+        ctx.strokeRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1);
+        if (v > 0) {
+          ctx.fillStyle = v >= 5 ? "#fff" : "#333";
+          ctx.fillText(String(v), x + cellSize / 2, y + cellSize / 2);
+        }
+      }
+    }
+  }
+
+  function updateStatus() {
+    const unstable = sandpile.unstableCount();
+    statEl.steps.textContent = stepCount;
+    statEl.total.textContent = sandpile.totalGrains();
+    statEl.state.textContent = unstable === 0
+      ? "stable"
+      : `${unstable} case(s) instable(s)`;
+    buttons.run.disabled = unstable === 0 && !running;
+    if (running) {
+      buttons.run.textContent = "Pause";
+      buttons.run.disabled = false;
+    } else {
+      buttons.run.textContent = "Lancer";
+    }
+  }
+
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const c = Math.floor(x / cellSize);
+    const r = Math.floor(y / cellSize);
+    if (!sandpile.inBounds(r, c)) return null;
+    return [r, c];
+  }
+
+  function applyClick(cell, button, shift) {
+    const [r, c] = cell;
+    const n = clampInt(inputs.grains.value, 1, 99, 4);
+    if (shift) {
+      sandpile.set(r, c, n);
+    } else if (button === 2) {
+      const current = sandpile.grid[r][c];
+      sandpile.add(r, c, -Math.min(n, current));
+    } else {
+      sandpile.add(r, c, n);
+    }
+    draw();
+    updateStatus();
+  }
+
+  // --- Pointer events (souris + tactile) -----------------------------
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  canvas.addEventListener("pointerdown", (e) => {
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    painting = true;
+    paintButton = e.button;
+    lastPainted = cell.join(",");
+    canvas.setPointerCapture(e.pointerId);
+    applyClick(cell, e.button, e.shiftKey);
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!painting) return;
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    const key = cell.join(",");
+    if (key === lastPainted) return;
+    lastPainted = key;
+    applyClick(cell, paintButton, e.shiftKey);
+  });
+
+  canvas.addEventListener("pointerup", () => {
+    painting = false;
+    lastPainted = null;
+  });
+  canvas.addEventListener("pointercancel", () => {
+    painting = false;
+    lastPainted = null;
+  });
+
+  // --- Simulation ----------------------------------------------------
+  function stepOnce() {
+    if (sandpile.step()) {
+      stepCount++;
+      draw();
+    }
+    updateStatus();
+  }
+
+  function startRun() {
+    if (sandpile.isStable()) return;
+    running = true;
+    updateStatus();
+    scheduleTick();
+  }
+
+  function stopRun() {
+    running = false;
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    updateStatus();
+  }
+
+  function scheduleTick() {
+    const delay = Math.max(0, clampInt(inputs.speed.value, 0, 2000, 80));
+    timer = setTimeout(tick, delay);
+  }
+
+  function tick() {
+    timer = null;
+    if (!running) return;
+    if (sandpile.step()) {
+      stepCount++;
+      draw();
+      updateStatus();
+      scheduleTick();
+    } else {
+      stopRun();
+    }
+  }
+
+  // --- Buttons -------------------------------------------------------
+  buttons.step.addEventListener("click", () => {
+    stopRun();
+    stepOnce();
+  });
+
+  buttons.run.addEventListener("click", () => {
+    if (running) stopRun();
+    else startRun();
+  });
+
+  buttons.reset.addEventListener("click", () => {
+    stopRun();
+    sandpile.reset();
+    stepCount = 0;
+    draw();
+    updateStatus();
+  });
+
+  buttons.fill.addEventListener("click", () => {
+    stopRun();
+    const answer = prompt("Remplir toutes les cases avec combien de grains ?", "4");
+    if (answer === null) return;
+    const n = parseInt(answer, 10);
+    if (Number.isNaN(n) || n < 0) {
+      alert("Valeur invalide.");
+      return;
+    }
+    sandpile.fill(n);
+    stepCount = 0;
+    draw();
+    updateStatus();
+  });
+
+  for (const key of ["rows", "cols", "threshold"]) {
+    inputs[key].addEventListener("change", rebuild);
+  }
+
+  window.addEventListener("resize", () => {
+    // Recalcule la taille de cellule sans vider la grille.
+    const rows = sandpile.rows;
+    const cols = sandpile.cols;
+    const maxWidth = Math.min(window.innerWidth - 80, 960);
+    const maxHeight = Math.min(window.innerHeight - 320, 720);
+    cellSize = Math.max(
+      12,
+      Math.floor(Math.min(maxWidth / cols, maxHeight / rows))
+    );
+    canvas.width = cols * cellSize;
+    canvas.height = rows * cellSize;
+    draw();
+  });
+
+  rebuild();
+})();
+</script>
+</body>
+</html>
