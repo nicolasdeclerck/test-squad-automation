@@ -47,6 +47,7 @@ class PostListSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     plain_content = serializers.SerializerMethodField()
+    reading_time_minutes = serializers.SerializerMethodField()
     has_draft = serializers.SerializerMethodField()
     cover_image = serializers.ImageField(read_only=True)
 
@@ -61,10 +62,21 @@ class PostListSerializer(serializers.ModelSerializer):
             "tags",
             "cover_image",
             "plain_content",
+            "reading_time_minutes",
             "has_draft",
             "published_at",
             "created_at",
         )
+
+    def get_reading_time_minutes(self, obj):
+        """Estime le temps de lecture (en minutes) affiché sur la liste."""
+        text = obj.content or ""
+        word_count = len(text.split())
+        # On ajuste la vitesse selon la densité (caractères par mot)
+        # pour les contenus techniques avec des mots longs.
+        avg_word_length = len(text) / word_count
+        wpm = 200 if avg_word_length < 7 else 150
+        return max(1, round(word_count / wpm))
 
     def get_has_draft(self, obj):
         request = self.context.get("request")
