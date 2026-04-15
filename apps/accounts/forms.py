@@ -81,8 +81,6 @@ class UserForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
-        if not email:
-            raise forms.ValidationError("Ce champ est obligatoire.")
         if (
             User.objects.filter(email__iexact=email)
             .exclude(pk=self.instance.pk)
