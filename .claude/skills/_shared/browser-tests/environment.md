@@ -14,7 +14,28 @@ Les deux skills construisent toutes leurs URLs à partir de `BASE_URL` (ex :
 
 ## Healthcheck initial
 
-Avant de lancer les scénarios, vérifier que l'environnement est joignable :
+Avant de lancer les scénarios, vérifier que l'environnement est joignable.
+
+**Préflight HTTP (rapide, diagnostique)** — boucle de retry avant de lancer
+le navigateur, pour absorber les races de démarrage (env juste remonté,
+réseau Docker juste attaché) :
+
+```bash
+# Retry curl jusqu'à ce que BASE_URL réponde 2xx/3xx (12 tentatives, 10s).
+for i in $(seq 1 12); do
+  if curl -sSf --max-time 10 -o /dev/null "$BASE_URL/"; then
+    echo "Env reachable (attempt $i)."
+    break
+  fi
+  echo "Preflight attempt $i/12 failed, retrying in 10s..."
+  sleep 10
+  if [ "$i" = "12" ]; then
+    echo "ERROR: env non joignable après 12 tentatives (~2 min)."
+  fi
+done
+```
+
+**Check navigateur** (une seule tentative après préflight OK) :
 
 ```bash
 # Sans sandbox : requis dans claude-worker (root dans container)
@@ -25,9 +46,12 @@ agent-browser open "$BASE_URL" \
   && agent-browser snapshot -i
 ```
 
-**Si l'environnement n'est pas joignable** :
+**Si l'environnement n'est pas joignable** (préflight curl ET browser échouent) :
 
-- `regression-tests` → afficher un message d'erreur et **STOP**.
+- `regression-tests` → créer une issue GitHub dédiée "TNR — env non joignable"
+  (labels `non-regression tests`, `env-unreachable`) décrivant le problème,
+  puis **STOP**. Ne jamais échouer silencieusement : la visibilité du problème
+  est obligatoire même si le workflow amont a déjà remonté l'erreur.
 - `browser-tests-on-demand` → marquer tous les scénarios `SKIP` (raison :
   "env non joignable"), compiler le rapport habituel, terminer avec code 0
   (le workflow appelant détruira l'env via `if: always()`).
