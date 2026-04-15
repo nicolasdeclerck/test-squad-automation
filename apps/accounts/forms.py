@@ -69,17 +69,20 @@ class LoginForm(AuthenticationForm):
 
 
 class UserForm(forms.ModelForm):
+    email = forms.EmailField(required=True, label="Adresse email")
+
     class Meta:
         model = User
         fields = ("first_name", "last_name", "email")
         labels = {
             "first_name": "Prénom",
             "last_name": "Nom",
-            "email": "Adresse email",
         }
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
+        if not email:
+            raise forms.ValidationError("Ce champ est obligatoire.")
         if (
             User.objects.filter(email__iexact=email)
             .exclude(pk=self.instance.pk)
