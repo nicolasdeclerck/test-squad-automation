@@ -4,13 +4,17 @@ Partagé entre `regression-tests` et `browser-tests-on-demand`.
 
 ## Variables d'environnement attendues
 
-| Variable | Description | Défaut |
+| Variable | Description | Source |
 |----------|-------------|--------|
-| `BASE_URL` | URL frontend (nginx) de l'environnement testé | `https://blog.nickorp.com` (`regression-tests`) / injecté par le workflow (`browser-tests-on-demand`) |
+| `BASE_URL` | URL frontend (nginx) de l'environnement testé | **injecté par le workflow appelant** (`regression-tests.yml` / `browser-tests.yml`), pas de fallback |
 | `API_URL` | URL API de l'environnement testé | idem |
 
 Les deux skills construisent toutes leurs URLs à partir de `BASE_URL` (ex :
-`${BASE_URL}/comptes/connexion`).
+`${BASE_URL}/comptes/connexion`). **Pas de fallback** vers la production :
+si la variable n'est pas définie, le skill doit échouer immédiatement avec
+un message clair. Un fallback silencieux vers la prod a déjà causé un faux
+positif "env non joignable" (issue #202) : le skill visait
+`https://blog.nickorp.com` au lieu de l'env éphémère.
 
 ## Healthcheck initial
 

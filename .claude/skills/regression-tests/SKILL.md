@@ -22,32 +22,43 @@ Lis le fichier `docs/browser-test-checklist.md` pour récupérer :
 
 ### 1.2 Configuration des URLs cibles
 
-Les URLs cibles sont déterminées par les variables d'environnement
-`BASE_URL` et `API_URL`. Par défaut, elles pointent vers la production :
+Les URLs cibles sont lues **exclusivement** depuis les variables d'environnement
+`BASE_URL` et `API_URL` injectées par le workflow appelant.
+
+**Aucun fallback vers la production** : si `BASE_URL` n'est pas défini dans
+l'environnement du process, **arrêter immédiatement**. Ne jamais supposer une
+URL par défaut — viser accidentellement la prod pendant une TNR automatisée
+a déjà provoqué des faux "env non joignable" (issue #202).
 
 ```bash
-BASE_URL="${BASE_URL:-https://blog.nickorp.com}"
-API_URL="${API_URL:-https://blog.nickorp.com}"
+echo "=== Regression tests ==="
+echo "BASE_URL : ${BASE_URL:-(non défini)}"
+echo "API_URL  : ${API_URL:-(non défini)}"
+
+if [ -z "$BASE_URL" ] || [ -z "$API_URL" ]; then
+  echo "❌ BASE_URL ou API_URL non défini dans l'environnement. Arrêt."
+  echo "   Le skill doit être invoqué par un workflow qui injecte ces variables"
+  echo "   (ex: docker exec -e BASE_URL=... -e API_URL=... claude-worker claude -p ...)."
+  exit 1
+fi
 ```
 
-Si aucune variable d'environnement n'est définie, utiliser :
-- `BASE_URL=https://blog.nickorp.com`
-- `API_URL=https://blog.nickorp.com`
-
 Toutes les URLs utilisées dans les tests sont construites à partir de
-`BASE_URL` (ex : `${BASE_URL}/comptes/connexion`).
+`$BASE_URL` (ex : `${BASE_URL}/comptes/connexion`). **Ne jamais** écrire
+d'URL en dur, même comme exemple exécuté.
 
-#### Mode Docker local (environnement éphémère)
+#### Mode Docker local (développement)
 
-Pour exécuter les TNR sur un environnement Docker local identique à la
-production mais accessible uniquement en localhost :
+Pour exécuter les TNR manuellement sur l'environnement Docker éphémère :
 
 ```bash
 # 1. Démarrer l'environnement éphémère
 ./scripts/tnr-docker.sh up
 
-# 2. Lancer les tests avec BASE_URL sur localhost
-BASE_URL=http://localhost:8080 API_URL=http://localhost:8080 /regression-tests
+# 2. Exporter BASE_URL/API_URL avant de lancer le skill
+export BASE_URL=http://localhost:8080
+export API_URL=http://localhost:8080
+# puis /regression-tests
 
 # 3. Détruire l'environnement après les tests
 ./scripts/tnr-docker.sh down
