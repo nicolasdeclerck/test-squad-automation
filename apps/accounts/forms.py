@@ -69,13 +69,14 @@ class LoginForm(AuthenticationForm):
 
 
 class UserForm(forms.ModelForm):
+    email = forms.EmailField(required=True, label="Adresse email")
+
     class Meta:
         model = User
         fields = ("first_name", "last_name", "email")
         labels = {
             "first_name": "Prénom",
             "last_name": "Nom",
-            "email": "Adresse email",
         }
 
     def clean_email(self):
