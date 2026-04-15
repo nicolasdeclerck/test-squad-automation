@@ -57,9 +57,39 @@ jobs:
             ./scripts/tnr-docker.sh up
             docker network connect blog-tnr_default claude-worker || true
 
+      - name: Verify connectivity from claude-worker to test env
+        id: verify-env
+        if: steps.start-env.outcome == 'success'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 3m
+          script: |
+            # Independent HTTP healthcheck run from the worker container so a
+            # transient "env non joignable" from the skill can be diagnosed as
+            # a Claude/browser problem vs. real infra breakage. Surfaces the
+            # failure at the workflow level (no continue-on-error) so the
+            # regression run turns red in the Actions UI instead of passing
+            # silently.
+            for i in $(seq 1 12); do
+              if docker exec claude-worker curl -sSf --max-time 10 -o /dev/null \
+                   http://blog-tnr-nginx-1:80/; then
+                echo "Environment reachable from claude-worker."
+                exit 0
+              fi
+              echo "Attempt $i/12 failed, retrying in 10s..."
+              sleep 10
+            done
+            echo "::error::Environment not reachable from claude-worker after 12 attempts (2 min)."
+            docker exec claude-worker curl -v --max-time 10 \
+              http://blog-tnr-nginx-1:80/ || true
+            exit 1
+
       - name: Run regression tests on VPS
         id: run-tests
-        if: steps.start-env.outcome == 'success'
+        if: steps.verify-env.outcome == 'success'
         uses: appleboy/ssh-action@v1
         continue-on-error: true
         with:
@@ -93,9 +123,10 @@ jobs:
             git checkout main || true
 
       - name: Handle failure (token quota or other error)
-        if: steps.run-tests.outcome == 'failure'
+        if: steps.run-tests.outcome == 'failure' || steps.verify-env.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFY_ENV_OUTCOME: ${{ steps.verify-env.outcome }}
         run: |
           TRACKING_ISSUE=$(gh search issues "Tests de non-régression" \
             --repo ${{ github.repository }} \
@@ -103,21 +134,37 @@ jobs:
             --state open \
             --json number --jq '.[0].number // empty')
 
-          COMMENT_BODY="## ⚠️ Exécution interrompue
+          if [ "$VERIFY_ENV_OUTCOME" = "failure" ]; then
+            COMMENT_BODY="## ⚠️ Environnement non joignable
+
+          Les tests de non-régression n'ont pas pu démarrer : le healthcheck HTTP depuis \`claude-worker\` vers \`http://blog-tnr-nginx-1:80/\` a échoué après 12 tentatives (≈ 2 minutes).
+
+          **Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
+          **Branche :** ${{ env.TNR_BRANCH }}
+          **Run :** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          L'environnement Docker éphémère a été démarré avec succès par \`tnr-docker.sh up\` mais n'a pas répondu sur le réseau partagé. Pistes : latence de démarrage, connexion \`claude-worker\` au réseau \`blog-tnr_default\`, DNS interne Docker, configuration nginx."
+            LABEL="env-unreachable"
+            TITLE="Tests de non-régression — Environnement non joignable $(date -u '+%Y-%m-%d')"
+          else
+            COMMENT_BODY="## ⚠️ Exécution interrompue
 
           Les tests de non-régression ont été interrompus suite à une erreur (dépassement des quotas de tokens de Claude Code ou autre problème technique).
 
           **Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
 
           L'exécution devra être relancée manuellement une fois le problème résolu."
+            LABEL="standby"
+            TITLE="Tests de non-régression — Exécution interrompue $(date -u '+%Y-%m-%d')"
+          fi
 
           if [ -n "$TRACKING_ISSUE" ]; then
             gh issue comment "$TRACKING_ISSUE" --repo ${{ github.repository }} --body "$COMMENT_BODY"
-            gh issue edit "$TRACKING_ISSUE" --repo ${{ github.repository }} --add-label "standby"
+            gh issue edit "$TRACKING_ISSUE" --repo ${{ github.repository }} --add-label "$LABEL"
           else
             gh issue create \
               --repo ${{ github.repository }} \
-              --title "Tests de non-régression — Exécution interrompue $(date -u '+%Y-%m-%d')" \
-              --label "standby,non-regression tests" \
+              --title "$TITLE" \
+              --label "$LABEL,non-regression tests" \
               --body "$COMMENT_BODY"
           fi

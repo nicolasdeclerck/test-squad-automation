@@ -60,8 +60,35 @@ Redis, Celery — mais sans Traefik ni certificat TLS.
 ### 1.3 Vérification de l'environnement
 
 Lis la référence partagée `.claude/skills/_shared/browser-tests/environment.md`
-et applique le healthcheck. Pour `regression-tests`, si l'environnement n'est
-pas joignable : afficher un message d'erreur et **STOP**.
+et applique le healthcheck (préflight curl avec retries, puis check navigateur).
+
+**Si l'environnement reste non joignable** après tous les retries : **créer une
+issue GitHub dédiée** pour que le problème soit tracé (le workflow amont peut
+l'avoir déjà remonté côté CI, mais la visibilité côté issues est obligatoire) :
+
+```bash
+ENV_ISSUE_BODY="## ⚠️ Environnement non joignable
+
+Le healthcheck des tests de non-régression a échoué : \`${BASE_URL}\` ne
+répond pas (préflight curl + \`agent-browser open\` ont tous deux échoué
+après retries).
+
+**Date :** $(date -u '+%Y-%m-%d %H:%M UTC')
+**BASE_URL :** ${BASE_URL}
+
+Les scénarios ne seront pas exécutés. Vérifier :
+- l'état des containers \`blog-tnr-*\` sur le VPS
+- la connexion de \`claude-worker\` au réseau \`blog-tnr_default\`
+- les logs nginx / django de l'environnement éphémère"
+
+gh issue create \
+  --repo nicolasdeclerck/test-squad-automation \
+  --title "Tests de non-régression — Environnement non joignable $(date -u '+%Y-%m-%d')" \
+  --label "non-regression tests,env-unreachable" \
+  --body "$ENV_ISSUE_BODY"
+```
+
+Puis **STOP** (ne pas créer l'issue de suivi 1.5, ne pas lancer les scénarios).
 
 ### 1.4 Initialisation du rapport
 

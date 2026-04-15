@@ -41,6 +41,27 @@ wait_for_django() {
     exit 1
 }
 
+wait_for_nginx() {
+    # Verify the full HTTP stack (nginx → django, nginx → frontend_dist) is
+    # actually serving requests before returning. Without this, the workflow
+    # can race and hand control to Claude while the env is only partially up,
+    # producing a misleading "environnement non joignable" from the skill.
+    echo "Waiting for nginx to serve HTTP on localhost:8080..."
+    local retries=30
+    while [ $retries -gt 0 ]; do
+        if curl -sSf --max-time 5 -o /dev/null "http://localhost:8080/"; then
+            echo "Nginx is serving."
+            return 0
+        fi
+        retries=$((retries - 1))
+        sleep 2
+    done
+    echo "ERROR: Nginx did not start serving HTTP in time."
+    $COMPOSE ps
+    $COMPOSE logs --tail=50 nginx django frontend
+    exit 1
+}
+
 seed_test_data() {
     echo "Seeding test data..."
     $COMPOSE exec -T django python manage.py shell <<'PYTHON'
@@ -85,6 +106,8 @@ cmd_up() {
     $COMPOSE exec -T django python manage.py migrate --noinput
 
     seed_test_data
+
+    wait_for_nginx
 
     echo ""
     echo "============================================"
