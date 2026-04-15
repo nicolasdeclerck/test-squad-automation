@@ -101,11 +101,16 @@ jobs:
             docker exec claude-worker git -C /workspace/test-squad-automation fetch origin "${{ env.TNR_BRANCH }}"
             docker exec claude-worker git -C /workspace/test-squad-automation checkout "${{ env.TNR_BRANCH }}"
             docker exec claude-worker git -C /workspace/test-squad-automation pull origin "${{ env.TNR_BRANCH }}"
+            # BASE_URL/API_URL sont passés à la fois en env var (pour les
+            # commandes shell du skill) ET explicitement dans le prompt, pour
+            # empêcher le LLM de retomber sur un fallback documenté au lieu
+            # d'évaluer la variable (cf. faux positif issue #202 où Claude
+            # avait ciblé https://blog.nickorp.com).
             docker exec -i -w /workspace/test-squad-automation \
               -e BASE_URL=http://blog-tnr-nginx-1:80 \
               -e API_URL=http://blog-tnr-nginx-1:80 \
               claude-worker \
-              claude -p "Exécute le skill .claude/skills/regression-tests/SKILL.md" \
+              claude -p "Exécute le skill .claude/skills/regression-tests/SKILL.md. Les URLs à cibler sont strictement BASE_URL=http://blog-tnr-nginx-1:80 et API_URL=http://blog-tnr-nginx-1:80. N'utilise jamais d'autre URL (notamment pas https://blog.nickorp.com)." \
               --dangerously-skip-permissions --output-format json
 
       - name: Tear down test environment
