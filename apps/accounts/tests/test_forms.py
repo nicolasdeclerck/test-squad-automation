@@ -139,24 +139,38 @@ class TestLoginForm:
 class TestUserForm:
     def test_valid_data(self):
         form = UserForm(
-            data={"first_name": "Jean", "last_name": "Dupont", "email": "jean@example.com"}
+            data={
+                "first_name": "Jean",
+                "last_name": "Dupont",
+                "email": "jean@example.com",
+            }
         )
         assert form.is_valid()
 
     def test_empty_fields_allowed(self):
         form = UserForm(
-            data={"first_name": "", "last_name": "", "email": "user@example.com"}
+            data={
+                "first_name": "",
+                "last_name": "",
+                "email": "user@example.com",
+            }
         )
         assert form.is_valid()
 
     def test_email_required(self):
-        form = UserForm(data={"first_name": "Jean", "last_name": "Dupont"})
+        form = UserForm(
+            data={"first_name": "Jean", "last_name": "Dupont"}
+        )
         assert not form.is_valid()
         assert "email" in form.errors
 
     def test_email_invalid_format(self):
         form = UserForm(
-            data={"first_name": "Jean", "last_name": "Dupont", "email": "invalid-email"}
+            data={
+                "first_name": "Jean",
+                "last_name": "Dupont",
+                "email": "invalid-email",
+            }
         )
         assert not form.is_valid()
         assert "email" in form.errors
