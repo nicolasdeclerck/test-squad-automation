@@ -2,7 +2,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
-import { TagsInput } from "@mantine/core";
+import { Switch, TagsInput } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
@@ -88,6 +88,9 @@ export default function PostForm() {
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
   const [coverImageUploading, setCoverImageUploading] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [postStatus, setPostStatus] = useState("");
+  const [pinToggling, setPinToggling] = useState(false);
   const coverImageFileRef = useRef(null);
   const coverBlobUrlRef = useRef(null);
   const titleRef = useRef(null);
@@ -122,6 +125,8 @@ export default function PostForm() {
           if (res.data.cover_image) {
             setCoverImage(res.data.cover_image);
           }
+          setIsPinned(Boolean(res.data.is_pinned));
+          setPostStatus(res.data.status || "");
           try {
             const parsed = JSON.parse(editContent);
             setInitialContent(parsed);
@@ -347,6 +352,29 @@ export default function PostForm() {
     }
   };
 
+  const handlePinToggle = async (event) => {
+    const nextPinned = event.currentTarget.checked;
+    if (!slug || pinToggling) return;
+    setPinToggling(true);
+    const res = nextPinned
+      ? await api.post(`/api/blog/posts/${slug}/pin/`)
+      : await api.delete(`/api/blog/posts/${slug}/pin/`);
+    setPinToggling(false);
+    if (res.ok) {
+      setIsPinned(Boolean(res.data.is_pinned));
+    } else {
+      const message =
+        res.errors?.error ||
+        res.errors?.detail ||
+        "Erreur lors de l'épinglage.";
+      notifications.show({
+        title: "Épinglage impossible",
+        message,
+        color: "red",
+      });
+    }
+  };
+
   const handleCoverImageDelete = async () => {
     if (coverBlobUrlRef.current) {
       URL.revokeObjectURL(coverBlobUrlRef.current);
@@ -546,6 +574,18 @@ export default function PostForm() {
             clearable
           />
         </div>
+
+        {isEdit && postStatus === "published" && (
+          <div className="mb-5">
+            <Switch
+              checked={isPinned}
+              onChange={handlePinToggle}
+              disabled={pinToggling}
+              label="Épingler à la une"
+              description="L'article apparaîtra dans la section « À la une » de la page d'accueil (3 max)."
+            />
+          </div>
+        )}
 
         {isEdit && <SaveStatusIndicator saveStatus={saveStatus} lastSavedAt={lastSavedAt} />}
 

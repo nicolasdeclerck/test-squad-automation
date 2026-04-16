@@ -1,11 +1,39 @@
 import { Link } from "react-router-dom";
 import { Badge, Menu } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { useState } from "react";
+import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
 
-export default function PostCard({ post }) {
+export default function PostCard({ post: initialPost, onChange }) {
   const { user } = useAuth();
+  const [post, setPost] = useState(initialPost);
+  const [pinToggling, setPinToggling] = useState(false);
   const canEdit = user && user.is_superuser && post.author && user.id === post.author.id;
+  const canPin = canEdit && post.status === "published";
+
+  const handleTogglePin = async () => {
+    if (pinToggling) return;
+    setPinToggling(true);
+    const res = post.is_pinned
+      ? await api.delete(`/api/blog/posts/${post.slug}/pin/`)
+      : await api.post(`/api/blog/posts/${post.slug}/pin/`);
+    setPinToggling(false);
+    if (res.ok) {
+      setPost(res.data);
+      if (onChange) onChange(res.data);
+    } else {
+      notifications.show({
+        title: "Épinglage impossible",
+        message:
+          res.errors?.error ||
+          res.errors?.detail ||
+          "Erreur lors de l'épinglage.",
+        color: "red",
+      });
+    }
+  };
 
   const authorName =
     post.author.first_name && post.author.last_name
@@ -43,6 +71,28 @@ export default function PostCard({ post }) {
                 </Badge>
               ))}
             </div>
+          )}
+          {post.is_pinned && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 mt-1"
+              title="Article épinglé à la une"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="size-3"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 4.5v4.5l-3 3v2.25h12V12l-3-3V4.5m-6 9v6m3-10.5h.008v.008H12V7.5Z"
+                />
+              </svg>
+              Épinglé
+            </span>
           )}
           {canEdit && post.has_draft && post.status === "published" && (
             <span
@@ -120,6 +170,30 @@ export default function PostCard({ post }) {
               >
                 Modifier
               </Menu.Item>
+              {canPin && (
+                <Menu.Item
+                  onClick={handleTogglePin}
+                  disabled={pinToggling}
+                  leftSection={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill={post.is_pinned ? "currentColor" : "none"}
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="size-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 4.5v4.5l-3 3v2.25h12V12l-3-3V4.5m-6 9v6m3-10.5h.008v.008H12V7.5Z"
+                      />
+                    </svg>
+                  }
+                >
+                  {post.is_pinned ? "Désépingler" : "Épingler à la une"}
+                </Menu.Item>
+              )}
               <Menu.Item
                 component={Link}
                 to={`/articles/${post.slug}/supprimer`}

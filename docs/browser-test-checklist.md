@@ -211,10 +211,59 @@
 - **Vérifications** :
   - Un bouton "..." (trois points) est visible à droite du titre de la carte
   - Le bouton "..." n'est PAS visible pour un utilisateur non-auteur ou non-superutilisateur
-  - Clic sur "..." ouvre un dropdown (menu déroulant) contenant les actions "Modifier" et "Supprimer"
+  - Clic sur "..." ouvre un dropdown (menu déroulant) contenant les actions "Modifier", "Supprimer" et "Épingler/Désépingler"
   - Clic sur "Modifier" dans le dropdown redirige vers `/articles/{slug}/modifier`
   - Clic sur "Supprimer" dans le dropdown redirige vers `/articles/{slug}/supprimer`
   - Le dropdown se ferme correctement au clic extérieur ou après sélection d'une action
+
+### 3.9 — [PUBLIC] Section « À la une » sur la page d'accueil
+
+- **URL** : `/` (page d'accueil avec au moins un article épinglé)
+- **Vérifications** :
+  - Une section « À la une » est affichée **au-dessus** de la liste « Derniers articles » lorsqu'au moins un article est épinglé
+  - Les articles épinglés sont affichés sous forme de cartes hero (image de couverture, titre, tags, auteur, date, extrait)
+  - L'image de couverture des cartes « À la une » est plus grande que sur les cartes classiques
+  - En desktop (≥ 1024px), la section utilise une grille de **3 colonnes**
+  - En mobile (< 768px), les cartes sont affichées en **1 colonne**
+  - Les articles épinglés apparaissent **aussi** dans la liste « Derniers articles » (pas de déduplication)
+  - Si aucun article n'est épinglé, la section « À la une » n'est PAS affichée
+
+### 3.10 — [AUTH/OWNER] Action rapide « Épingler » depuis une carte d'article
+
+- **URL** : `/` ou `/articles` (en tant qu'auteur superutilisateur d'un article publié)
+- **Vérifications** :
+  - Une option « Épingler à la une » (ou « Désépingler ») est présente dans le dropdown `...` de la carte
+  - L'action n'est disponible que pour les articles **publiés** (pas pour un brouillon)
+  - Clic sur « Épingler à la une » appelle `POST /api/blog/posts/{slug}/pin/` et l'article apparaît dans la section « À la une » après rechargement
+  - Clic sur « Désépingler » appelle `DELETE /api/blog/posts/{slug}/pin/` et l'article quitte la section « À la une » après rechargement
+  - L'option est ABSENTE pour un utilisateur non-auteur
+  - L'option est ABSENTE pour un visiteur non connecté
+
+### 3.11 — [AUTH/OWNER] Action rapide « Épingler » depuis la page détail d'un article
+
+- **URL** : `/articles/{slug}` (article publié, en tant qu'auteur superutilisateur)
+- **Vérifications** :
+  - Un bouton « Épingler à la une » / « Désépingler » est visible dans la barre d'actions sous le titre (à côté de « Modifier » / « Supprimer »)
+  - Le libellé du bouton reflète l'état courant (`is_pinned`)
+  - Clic sur le bouton appelle l'API pin/unpin et le libellé est mis à jour après succès
+  - Le bouton est ABSENT pour un utilisateur non-auteur
+  - Le bouton est ABSENT pour un article en statut `draft`
+
+### 3.12 — [AUTH/OWNER] Limite de 3 articles épinglés
+
+- **URL** : `/articles/{slug}` (4e article publié de l'auteur, alors que 3 sont déjà épinglés)
+- **Vérifications** :
+  - Cliquer sur « Épingler à la une » pour un 4e article **échoue** : l'API renvoie 400
+  - Un message d'erreur explicite s'affiche côté UI (ex : « Maximum 3 articles épinglés simultanément »)
+  - L'article n'est pas ajouté à la section « À la une »
+  - Après avoir désépinglé un autre article, l'opération réussit
+
+### 3.13 — [AUTH/OWNER] Badge « Épinglé » sur les cartes d'articles
+
+- **URL** : `/` ou `/articles` (carte d'un article épinglé)
+- **Vérifications** :
+  - Un badge ou icône « Épinglé » est visible sur la carte pour indiquer l'état épinglé (visible pour tous les visiteurs, publics ou connectés)
+  - Le badge est ABSENT pour un article non épinglé
 
 ---
 
@@ -812,6 +861,22 @@
 16. Vérifier que le contenu mis à jour est affiché
 17. Vérifier dans "Historique des versions" qu'une nouvelle version a été créée
 18. Vérifier dans la liste des articles que le badge "brouillon en cours" a disparu
+
+### 13.9 — Parcours complet : épinglage d'articles à la une
+
+1. Se connecter avec l'utilisateur 1 (superutilisateur)
+2. Créer et publier 4 articles A1, A2, A3, A4
+3. Ouvrir `/articles/{A1.slug}` et cliquer sur « Épingler à la une »
+4. Vérifier que le bouton devient « Désépingler »
+5. Répéter pour A2 et A3
+6. Ouvrir `/` et vérifier que la section « À la une » est affichée avec A1, A2, A3 sous forme de cartes hero (3 colonnes desktop)
+7. Vérifier que A1, A2, A3 apparaissent **aussi** dans la liste « Derniers articles »
+8. Ouvrir `/articles/{A4.slug}` et cliquer sur « Épingler à la une »
+9. Vérifier qu'un message d'erreur s'affiche (limite de 3 atteinte) et que A4 n'apparaît PAS dans la section « À la une »
+10. Désépingler A1 depuis le menu contextuel de la carte, puis épingler A4
+11. Vérifier que A4 apparaît maintenant dans « À la une » et A1 n'y est plus
+12. Se déconnecter, puis vérifier que la section « À la une » reste visible en mode public (avec A2, A3, A4)
+13. Se connecter avec l'utilisateur 2 (non-auteur des articles) et vérifier que les boutons « Épingler/Désépingler » sont ABSENTS
 
 ### 13.8 — Parcours complet : édition continue d'un article publié (brouillon continu)
 

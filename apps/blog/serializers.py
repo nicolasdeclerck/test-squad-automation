@@ -64,9 +64,12 @@ class PostListSerializer(serializers.ModelSerializer):
             "plain_content",
             "reading_time_minutes",
             "has_draft",
+            "is_pinned",
+            "pinned_at",
             "published_at",
             "created_at",
         )
+        read_only_fields = ("is_pinned", "pinned_at")
 
     def get_reading_time_minutes(self, obj):
         """Estime le temps de lecture (en minutes) affiché sur la liste."""
@@ -80,7 +83,11 @@ class PostListSerializer(serializers.ModelSerializer):
 
     def get_has_draft(self, obj):
         request = self.context.get("request")
-        if request and request.user.is_authenticated and obj.author_id == request.user.id:
+        if (
+            request
+            and request.user.is_authenticated
+            and obj.author_id == request.user.id
+        ):
             return obj.has_draft
         return False
 
@@ -131,13 +138,20 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "has_draft",
             "draft_title",
             "draft_content",
+            "is_pinned",
+            "pinned_at",
             "published_at",
             "created_at",
         )
+        read_only_fields = ("is_pinned", "pinned_at")
 
     def _is_author(self, obj):
         request = self.context.get("request")
-        return request and request.user.is_authenticated and obj.author_id == request.user.id
+        return (
+            request
+            and request.user.is_authenticated
+            and obj.author_id == request.user.id
+        )
 
     def get_is_owner(self, obj):
         return self._is_author(obj)
@@ -163,9 +177,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             .select_related("author__profile")
             .order_by("-created_at")
         )
-        return CommentSerializer(
-            comments, many=True, context=self.context
-        ).data
+        return CommentSerializer(comments, many=True, context=self.context).data
 
 
 class PostCreateUpdateSerializer(serializers.ModelSerializer):

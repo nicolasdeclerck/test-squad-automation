@@ -40,9 +40,7 @@ def validate_post_image(image):
     except (FileNotFoundError, OSError, ValueError, AttributeError):
         raise ValidationError("Le fichier image est inaccessible.")
     if file_size > max_size:
-        raise ValidationError(
-            "La taille de l'image ne doit pas dépasser 10 Mo."
-        )
+        raise ValidationError("La taille de l'image ne doit pas dépasser 10 Mo.")
 
     try:
         if hasattr(image, "seek"):
@@ -62,9 +60,7 @@ def validate_post_image(image):
                 "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
             )
     except (UnidentifiedImageError, OSError, SyntaxError):
-        raise ValidationError(
-            "Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF."
-        )
+        raise ValidationError("Format non autorisé. Utilisez JPEG, PNG, WebP ou GIF.")
 
 
 def validate_post_video(video):
@@ -74,17 +70,13 @@ def validate_post_video(video):
     except (FileNotFoundError, OSError, ValueError, AttributeError):
         raise ValidationError("Le fichier vidéo est inaccessible.")
     if file_size > max_size:
-        raise ValidationError(
-            "La taille de la vidéo ne doit pas dépasser 50 Mo."
-        )
+        raise ValidationError("La taille de la vidéo ne doit pas dépasser 50 Mo.")
 
     allowed_extensions = {".mp4", ".webm", ".ogg", ".ogv"}
     name = getattr(video, "name", "")
     _, ext = os.path.splitext(name.lower())
     if ext not in allowed_extensions:
-        raise ValidationError(
-            "Format non autorisé. Utilisez MP4, WebM ou OGG."
-        )
+        raise ValidationError("Format non autorisé. Utilisez MP4, WebM ou OGG.")
 
 
 class PostVideo(models.Model):
@@ -167,9 +159,7 @@ class Post(models.Model):
 
     title = models.CharField(max_length=200, blank=True)
     slug = models.SlugField(unique=True)
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
-    )
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField(blank=True)
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT
@@ -184,11 +174,14 @@ class Post(models.Model):
         null=True,
         validators=[validate_post_image],
     )
+    is_pinned = models.BooleanField(default=False, db_index=True)
+    pinned_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     COVER_MAX_SIZE = (1200, 630)
     COVER_JPEG_QUALITY = 85
+    MAX_PINNED_POSTS = 3
 
     class Meta:
         ordering = ["-created_at"]
@@ -207,9 +200,7 @@ class Post(models.Model):
             self.published_at = timezone.now()
         self.save()
 
-        current_max = self.versions.aggregate(max_num=Max("version_number"))[
-            "max_num"
-        ]
+        current_max = self.versions.aggregate(max_num=Max("version_number"))["max_num"]
         next_version = (current_max or 0) + 1
         PostVersion.objects.create(
             post=self,
@@ -226,6 +217,29 @@ class Post(models.Model):
             self.cover_image, self.COVER_MAX_SIZE, self.COVER_JPEG_QUALITY
         )
         self.cover_image.save(name, content, save=False)
+
+    def pin(self):
+        """Pin this post to the homepage. Raises ValidationError if invalid."""
+        if self.status != self.STATUS_PUBLISHED:
+            raise ValidationError("Seuls les articles publiés peuvent être épinglés.")
+        if self.is_pinned:
+            return
+        pinned_count = Post.objects.filter(is_pinned=True).count()
+        if pinned_count >= self.MAX_PINNED_POSTS:
+            raise ValidationError(
+                f"Maximum {self.MAX_PINNED_POSTS} articles épinglés simultanément."
+            )
+        self.is_pinned = True
+        self.pinned_at = timezone.now()
+        self.save(update_fields=["is_pinned", "pinned_at"])
+
+    def unpin(self):
+        """Unpin this post from the homepage."""
+        if not self.is_pinned:
+            return
+        self.is_pinned = False
+        self.pinned_at = None
+        self.save(update_fields=["is_pinned", "pinned_at"])
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -249,16 +263,16 @@ class Post(models.Model):
         """Check if cover_image has changed since last save."""
         if self.pk is None:
             return bool(self.cover_image)
-        old = Post.objects.filter(pk=self.pk).values_list(
-            "cover_image", flat=True
-        ).first()
+        old = (
+            Post.objects.filter(pk=self.pk)
+            .values_list("cover_image", flat=True)
+            .first()
+        )
         return old != self.cover_image.name
 
 
 class PostVersion(models.Model):
-    post = models.ForeignKey(
-        Post, on_delete=models.CASCADE, related_name="versions"
-    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="versions")
     version_number = models.PositiveIntegerField()
     title = models.CharField(max_length=200)
     content = models.TextField()
@@ -284,12 +298,8 @@ class PostVersion(models.Model):
 
 
 class Comment(models.Model):
-    post = models.ForeignKey(
-        Post, on_delete=models.CASCADE, related_name="comments"
-    )
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
-    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
     is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
