@@ -2,6 +2,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { Alert, Badge } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -59,6 +60,7 @@ export default function PostDetail() {
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
   const [hasVersions, setHasVersions] = useState(false);
+  const [pinToggling, setPinToggling] = useState(false);
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -72,6 +74,27 @@ export default function PostDetail() {
       );
     }
     setPublishing(false);
+  };
+
+  const handleTogglePin = async () => {
+    if (!post || pinToggling) return;
+    setPinToggling(true);
+    const res = post.is_pinned
+      ? await api.delete(`/api/blog/posts/${post.slug}/pin/`)
+      : await api.post(`/api/blog/posts/${post.slug}/pin/`);
+    setPinToggling(false);
+    if (res.ok) {
+      setPost(res.data);
+    } else {
+      notifications.show({
+        title: "Épinglage impossible",
+        message:
+          res.errors?.error ||
+          res.errors?.detail ||
+          "Erreur lors de l'épinglage.",
+        color: "red",
+      });
+    }
   };
 
   useEffect(() => {
@@ -229,6 +252,32 @@ export default function PostDetail() {
                       : post.status === "published"
                         ? "Publier les modifications"
                         : "Publier"}
+                  </button>
+                )}
+                {post.status === "published" && (
+                  <button
+                    onClick={handleTogglePin}
+                    disabled={pinToggling}
+                    className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    title={
+                      post.is_pinned ? "Désépingler" : "Épingler à la une"
+                    }
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill={post.is_pinned ? "currentColor" : "none"}
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="size-4"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 4.5v4.5l-3 3v2.25h12V12l-3-3V4.5m-6 9v6m3-10.5h.008v.008H12V7.5Z"
+                      />
+                    </svg>
+                    {post.is_pinned ? "Désépingler" : "Épingler à la une"}
                   </button>
                 )}
                 {hasVersions && (

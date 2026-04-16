@@ -87,9 +87,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
             and self.request.user.is_authenticated
             and self.request.user.is_superuser
         ):
-            return qs.filter(
-                status=Post.STATUS_DRAFT, author=self.request.user
-            )
+            return qs.filter(status=Post.STATUS_DRAFT, author=self.request.user)
         return qs.filter(status=Post.STATUS_PUBLISHED)
 
     def get_permissions(self):
@@ -113,9 +111,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         post = serializer.instance
-        detail_serializer = PostDetailSerializer(
-            post, context={"request": request}
-        )
+        detail_serializer = PostDetailSerializer(post, context={"request": request})
         return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -133,9 +129,8 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
         return PostDetailSerializer
 
     def get_queryset(self):
-        qs = (
-            Post.objects.select_related("author__profile")
-            .prefetch_related("comments__author__profile", "tags")
+        qs = Post.objects.select_related("author__profile").prefetch_related(
+            "comments__author__profile", "tags"
         )
         if self.request.user.is_authenticated:
             return qs.filter(
@@ -154,16 +149,12 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-        serializer = self.get_serializer(
-            instance, data=request.data, partial=partial
-        )
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         tag_names = serializer.validated_data.pop("tags", None)
         self.perform_update(serializer)
         _set_tags(instance, tag_names)
-        detail_serializer = PostDetailSerializer(
-            instance, context={"request": request}
-        )
+        detail_serializer = PostDetailSerializer(instance, context={"request": request})
         return Response(detail_serializer.data)
 
 
@@ -184,9 +175,7 @@ class PostAutoSaveView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def patch(self, request, slug):
-        post = generics.get_object_or_404(
-            Post, slug=slug, author=request.user
-        )
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
         serializer = PostAutoSaveSerializer(post, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         tag_names = serializer.validated_data.pop("tags", None)
@@ -199,18 +188,54 @@ class PostPublishView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def post(self, request, slug):
-        post = generics.get_object_or_404(
-            Post, slug=slug, author=request.user
-        )
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
         if not (post.draft_title or "").strip() and not (post.title or "").strip():
             return Response(
                 {"error": "Le titre est requis pour publier."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         post.publish()
-        detail_serializer = PostDetailSerializer(
-            post, context={"request": request}
+        detail_serializer = PostDetailSerializer(post, context={"request": request})
+        return Response(detail_serializer.data)
+
+
+class PostPinnedListView(generics.ListAPIView):
+    """Return the ordered list of pinned posts (public)."""
+
+    serializer_class = PostListSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            Post.objects.filter(is_pinned=True, status=Post.STATUS_PUBLISHED)
+            .select_related("author__profile")
+            .prefetch_related("tags")
+            .order_by("-pinned_at")
         )
+
+
+class PostPinView(APIView):
+    """Pin (POST) or unpin (DELETE) a published post (author only)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
+
+    def post(self, request, slug):
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
+        try:
+            post.pin()
+        except ValidationError as exc:
+            return Response(
+                {"error": exc.messages[0] if exc.messages else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        detail_serializer = PostDetailSerializer(post, context={"request": request})
+        return Response(detail_serializer.data)
+
+    def delete(self, request, slug):
+        post = generics.get_object_or_404(Post, slug=slug, author=request.user)
+        post.unpin()
+        detail_serializer = PostDetailSerializer(post, context={"request": request})
         return Response(detail_serializer.data)
 
 
@@ -226,9 +251,7 @@ class PostVersionListAPIView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        post = generics.get_object_or_404(
-            Post, slug=self.kwargs["slug"]
-        )
+        post = generics.get_object_or_404(Post, slug=self.kwargs["slug"])
         if post.author != self.request.user:
             self.permission_denied(self.request)
         return PostVersion.objects.filter(post=post)
@@ -240,9 +263,7 @@ class PostVersionDetailAPIView(generics.RetrieveAPIView):
     lookup_field = "version_number"
 
     def get_queryset(self):
-        post = generics.get_object_or_404(
-            Post, slug=self.kwargs["slug"]
-        )
+        post = generics.get_object_or_404(Post, slug=self.kwargs["slug"])
         if post.author != self.request.user:
             self.permission_denied(self.request)
         return PostVersion.objects.filter(post=post)
@@ -301,9 +322,7 @@ class PostCoverImageUploadView(APIView):
         try:
             post.full_clean()
         except ValidationError as e:
-            return Response(
-                e.message_dict, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(e.message_dict, status=status.HTTP_400_BAD_REQUEST)
         post.save()
         return Response(
             {"url": post.cover_image.url},

@@ -8,6 +8,8 @@ from .api_views import (
     PostDetailAPIView,
     PostImageUploadView,
     PostListCreateAPIView,
+    PostPinnedListView,
+    PostPinView,
     PostPublishView,
     PostVersionDetailAPIView,
     PostVersionListAPIView,
@@ -30,6 +32,11 @@ urlpatterns = [
     ),
     path("posts/", PostListCreateAPIView.as_view(), name="api_post_list"),
     path(
+        "posts/pinned/",
+        PostPinnedListView.as_view(),
+        name="api_post_pinned_list",
+    ),
+    path(
         "posts/<slug:slug>/",
         PostDetailAPIView.as_view(),
         name="api_post_detail",
@@ -48,6 +55,11 @@ urlpatterns = [
         "posts/<slug:slug>/publish/",
         PostPublishView.as_view(),
         name="api_post_publish",
+    ),
+    path(
+        "posts/<slug:slug>/pin/",
+        PostPinView.as_view(),
+        name="api_post_pin",
     ),
     path(
         "posts/<slug:slug>/comments/",

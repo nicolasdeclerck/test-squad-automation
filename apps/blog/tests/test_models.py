@@ -1,6 +1,7 @@
 from io import BytesIO
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from PIL import Image
@@ -17,9 +18,7 @@ def _make_test_image(width, height, fmt="JPEG", mode="RGB"):
     img.save(buf, format=fmt)
     buf.seek(0)
     ext = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}[fmt]
-    return SimpleUploadedFile(
-        f"test.{ext}", buf.read(), content_type=f"image/{ext}"
-    )
+    return SimpleUploadedFile(f"test.{ext}", buf.read(), content_type=f"image/{ext}")
 
 
 @pytest.mark.django_db
@@ -125,6 +124,59 @@ class TestPostModel:
 
 
 @pytest.mark.django_db
+class TestPostPinning:
+    def test_is_pinned_default_false(self):
+        post = PostFactory()
+        assert post.is_pinned is False
+        assert post.pinned_at is None
+
+    def test_pin_sets_flag_and_timestamp(self):
+        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        post.pin()
+        post.refresh_from_db()
+        assert post.is_pinned is True
+        assert post.pinned_at is not None
+
+    def test_pin_draft_raises(self):
+        post = PostFactory(status=Post.STATUS_DRAFT, draft_title="x")
+        with pytest.raises(ValidationError):
+            post.pin()
+        post.refresh_from_db()
+        assert post.is_pinned is False
+
+    def test_pin_limit_of_three_enforced(self):
+        for _ in range(Post.MAX_PINNED_POSTS):
+            PostFactory(status=Post.STATUS_PUBLISHED, is_pinned=True)
+        extra = PostFactory(status=Post.STATUS_PUBLISHED)
+        with pytest.raises(ValidationError):
+            extra.pin()
+        extra.refresh_from_db()
+        assert extra.is_pinned is False
+
+    def test_pin_idempotent(self):
+        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        post.pin()
+        first_ts = post.pinned_at
+        post.pin()
+        post.refresh_from_db()
+        assert post.is_pinned is True
+        assert post.pinned_at == first_ts
+
+    def test_unpin_resets_flag_and_timestamp(self):
+        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        post.pin()
+        post.unpin()
+        post.refresh_from_db()
+        assert post.is_pinned is False
+        assert post.pinned_at is None
+
+    def test_unpin_idempotent(self):
+        post = PostFactory(status=Post.STATUS_PUBLISHED)
+        post.unpin()
+        assert post.is_pinned is False
+
+
+@pytest.mark.django_db
 class TestCommentModel:
     def test_is_approved_false_by_default(self):
         comment = CommentFactory()
@@ -181,9 +233,7 @@ class TestPostImageCompression:
     def test_large_image_is_resized(self):
         """Image larger than 1920x1080 is resized down."""
         user = UserFactory()
-        post_image = PostImage(
-            image=_make_test_image(3000, 2000), uploaded_by=user
-        )
+        post_image = PostImage(image=_make_test_image(3000, 2000), uploaded_by=user)
         post_image.save()
 
         img = Image.open(post_image.image)
@@ -194,9 +244,7 @@ class TestPostImageCompression:
     def test_small_image_not_upscaled(self):
         """Image smaller than max size keeps its dimensions."""
         user = UserFactory()
-        post_image = PostImage(
-            image=_make_test_image(800, 600), uploaded_by=user
-        )
+        post_image = PostImage(image=_make_test_image(800, 600), uploaded_by=user)
         post_image.save()
 
         img = Image.open(post_image.image)

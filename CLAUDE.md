@@ -92,6 +92,8 @@ class Post(models.Model):
     draft_title = models.CharField(max_length=200, blank=True)
     draft_content = models.TextField(blank=True)
     has_draft = models.BooleanField(default=False)
+    is_pinned = models.BooleanField(default=False, db_index=True)  # max 3 pinned
+    pinned_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -142,6 +144,8 @@ class Profile(models.Model):
 /api/blog/posts/<slug>/cover-image/ → Upload (POST) et suppression (DELETE) de l'image de couverture
 /api/blog/posts/<slug>/autosave/   → Sauvegarde auto du brouillon
 /api/blog/posts/<slug>/publish/    → Publication d'un article
+/api/blog/posts/<slug>/pin/        → Épingle (POST) / désépingle (DELETE) un article publié (auteur, 3 max)
+/api/blog/posts/pinned/            → Liste publique des articles épinglés (tri par pinned_at desc)
 /api/blog/posts/<slug>/comments/   → Création de commentaire
 /api/blog/comments/<id>/           → Suppression de commentaire
 /api/blog/posts/<slug>/versions/   → Liste paginée des versions (auteur uniquement)

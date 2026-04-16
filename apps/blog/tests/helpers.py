@@ -13,6 +13,13 @@ def api_publish_url(slug):
     return f"/api/blog/posts/{slug}/publish/"
 
 
+def api_pin_url(slug):
+    return f"/api/blog/posts/{slug}/pin/"
+
+
+API_POSTS_PINNED_URL = "/api/blog/posts/pinned/"
+
+
 def api_comments_url(slug):
     return f"/api/blog/posts/{slug}/comments/"
 

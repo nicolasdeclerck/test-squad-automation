@@ -1,17 +1,28 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import Pagination from "../ui/Pagination";
+import FeaturedPosts from "./FeaturedPosts";
 import PostCard from "./PostCard";
 
 export default function PostList({ isHome = false }) {
   const [posts, setPosts] = useState([]);
+  const [pinnedPosts, setPinnedPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [showFullListLink, setShowFullListLink] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1", 10);
+
+  const fetchPinned = useCallback(() => {
+    if (!isHome) return;
+    api.get("/api/blog/posts/pinned/").then((res) => {
+      if (res.ok) {
+        setPinnedPosts(Array.isArray(res.data) ? res.data : []);
+      }
+    });
+  }, [isHome]);
 
   useEffect(() => {
     setLoading(true);
@@ -30,7 +41,18 @@ export default function PostList({ isHome = false }) {
       }
       setLoading(false);
     });
-  }, [page, isHome]);
+    fetchPinned();
+  }, [page, isHome, fetchPinned]);
+
+  const handlePostChange = useCallback(
+    (updated) => {
+      setPosts((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+      );
+      fetchPinned();
+    },
+    [fetchPinned]
+  );
 
   if (loading) {
     return (
@@ -55,6 +77,10 @@ export default function PostList({ isHome = false }) {
           }
         />
       </Helmet>
+      {isHome && pinnedPosts.length > 0 && (
+        <FeaturedPosts posts={pinnedPosts} />
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
         {!isHome && (
@@ -71,7 +97,11 @@ export default function PostList({ isHome = false }) {
         <>
           <div>
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard
+                key={post.id}
+                post={post}
+                onChange={handlePostChange}
+              />
             ))}
           </div>
 

@@ -11,6 +11,7 @@ from apps.blog.models import Post, PostImage, PostVideo
 
 from .factories import CommentFactory, PostFactory, PostVersionFactory
 from .helpers import (
+    API_POSTS_PINNED_URL,
     API_POSTS_URL,
     API_UPLOAD_IMAGE_URL,
     API_UPLOAD_VIDEO_URL,
@@ -18,6 +19,7 @@ from .helpers import (
     api_comment_delete_url,
     api_comments_url,
     api_cover_image_url,
+    api_pin_url,
     api_post_url,
     api_publish_url,
     api_version_detail_url,
@@ -64,7 +66,9 @@ class TestPostListAPI:
         assert author["last_name"] == "Dupont"
 
     def test_list_contains_plain_content(self):
-        PostFactory(content='[{"type":"paragraph","content":[{"type":"text","text":"Hello world"}]}]')
+        PostFactory(
+            content='[{"type":"paragraph","content":[{"type":"text","text":"Hello world"}]}]'
+        )
         response = self.client.get(API_POSTS_URL)
         data = response.json()
         assert "Hello world" in data["results"][0]["plain_content"]
@@ -231,9 +235,7 @@ class TestPostUpdateAPI:
 
     def test_update_own_draft_post(self):
         user = SuperUserFactory()
-        post = PostFactory(
-            author=user, status=Post.STATUS_DRAFT, title="Draft Title"
-        )
+        post = PostFactory(author=user, status=Post.STATUS_DRAFT, title="Draft Title")
         self.client.force_login(user)
         response = self.client.patch(
             api_post_url(post.slug),
@@ -368,10 +370,12 @@ class TestPostAutoSaveAPI:
         self.client.force_login(user)
         response = self.client.patch(
             api_autosave_url(post.slug),
-            data=json.dumps({
-                "draft_title": "Nouveau brouillon",
-                "draft_content": "Contenu brouillon",
-            }),
+            data=json.dumps(
+                {
+                    "draft_title": "Nouveau brouillon",
+                    "draft_content": "Contenu brouillon",
+                }
+            ),
             content_type="application/json",
         )
         assert response.status_code == 200
@@ -498,6 +502,165 @@ class TestPostPublishAPI:
 
 
 @pytest.mark.django_db
+class TestPostPinAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_pin_requires_auth(self):
+        post = PostFactory()
+        response = self.client.post(api_pin_url(post.slug))
+        assert response.status_code == 403
+
+    def test_pin_only_author(self):
+        post = PostFactory(author=SuperUserFactory())
+        other = SuperUserFactory()
+        self.client.force_login(other)
+        response = self.client.post(api_pin_url(post.slug))
+        assert response.status_code == 404
+
+    def test_pin_published_post(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status=Post.STATUS_PUBLISHED)
+        self.client.force_login(user)
+        response = self.client.post(api_pin_url(post.slug))
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.is_pinned is True
+        assert post.pinned_at is not None
+        assert response.json()["is_pinned"] is True
+
+    def test_pin_draft_returns_400(self):
+        user = SuperUserFactory()
+        post = PostFactory(
+            author=user,
+            status=Post.STATUS_DRAFT,
+            draft_title="x",
+            has_draft=True,
+        )
+        self.client.force_login(user)
+        response = self.client.post(api_pin_url(post.slug))
+        assert response.status_code == 400
+        assert (
+            "publiés" in response.json()["error"].lower()
+            or "publies" in response.json()["error"].lower()
+        )
+        post.refresh_from_db()
+        assert post.is_pinned is False
+
+    def test_pin_limit_enforced(self):
+        user = SuperUserFactory()
+        for _ in range(Post.MAX_PINNED_POSTS):
+            PostFactory(
+                author=user,
+                status=Post.STATUS_PUBLISHED,
+                is_pinned=True,
+            )
+        extra = PostFactory(author=user, status=Post.STATUS_PUBLISHED)
+        self.client.force_login(user)
+        response = self.client.post(api_pin_url(extra.slug))
+        assert response.status_code == 400
+        extra.refresh_from_db()
+        assert extra.is_pinned is False
+
+    def test_pin_limit_counts_across_authors(self):
+        """Le plafond est global, tous auteurs confondus."""
+        for _ in range(Post.MAX_PINNED_POSTS):
+            PostFactory(
+                author=SuperUserFactory(),
+                status=Post.STATUS_PUBLISHED,
+                is_pinned=True,
+            )
+        user = SuperUserFactory()
+        extra = PostFactory(author=user, status=Post.STATUS_PUBLISHED)
+        self.client.force_login(user)
+        response = self.client.post(api_pin_url(extra.slug))
+        assert response.status_code == 400
+
+    def test_unpin_resets_flag(self):
+        user = SuperUserFactory()
+        post = PostFactory(
+            author=user,
+            status=Post.STATUS_PUBLISHED,
+            is_pinned=True,
+        )
+        self.client.force_login(user)
+        response = self.client.delete(api_pin_url(post.slug))
+        assert response.status_code == 200
+        post.refresh_from_db()
+        assert post.is_pinned is False
+        assert post.pinned_at is None
+
+    def test_unpin_only_author(self):
+        post = PostFactory(
+            author=SuperUserFactory(),
+            status=Post.STATUS_PUBLISHED,
+            is_pinned=True,
+        )
+        other = SuperUserFactory()
+        self.client.force_login(other)
+        response = self.client.delete(api_pin_url(post.slug))
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestPostPinnedListAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_pinned_list_is_public(self):
+        response = self.client.get(API_POSTS_PINNED_URL)
+        assert response.status_code == 200
+
+    def test_pinned_list_returns_only_pinned_published(self):
+        from django.utils import timezone
+
+        pinned = PostFactory(
+            status=Post.STATUS_PUBLISHED,
+            is_pinned=True,
+            pinned_at=timezone.now(),
+        )
+        PostFactory(status=Post.STATUS_PUBLISHED, is_pinned=False)
+        PostFactory(status=Post.STATUS_DRAFT, is_pinned=True)
+
+        response = self.client.get(API_POSTS_PINNED_URL)
+        data = response.json()
+        slugs = [item["slug"] for item in data]
+        assert slugs == [pinned.slug]
+
+    def test_pinned_list_ordered_by_pinned_at_desc(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        now = timezone.now()
+        oldest = PostFactory(
+            status=Post.STATUS_PUBLISHED,
+            is_pinned=True,
+            pinned_at=now - timedelta(hours=2),
+        )
+        middle = PostFactory(
+            status=Post.STATUS_PUBLISHED,
+            is_pinned=True,
+            pinned_at=now - timedelta(hours=1),
+        )
+        newest = PostFactory(
+            status=Post.STATUS_PUBLISHED,
+            is_pinned=True,
+            pinned_at=now,
+        )
+
+        response = self.client.get(API_POSTS_PINNED_URL)
+        data = response.json()
+        slugs = [item["slug"] for item in data]
+        assert slugs == [newest.slug, middle.slug, oldest.slug]
+
+    def test_pinned_list_empty_when_none(self):
+        PostFactory(status=Post.STATUS_PUBLISHED, is_pinned=False)
+        response = self.client.get(API_POSTS_PINNED_URL)
+        assert response.json() == []
+
+
+@pytest.mark.django_db
 class TestPostVersionListAPI:
     def setup_method(self):
         self.client = Client()
@@ -588,9 +751,7 @@ class TestPostVersionDetailAPI:
     def test_post_not_found(self):
         user = UserFactory()
         self.client.force_login(user)
-        response = self.client.get(
-            api_version_detail_url("nonexistent-slug", 1)
-        )
+        response = self.client.get(api_version_detail_url("nonexistent-slug", 1))
         assert response.status_code == 404
 
 
@@ -623,9 +784,7 @@ class TestPostVersionRestoreAPI:
         post = PostFactory(
             author=SuperUserFactory(), has_draft=False, status=Post.STATUS_PUBLISHED
         )
-        PostVersionFactory(
-            post=post, version_number=1, title="V1", content="C1"
-        )
+        PostVersionFactory(post=post, version_number=1, title="V1", content="C1")
         self.client.force_login(post.author)
         self.client.post(api_version_restore_url(post.slug, 1))
         post.refresh_from_db()
@@ -820,10 +979,12 @@ class TestContinuousDraftWorkflow:
         # Step 3: Autosave modifications
         response = self.client.patch(
             api_autosave_url(slug),
-            data=json.dumps({
-                "draft_title": "Mon article V2",
-                "draft_content": "Contenu V2",
-            }),
+            data=json.dumps(
+                {
+                    "draft_title": "Mon article V2",
+                    "draft_content": "Contenu V2",
+                }
+            ),
             content_type="application/json",
         )
         assert response.status_code == 200
@@ -882,7 +1043,12 @@ def _create_test_image(fmt="JPEG", size=(100, 100)):
     img.save(buf, format=fmt)
     buf.seek(0)
     ext = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}[fmt]
-    content_type = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}[fmt]
+    content_type = {
+        "JPEG": "image/jpeg",
+        "PNG": "image/png",
+        "WEBP": "image/webp",
+        "GIF": "image/gif",
+    }[fmt]
     return SimpleUploadedFile(f"test.{ext}", buf.read(), content_type=content_type)
 
 
@@ -964,9 +1130,7 @@ def _create_test_video(fmt="mp4", size_bytes=1024):
     # Minimal valid-looking video content (not a real video, but enough for
     # the validator which checks mime type by extension, not file content)
     data = b"\x00" * size_bytes
-    return SimpleUploadedFile(
-        f"test.{fmt}", data, content_type=content_types[fmt]
-    )
+    return SimpleUploadedFile(f"test.{fmt}", data, content_type=content_types[fmt])
 
 
 @pytest.mark.django_db
