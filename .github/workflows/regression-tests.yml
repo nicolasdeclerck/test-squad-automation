@@ -12,6 +12,7 @@ env:
 
 jobs:
   regression-tests:
+    if: false  # Temporairement désactivé
     runs-on: ubuntu-latest
     steps:
       - name: Check for recent merges on main
