@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   ticket-workflow:
-    if: github.event.label.name == 'analyze'
+    if: false  # Temporairement désactivé (condition originale: github.event.label.name == 'analyze')
     runs-on: ubuntu-latest
     steps:
       - name: Check Claude MAX session
