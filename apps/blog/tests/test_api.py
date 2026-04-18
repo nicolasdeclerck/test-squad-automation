@@ -73,6 +73,15 @@ class TestPostListAPI:
         data = response.json()
         assert "Hello world" in data["results"][0]["plain_content"]
 
+    def test_list_with_empty_content_does_not_crash(self):
+        # Regression: PostListSerializer.get_reading_time_minutes raised
+        # ZeroDivisionError when Post.content was an empty string.
+        PostFactory(content="")
+        response = self.client.get(API_POSTS_URL)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["results"][0]["reading_time_minutes"] == 1
+
     def test_list_drafts_requires_auth(self):
         PostFactory(status="draft")
         response = self.client.get(f"{API_POSTS_URL}?status=draft")
