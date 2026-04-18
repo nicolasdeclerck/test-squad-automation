@@ -75,6 +75,8 @@ class PostListSerializer(serializers.ModelSerializer):
         """Estime le temps de lecture (en minutes) affiché sur la liste."""
         text = obj.content or ""
         word_count = len(text.split())
+        if word_count == 0:
+            return 1
         # On ajuste la vitesse selon la densité (caractères par mot)
         # pour les contenus techniques avec des mots longs.
         avg_word_length = len(text) / word_count
