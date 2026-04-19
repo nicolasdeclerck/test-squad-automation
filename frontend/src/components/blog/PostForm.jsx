@@ -67,8 +67,8 @@ function SaveStatusIndicator({ saveStatus, lastSavedAt }) {
     },
     error: {
       text: "Erreur de sauvegarde",
-      dot: "#b54b1a",
-      color: "#b54b1a",
+      dot: "#15803d",
+      color: "#15803d",
     },
   };
 

@@ -78,7 +78,11 @@
   }
 
   .nav-link {
-    @apply text-sm text-editorial-dim hover:text-editorial-ink transition-colors;
+    @apply text-[13px] text-editorial-dim hover:text-editorial-ink transition-colors font-normal;
+  }
+
+  .nav-link-active {
+    @apply text-[13px] text-editorial-ink font-medium;
   }
 }
 
@@ -170,7 +174,7 @@
 .article-prose a {
   color: #111;
   text-decoration: underline;
-  text-decoration-color: #b54b1a;
+  text-decoration-color: #15803d;
   text-underline-offset: 3px;
   text-decoration-thickness: 1.5px;
 }

@@ -31,7 +31,7 @@ function CommentAvatar({ author, size = 28 }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "#ece8dd",
+        background: "#e3eee0",
         color: "#1f1f1f",
         display: "flex",
         alignItems: "center",

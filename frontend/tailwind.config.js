@@ -22,7 +22,7 @@ export default {
           rule: "#e7e5e0",
           rule2: "#f0efeb",
           paper: "#fbfaf7",
-          accent: "#b54b1a",
+          accent: "#15803d",
         },
       },
     },
