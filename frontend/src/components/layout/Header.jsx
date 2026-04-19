@@ -26,17 +26,17 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200">
-      <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+    <header className="border-b border-editorial-rule bg-white sticky top-0 z-10">
+      <div className="max-w-[1200px] mx-auto px-5 sm:px-10 py-4 flex items-center justify-between">
         <Link
           to="/"
-          className="text-base font-semibold text-gray-900 hover:text-black"
+          className="text-sm font-semibold text-editorial-ink hover:text-editorial-ink2 tracking-[2px]"
         >
           NICKORP
         </Link>
 
         {/* Navigation desktop */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-7">
           <Link to="/" className="nav-link">
             Accueil
           </Link>
@@ -68,10 +68,10 @@ export default function Header() {
                   <Avatar user={user} size="md" />
                 </button>
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-editorial-rule rounded-[3px] shadow-lg py-1 z-50">
                     <Link
                       to="/comptes/profil/modifier"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="block px-4 py-2 text-sm text-editorial-text hover:bg-editorial-rule2"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Mon profil
@@ -79,7 +79,7 @@ export default function Header() {
                     {user.is_superuser && (
                       <Link
                         to="/articles/mes-brouillons"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-editorial-text hover:bg-editorial-rule2"
                         onClick={() => setDropdownOpen(false)}
                       >
                         Mes brouillons
@@ -87,7 +87,7 @@ export default function Header() {
                     )}
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="block w-full text-left px-4 py-2 text-sm text-editorial-text hover:bg-editorial-rule2"
                     >
                       Se d&eacute;connecter
                     </button>
@@ -110,7 +110,7 @@ export default function Header() {
         {/* Hamburger mobile */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          className="md:hidden inline-flex items-center justify-center p-2 rounded-[3px] text-editorial-ink2 hover:text-editorial-ink hover:bg-editorial-rule2"
           aria-expanded={mobileOpen}
           aria-label="Menu de navigation"
         >
@@ -148,7 +148,7 @@ export default function Header() {
 
       {/* Menu mobile */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-200 px-4 py-4">
+        <div className="md:hidden border-t border-editorial-rule px-5 py-4">
           <nav className="flex flex-col gap-3">
             <Link
               to="/"
@@ -172,7 +172,7 @@ export default function Header() {
               Contact
             </Link>
           </nav>
-          <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-3">
+          <div className="mt-4 pt-4 border-t border-editorial-rule flex flex-col gap-3">
             {user ? (
               <>
                 <Link

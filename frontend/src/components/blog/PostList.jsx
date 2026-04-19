@@ -56,16 +56,17 @@ export default function PostList({ isHome = false }) {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <p className="text-gray-500 text-center">Chargement...</p>
+      <div className="max-w-[1200px] mx-auto px-5 sm:px-10 py-12">
+        <p className="text-editorial-dim text-center">Chargement…</p>
       </div>
     );
   }
 
   const title = isHome ? "Derniers articles" : "Tous les articles";
+  const eyebrow = isHome ? "Journal" : "Archives";
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
+    <div className="max-w-[1200px] mx-auto px-5 sm:px-10 py-12 lg:py-16">
       <Helmet>
         <title>{isHome ? "NICKORP" : title}</title>
         <meta
@@ -77,58 +78,84 @@ export default function PostList({ isHome = false }) {
           }
         />
       </Helmet>
+
+      <div className="max-w-[760px]">
+        <p
+          className="font-sans text-editorial-accent font-semibold mb-3"
+          style={{
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+          }}
+        >
+          {eyebrow}
+        </p>
+        <div className="flex items-end justify-between gap-6 mb-12">
+          <h1
+            className="font-serif text-editorial-ink"
+            style={{
+              fontSize: "clamp(32px, 4.6vw, 54px)",
+              lineHeight: 1.05,
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              margin: 0,
+            }}
+          >
+            {title}
+          </h1>
+          {!isHome && (
+            <Link
+              to="/"
+              className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors shrink-0 pb-2"
+            >
+              ← Retour
+            </Link>
+          )}
+        </div>
+      </div>
+
       {isHome && pinnedPosts.length > 0 && (
         <FeaturedPosts posts={pinnedPosts} />
       )}
 
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-        {!isHome && (
-          <Link
-            to="/"
-            className="text-sm text-gray-500 hover:text-black transition-colors"
-          >
-            Retour
-          </Link>
+      <div className="max-w-[760px]">
+        {posts.length > 0 ? (
+          <>
+            <div className="border-t border-editorial-rule">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onChange={handlePostChange}
+                />
+              ))}
+            </div>
+
+            {isHome && showFullListLink && (
+              <div className="mt-10 text-center">
+                <Link
+                  to="/articles"
+                  className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
+                >
+                  Voir tous les articles →
+                </Link>
+              </div>
+            )}
+
+            {!isHome && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                setSearchParams={setSearchParams}
+              />
+            )}
+          </>
+        ) : (
+          <p className="text-editorial-dim text-center mt-12 italic">
+            Aucun article pour le moment.
+          </p>
         )}
       </div>
-
-      {posts.length > 0 ? (
-        <>
-          <div>
-            {posts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                onChange={handlePostChange}
-              />
-            ))}
-          </div>
-
-          {isHome && showFullListLink && (
-            <div className="mt-8 text-center">
-              <Link
-                to="/articles"
-                className="text-sm text-gray-500 hover:text-black transition-colors"
-              >
-                Voir tous les articles
-              </Link>
-            </div>
-          )}
-
-          {!isHome && (
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              setSearchParams={setSearchParams}
-            />
-          )}
-        </>
-      ) : (
-        <p className="text-gray-500 text-center mt-12">
-          Aucun article pour le moment.
-        </p>
-      )}
     </div>
   );
 }
