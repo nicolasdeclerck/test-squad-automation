@@ -41,7 +41,8 @@
       "Bash(cp .env.example .env.preprod)",
       "Bash(cp .env.example .env.test)",
       "Bash(cp .env.example .env.prod)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(gh pr create --title 'chore: retirer les skills browser/tests/ticket-workflow' --body ' *)"
     ]
   }
 }
