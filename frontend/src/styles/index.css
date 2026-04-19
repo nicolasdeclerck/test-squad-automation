@@ -272,6 +272,35 @@
   margin: 32px 0;
 }
 
+.article-prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin: 28px 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+.article-prose th,
+.article-prose td {
+  border: 1px solid rgb(var(--color-editorial-rule));
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.article-prose th {
+  background: rgb(var(--color-editorial-code-bg));
+  color: rgb(var(--color-editorial-ink));
+  font-weight: 600;
+}
+
+.article-prose tbody tr:nth-child(even) td {
+  background: rgb(var(--color-editorial-ink) / 0.03);
+}
+
 .article-prose hr {
   border: none;
   border-top: 1px solid rgb(var(--color-editorial-rule));
