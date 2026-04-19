@@ -39,9 +39,7 @@ project/
 │   │   ├── api_views.py
 │   │   ├── serializers.py
 │   │   └── tests/
-│   └── core/                # Pages statiques, dev tracking GitHub (API REST)
-│       ├── api_views.py
-│       ├── services.py      # Intégration API GitHub
+│   └── core/                # Pages statiques (API REST)
 │       └── views.py
 ├── frontend/                # Application React (Vite)
 │   ├── src/
@@ -162,9 +160,6 @@ class Profile(models.Model):
 /api/accounts/me/                  → Utilisateur courant
 /api/accounts/profile/             → Mise à jour du profil
 /api/accounts/avatar/delete/       → Suppression de l'avatar
-
-# Core
-/api/core/dev-tracking/            → Suivi des issues GitHub
 ```
 
 ## Conventions de code
@@ -230,8 +225,6 @@ SECRET_KEY=...
 DATABASE_URL=postgres://user:pass@postgres:5432/blog
 REDIS_URL=redis://redis:6379/0
 ALLOWED_HOSTS=localhost,127.0.0.1
-GITHUB_REPO_API_URL=https://api.github.com/repos/...
-GITHUB_API_TOKEN=...
 ```
 
 ## Règles de développement

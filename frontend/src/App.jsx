@@ -22,7 +22,6 @@ import PostList from "./components/blog/PostList";
 import VersionDetail from "./components/blog/VersionDetail";
 import VersionHistory from "./components/blog/VersionHistory";
 import Contact from "./components/core/Contact";
-import DevTracking from "./components/core/DevTracking";
 import Layout from "./components/layout/Layout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
@@ -139,14 +138,6 @@ const router = createBrowserRouter([
         ),
       },
       { path: "/contact", element: <Contact /> },
-      {
-        path: "/suivi-des-devs",
-        element: (
-          <ProtectedRoute>
-            <DevTracking />
-          </ProtectedRoute>
-        ),
-      },
     ],
   },
 ]);
