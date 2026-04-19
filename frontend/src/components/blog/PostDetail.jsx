@@ -85,7 +85,7 @@ function AuthorAvatar({ user, size = 36 }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "#ddd6c8",
+        background: "#d4e7d6",
         color: "#1f1f1f",
         display: "flex",
         alignItems: "center",

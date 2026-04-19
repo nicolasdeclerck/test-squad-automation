@@ -24,7 +24,8 @@ export default function Avatar({ user, size = "sm" }) {
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gray-300 flex items-center justify-center text-white font-medium shrink-0`}
+      className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-medium shrink-0`}
+      style={{ background: "#d4e7d6", color: "#1f1f1f" }}
     >
       {initial}
     </div>
