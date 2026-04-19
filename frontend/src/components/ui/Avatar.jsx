@@ -25,7 +25,10 @@ export default function Avatar({ user, size = "sm" }) {
   return (
     <div
       className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-medium shrink-0`}
-      style={{ background: "#d4e7d6", color: "#1f1f1f" }}
+      style={{
+        background: "rgb(var(--color-editorial-avatar-bg))",
+        color: "rgb(var(--color-editorial-avatar-fg))",
+      }}
     >
       {initial}
     </div>

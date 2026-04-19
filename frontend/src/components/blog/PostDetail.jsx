@@ -85,8 +85,8 @@ function AuthorAvatar({ user, size = 36 }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "#d4e7d6",
-        color: "#1f1f1f",
+        background: "rgb(var(--color-editorial-avatar-bg))",
+        color: "rgb(var(--color-editorial-avatar-fg))",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -142,15 +142,15 @@ function OwnerActions({
   };
   const neutral = {
     ...base,
-    border: "1px solid #e7e5e0",
-    background: "#fff",
-    color: "#2a2a2a",
+    border: "1px solid rgb(var(--color-editorial-rule))",
+    background: "rgb(var(--color-editorial-card))",
+    color: "rgb(var(--color-editorial-text))",
   };
   const primary = {
     ...base,
-    border: "1px solid #111",
-    background: "#111",
-    color: "#fff",
+    border: "1px solid rgb(var(--color-editorial-ink))",
+    background: "rgb(var(--color-editorial-ink))",
+    color: "rgb(var(--color-editorial-paper))",
   };
   const canPublishDraft = post.status === "draft";
   const canPublishChanges = post.status === "published" && post.has_draft;
@@ -163,8 +163,8 @@ function OwnerActions({
         flexWrap: "wrap",
         alignItems: "center",
         padding: "10px 0",
-        borderTop: "1px solid #e7e5e0",
-        borderBottom: "1px solid #e7e5e0",
+        borderTop: "1px solid rgb(var(--color-editorial-rule))",
+        borderBottom: "1px solid rgb(var(--color-editorial-rule))",
         margin: "28px 0",
       }}
     >
@@ -172,7 +172,7 @@ function OwnerActions({
         style={{
           fontFamily: '"Inter", system-ui, sans-serif',
           fontSize: 11,
-          color: "#6b6b6b",
+          color: "rgb(var(--color-editorial-dim))",
           textTransform: "uppercase",
           letterSpacing: 1,
           fontWeight: 500,
@@ -246,7 +246,7 @@ function OwnerActions({
           style={{
             fontFamily: '"Inter", system-ui, sans-serif',
             fontSize: 11,
-            color: "#15803d",
+            color: "rgb(var(--color-editorial-accent))",
             alignSelf: "center",
             fontStyle: "italic",
           }}
@@ -369,7 +369,7 @@ export default function PostDetail() {
   const hasDraftChanges = post.status === "published" && post.has_draft;
 
   return (
-    <div className="bg-white">
+    <div className="bg-editorial-paper">
       <Helmet>
         <title>{displayTitle}</title>
         <meta
@@ -425,12 +425,12 @@ export default function PostDetail() {
                   style={{
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#1f1f1f",
+                    color: "rgb(var(--color-editorial-ink2))",
                   }}
                 >
                   {authorName}
                 </div>
-                <div style={{ fontSize: 12, color: "#6b6b6b" }}>
+                <div style={{ fontSize: 12, color: "rgb(var(--color-editorial-dim))" }}>
                   {new Date(publishedDate).toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "long",
@@ -483,7 +483,7 @@ export default function PostDetail() {
             <div
               className="mt-14 pt-6"
               style={{
-                borderTop: "1px solid #e7e5e0",
+                borderTop: "1px solid rgb(var(--color-editorial-rule))",
                 fontFamily: '"Inter", system-ui, sans-serif',
               }}
             >

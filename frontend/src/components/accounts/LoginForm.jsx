@@ -32,7 +32,7 @@ export default function LoginForm() {
         <title>Se connecter</title>
         <meta name="description" content="Connectez-vous \u00e0 votre compte pour acc\u00e9der au blog." />
       </Helmet>
-      <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
+      <h1 className="text-2xl font-bold text-editorial-ink text-center mb-8">
         Se connecter
       </h1>
 
@@ -93,18 +93,18 @@ export default function LoginForm() {
       </form>
 
       <div className="mt-6 text-center space-y-2">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-editorial-dim">
           Pas encore de compte ?{" "}
           <Link
             to="/comptes/inscription"
-            className="text-gray-900 hover:text-black font-medium"
+            className="text-editorial-ink hover:text-editorial-ink2 font-medium"
           >
             Cr&eacute;er un compte
           </Link>
         </p>
         <Link
           to="/"
-          className="text-sm text-gray-500 hover:text-black block"
+          className="text-sm text-editorial-dim hover:text-editorial-ink block"
         >
           Retour
         </Link>

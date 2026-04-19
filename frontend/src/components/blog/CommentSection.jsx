@@ -31,8 +31,8 @@ function CommentAvatar({ author, size = 28 }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "#e3eee0",
-        color: "#1f1f1f",
+        background: "rgb(var(--color-editorial-avatar-bg-alt))",
+        color: "rgb(var(--color-editorial-avatar-fg))",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -121,12 +121,12 @@ export default function CommentSection({ comments: initialComments, slug: _slug 
                     style={{
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#1f1f1f",
+                      color: "rgb(var(--color-editorial-ink2))",
                     }}
                   >
                     {authorName}
                   </div>
-                  <div style={{ fontSize: 11, color: "#6b6b6b" }}>
+                  <div style={{ fontSize: 11, color: "rgb(var(--color-editorial-dim))" }}>
                     {formatRelative(comment.created_at)}
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function CommentSection({ comments: initialComments, slug: _slug 
                     style={{
                       border: "none",
                       background: "transparent",
-                      color: "#9a9a9a",
+                      color: "rgb(var(--color-editorial-dim2))",
                       cursor: "pointer",
                       padding: 4,
                       display: "inline-flex",
@@ -166,7 +166,7 @@ export default function CommentSection({ comments: initialComments, slug: _slug 
                 style={{
                   fontSize: 14,
                   lineHeight: 1.55,
-                  color: "#2a2a2a",
+                  color: "rgb(var(--color-editorial-text))",
                   paddingLeft: 38,
                 }}
               >
@@ -185,7 +185,7 @@ export default function CommentSection({ comments: initialComments, slug: _slug 
             style={{
               fontFamily: '"Inter", system-ui, sans-serif',
               fontSize: 12,
-              color: "#6b6b6b",
+              color: "rgb(var(--color-editorial-dim))",
               background: "transparent",
               border: "none",
               cursor: "pointer",

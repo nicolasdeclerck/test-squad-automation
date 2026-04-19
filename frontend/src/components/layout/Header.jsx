@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
+import ThemeToggle from "../ui/ThemeToggle";
 
 const navLinkClass = ({ isActive }) =>
   isActive ? "nav-link-active" : "nav-link";
@@ -29,7 +30,7 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-editorial-rule bg-white sticky top-0 z-10">
+    <header className="border-b border-editorial-rule bg-editorial-paper sticky top-0 z-10">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-10 py-4 flex items-center justify-between">
         <Link
           to="/"
@@ -53,12 +54,13 @@ export default function Header() {
 
         {/* Boutons auth desktop */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
           {user ? (
             <>
               {user.is_superuser && (
                 <Link
                   to="/articles/creer"
-                  className="inline-flex items-center text-[13px] font-medium bg-editorial-ink text-white hover:bg-editorial-ink2 transition-colors"
+                  className="inline-flex items-center text-[13px] font-medium bg-editorial-ink text-editorial-paper hover:bg-editorial-ink2 transition-colors"
                   style={{ padding: "8px 14px", borderRadius: 3 }}
                 >
                   Ajouter un article
@@ -70,12 +72,12 @@ export default function Header() {
                     e.stopPropagation();
                     setDropdownOpen(!dropdownOpen);
                   }}
-                  className="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                  className="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-editorial-ink focus:ring-offset-2 focus:ring-offset-editorial-paper"
                 >
                   <Avatar user={user} size="md" />
                 </button>
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-editorial-rule rounded-[3px] shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-editorial-paper border border-editorial-rule rounded-[3px] shadow-lg py-1 z-50">
                     <Link
                       to="/comptes/profil/modifier"
                       className="block px-4 py-2 text-sm text-editorial-text hover:bg-editorial-rule2"
@@ -114,13 +116,15 @@ export default function Header() {
           )}
         </div>
 
-        {/* Hamburger mobile */}
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden inline-flex items-center justify-center p-2 rounded-[3px] text-editorial-ink2 hover:text-editorial-ink hover:bg-editorial-rule2"
-          aria-expanded={mobileOpen}
-          aria-label="Menu de navigation"
-        >
+        {/* Toggle thème + hamburger mobile */}
+        <div className="md:hidden flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="inline-flex items-center justify-center p-2 rounded-[3px] text-editorial-ink2 hover:text-editorial-ink hover:bg-editorial-rule2"
+            aria-expanded={mobileOpen}
+            aria-label="Menu de navigation"
+          >
           {mobileOpen ? (
             <svg
               className="h-6 w-6"
@@ -150,7 +154,8 @@ export default function Header() {
               />
             </svg>
           )}
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Menu mobile */}

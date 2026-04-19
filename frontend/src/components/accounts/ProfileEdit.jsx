@@ -161,11 +161,11 @@ export default function ProfileEdit() {
 
         {errors.non_field_errors && (
           <div
-            className="mb-6 px-4 py-3 border border-red-200 bg-red-50"
+            className="mb-6 px-4 py-3 border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/30"
             style={{ borderRadius: 3 }}
           >
             {errors.non_field_errors.map((err, i) => (
-              <p key={i} className="font-sans text-sm text-red-700">
+              <p key={i} className="font-sans text-sm text-red-700 dark:text-red-300">
                 {err}
               </p>
             ))}

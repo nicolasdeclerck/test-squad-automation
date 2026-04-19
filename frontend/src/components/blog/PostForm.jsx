@@ -8,6 +8,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
 import { api } from "../../api/client";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg"];
 
@@ -31,6 +32,7 @@ async function uploadFile(file) {
 }
 
 function BlockNoteEditor({ initialContent, editorRef, onChange }) {
+  const { resolved } = useTheme();
   const editor = useCreateBlockNote({
     initialContent: initialContent || undefined,
     uploadFile,
@@ -43,7 +45,7 @@ function BlockNoteEditor({ initialContent, editorRef, onChange }) {
   return (
     <BlockNoteView
       editor={editor}
-      theme="light"
+      theme={resolved}
       onChange={onChange}
     />
   );
@@ -55,20 +57,20 @@ function SaveStatusIndicator({ saveStatus, lastSavedAt }) {
   const statusConfig = {
     saving: {
       text: "Sauvegarde en cours…",
-      dot: "#9a9a9a",
-      color: "#6b6b6b",
+      dot: "rgb(var(--color-editorial-dim2))",
+      color: "rgb(var(--color-editorial-dim))",
     },
     saved: {
       text: lastSavedAt
         ? `Brouillon enregistré · ${lastSavedAt}`
         : "Brouillon enregistré",
-      dot: "#9ea69a",
-      color: "#6b6b6b",
+      dot: "rgb(var(--color-editorial-accent))",
+      color: "rgb(var(--color-editorial-dim))",
     },
     error: {
       text: "Erreur de sauvegarde",
-      dot: "#15803d",
-      color: "#15803d",
+      dot: "rgb(var(--color-editorial-accent))",
+      color: "rgb(var(--color-editorial-accent))",
     },
   };
 
@@ -518,7 +520,7 @@ export default function PostForm() {
       </div>
 
       {errors.non_field_errors && (
-        <div className="mb-6 p-3 border border-red-200 rounded-[3px] bg-red-50">
+        <div className="mb-6 p-3 border border-red-200 dark:border-red-700 rounded-[3px] bg-red-50 dark:bg-red-900/30">
           {errors.non_field_errors.map((err, i) => (
             <p key={i} className="form-error">
               {err}
@@ -540,7 +542,7 @@ export default function PostForm() {
               <button
                 type="button"
                 onClick={handleCoverImageDelete}
-                className="absolute top-2 right-2 bg-editorial-ink text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-sm"
+                className="absolute top-2 right-2 bg-editorial-ink text-editorial-paper rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-sm"
                 aria-label="Supprimer l'image de couverture"
                 title="Supprimer l'image de couverture"
               >

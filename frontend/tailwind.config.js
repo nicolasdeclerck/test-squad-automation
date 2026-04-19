@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
@@ -14,15 +15,16 @@ export default {
       },
       colors: {
         editorial: {
-          ink: "#111111",
-          ink2: "#1f1f1f",
-          text: "#2a2a2a",
-          dim: "#6b6b6b",
-          dim2: "#9a9a9a",
-          rule: "#e7e5e0",
-          rule2: "#f0efeb",
-          paper: "#fbfaf7",
-          accent: "#15803d",
+          ink: "rgb(var(--color-editorial-ink) / <alpha-value>)",
+          ink2: "rgb(var(--color-editorial-ink2) / <alpha-value>)",
+          text: "rgb(var(--color-editorial-text) / <alpha-value>)",
+          dim: "rgb(var(--color-editorial-dim) / <alpha-value>)",
+          dim2: "rgb(var(--color-editorial-dim2) / <alpha-value>)",
+          rule: "rgb(var(--color-editorial-rule) / <alpha-value>)",
+          rule2: "rgb(var(--color-editorial-rule2) / <alpha-value>)",
+          paper: "rgb(var(--color-editorial-paper) / <alpha-value>)",
+          card: "rgb(var(--color-editorial-card) / <alpha-value>)",
+          accent: "rgb(var(--color-editorial-accent) / <alpha-value>)",
         },
       },
     },

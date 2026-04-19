@@ -33,7 +33,7 @@ export default function SignupForm() {
         <title>Cr&eacute;er un compte</title>
         <meta name="description" content="Cr\u00e9ez votre compte pour acc\u00e9der au blog." />
       </Helmet>
-      <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
+      <h1 className="text-2xl font-bold text-editorial-ink text-center mb-8">
         Cr&eacute;er un compte
       </h1>
 
@@ -80,7 +80,7 @@ export default function SignupForm() {
             required
             className={`form-input${errors.password1 ? " border-red-500" : ""}`}
           />
-          <p className="text-gray-400 text-xs mt-1">
+          <p className="text-editorial-dim2 text-xs mt-1">
             Au moins 8 caract&egrave;res, pas trop courant ni enti&egrave;rement
             num&eacute;rique.
           </p>
@@ -118,18 +118,18 @@ export default function SignupForm() {
       </form>
 
       <div className="mt-6 text-center space-y-2">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-editorial-dim">
           D&eacute;j&agrave; un compte ?{" "}
           <Link
             to="/comptes/connexion"
-            className="text-gray-900 hover:text-black font-medium"
+            className="text-editorial-ink hover:text-editorial-ink2 font-medium"
           >
             Se connecter
           </Link>
         </p>
         <Link
           to="/"
-          className="text-sm text-gray-500 hover:text-black block"
+          className="text-sm text-editorial-dim hover:text-editorial-ink block"
         >
           Retour
         </Link>
