@@ -1,28 +1,54 @@
-import { Alert, Button, Textarea } from "@mantine/core";
+import { Alert } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 
-export default function CommentForm({ slug, onCommentAdded }) {
+export default function CommentForm({ slug, onCommentAdded, commentsCount = 0 }) {
   const { user } = useAuth();
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [focused, setFocused] = useState(false);
+
+  const header = (
+    <div
+      className="text-editorial-dim"
+      style={{
+        fontSize: 11,
+        textTransform: "uppercase",
+        letterSpacing: 1.5,
+        fontWeight: 500,
+        marginBottom: 18,
+      }}
+    >
+      Commentaires · {commentsCount}
+    </div>
+  );
 
   if (!user) {
     return (
-      <div className="text-center py-4">
-        <p className="text-sm text-gray-600">
+      <div>
+        {header}
+        <div
+          className="text-editorial-text"
+          style={{
+            border: "1px solid #e7e5e0",
+            padding: 14,
+            background: "#fff",
+            fontSize: 13,
+            lineHeight: 1.55,
+          }}
+        >
           <Link
             to="/comptes/connexion"
-            className="text-gray-900 font-medium hover:underline"
+            className="text-editorial-ink font-medium hover:underline"
           >
             Connectez-vous
           </Link>{" "}
-          pour poster un commentaire.
-        </p>
+          pour laisser un commentaire.
+        </div>
       </div>
     );
   }
@@ -41,6 +67,7 @@ export default function CommentForm({ slug, onCommentAdded }) {
 
     if (res.ok) {
       setContent("");
+      setFocused(false);
       setSuccessMsg(
         "Votre commentaire a été soumis et est en attente de modération."
       );
@@ -51,30 +78,76 @@ export default function CommentForm({ slug, onCommentAdded }) {
     setSubmitting(false);
   };
 
+  const expanded = focused || content.length > 0;
+
   return (
     <div>
+      {header}
       {successMsg && (
-        <Alert color="green" mb="sm">
+        <Alert color="green" mb="sm" variant="light" radius={2}>
           {successMsg}
         </Alert>
       )}
-      <form onSubmit={handleSubmit}>
-        <Textarea
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          border: "1px solid #e7e5e0",
+          background: "#fff",
+          padding: 14,
+        }}
+      >
+        <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          rows={3}
-          placeholder="Écrivez votre commentaire..."
-          error={error || undefined}
-          mb="sm"
+          onFocus={() => setFocused(true)}
+          onBlur={() => !content && setFocused(false)}
+          placeholder="Laisser un commentaire…"
+          rows={expanded ? 3 : 1}
+          style={{
+            width: "100%",
+            border: "none",
+            outline: "none",
+            resize: "vertical",
+            fontFamily: '"Inter", system-ui, sans-serif',
+            fontSize: 13,
+            lineHeight: 1.55,
+            color: "#2a2a2a",
+            background: "transparent",
+            fontStyle: content ? "normal" : "italic",
+          }}
         />
-        <Button
-          type="submit"
-          loading={submitting}
-          color="dark"
-          size="sm"
-        >
-          Publier le commentaire
-        </Button>
+        {error && (
+          <div className="text-red-600 text-xs mt-1">{error}</div>
+        )}
+        {expanded && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: 10,
+            }}
+          >
+            <button
+              type="submit"
+              disabled={submitting || !content.trim()}
+              style={{
+                fontFamily: '"Inter", system-ui, sans-serif',
+                fontSize: 12,
+                fontWeight: 500,
+                background: "#111",
+                color: "#fff",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: 3,
+                cursor: "pointer",
+                opacity: submitting || !content.trim() ? 0.5 : 1,
+                transition: "opacity 120ms ease",
+              }}
+            >
+              {submitting ? "Publication…" : "Publier"}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );
