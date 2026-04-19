@@ -25,6 +25,7 @@ import Contact from "./components/core/Contact";
 import DevTracking from "./components/core/DevTracking";
 import Layout from "./components/layout/Layout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
 function ErrorPage() {
   const error = useRouteError();
@@ -39,15 +40,15 @@ function ErrorPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-20 text-center">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">
+      <h1 className="text-2xl font-bold text-editorial-ink mb-4">
         Une erreur est survenue
       </h1>
-      <p className="text-gray-600 mb-6">
+      <p className="text-editorial-text mb-6">
         {error?.message || "Erreur inattendue. Veuillez réessayer."}
       </p>
       <Link
         to="/"
-        className="text-sm text-gray-500 hover:text-black transition-colors"
+        className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
       >
         &larr; Retour à l'accueil
       </Link>
@@ -150,13 +151,24 @@ const router = createBrowserRouter([
   },
 ]);
 
+function ThemedMantineProvider({ children }) {
+  const { resolved } = useTheme();
+  return (
+    <MantineProvider forceColorScheme={resolved}>
+      <Notifications position="top-right" />
+      {children}
+    </MantineProvider>
+  );
+}
+
 export default function App() {
   return (
-    <MantineProvider>
-      <Notifications position="top-right" />
-      <HelmetProvider>
-        <RouterProvider router={router} />
-      </HelmetProvider>
-    </MantineProvider>
+    <ThemeProvider>
+      <ThemedMantineProvider>
+        <HelmetProvider>
+          <RouterProvider router={router} />
+        </HelmetProvider>
+      </ThemedMantineProvider>
+    </ThemeProvider>
   );
 }

@@ -28,8 +28,8 @@ function FeaturedAvatar({ user, size = 22 }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "#d4e7d6",
-        color: "#1f1f1f",
+        background: "rgb(var(--color-editorial-avatar-bg))",
+        color: "rgb(var(--color-editorial-avatar-fg))",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -59,7 +59,7 @@ function FeaturedCard({ post }) {
     post.tags && post.tags.length > 0 ? post.tags[0].name.toUpperCase() : null;
 
   return (
-    <article className="flex flex-col bg-white border border-editorial-rule h-full">
+    <article className="flex flex-col bg-editorial-card border border-editorial-rule h-full">
       <Link to={`/articles/${post.slug}`} className="block">
         {post.cover_image ? (
           <img

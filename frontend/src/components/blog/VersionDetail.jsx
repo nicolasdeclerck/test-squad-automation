@@ -41,7 +41,7 @@ function BlockNoteRenderer({ content }) {
 
   return (
     <div
-      className="text-gray-700 leading-relaxed"
+      className="article-prose"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -96,7 +96,7 @@ export default function VersionDetail() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <p className="text-gray-500 text-center">Chargement...</p>
+        <p className="text-editorial-dim text-center">Chargement...</p>
       </div>
     );
   }
@@ -104,11 +104,11 @@ export default function VersionDetail() {
   if (error || !version) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <p className="text-red-600 text-center">{error}</p>
+        <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
         <div className="mt-6 text-center">
           <Link
             to={`/articles/${slug}/versions`}
-            className="text-sm text-gray-500 hover:text-black transition-colors"
+            className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
           >
             &larr; Retour à l'historique
           </Link>
@@ -125,12 +125,12 @@ export default function VersionDetail() {
 
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-black text-white text-sm font-medium shrink-0">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-editorial-ink text-editorial-paper text-sm font-medium shrink-0">
             {version.version_number}
           </span>
-          <h1 className="text-3xl font-bold text-gray-900">{version.title}</h1>
+          <h1 className="text-3xl font-bold text-editorial-ink">{version.title}</h1>
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-editorial-dim">
           Publiée le{" "}
           {new Date(version.published_at).toLocaleDateString("fr-FR", {
             day: "numeric",
@@ -147,19 +147,19 @@ export default function VersionDetail() {
       <div className="mt-10 flex items-center gap-4">
         <Link
           to={`/articles/${slug}/versions`}
-          className="text-sm text-gray-500 hover:text-black transition-colors"
+          className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
         >
           &larr; Retour à l'historique
         </Link>
         <Link
           to={`/articles/${slug}`}
-          className="text-sm text-gray-500 hover:text-black transition-colors"
+          className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
         >
           Voir l'article actuel
         </Link>
         <Button
           variant="outline"
-          color="dark"
+          color="gray"
           size="xs"
           onClick={() => setRestoreModalOpen(true)}
         >
@@ -173,7 +173,7 @@ export default function VersionDetail() {
         title="Restaurer cette version"
         centered
       >
-        <p className="text-gray-700 mb-4">
+        <p className="text-editorial-text mb-4">
           Cette action va remplacer votre brouillon actuel par le contenu de la
           version {versionNumber}. Voulez-vous continuer ?
         </p>
@@ -185,7 +185,8 @@ export default function VersionDetail() {
             Annuler
           </Button>
           <Button
-            color="dark"
+            variant="filled"
+            color="gray"
             loading={restoring}
             onClick={handleRestore}
           >

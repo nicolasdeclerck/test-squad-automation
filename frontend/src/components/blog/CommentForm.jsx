@@ -34,9 +34,9 @@ export default function CommentForm({ slug, onCommentAdded, commentsCount = 0 })
         <div
           className="text-editorial-text"
           style={{
-            border: "1px solid #e7e5e0",
+            border: "1px solid rgb(var(--color-editorial-rule))",
             padding: 14,
-            background: "#fff",
+            background: "rgb(var(--color-editorial-card))",
             fontSize: 13,
             lineHeight: 1.55,
           }}
@@ -91,8 +91,8 @@ export default function CommentForm({ slug, onCommentAdded, commentsCount = 0 })
       <form
         onSubmit={handleSubmit}
         style={{
-          border: "1px solid #e7e5e0",
-          background: "#fff",
+          border: "1px solid rgb(var(--color-editorial-rule))",
+          background: "rgb(var(--color-editorial-card))",
           padding: 14,
         }}
       >
@@ -111,13 +111,13 @@ export default function CommentForm({ slug, onCommentAdded, commentsCount = 0 })
             fontFamily: '"Inter", system-ui, sans-serif',
             fontSize: 13,
             lineHeight: 1.55,
-            color: "#2a2a2a",
+            color: "rgb(var(--color-editorial-text))",
             background: "transparent",
             fontStyle: content ? "normal" : "italic",
           }}
         />
         {error && (
-          <div className="text-red-600 text-xs mt-1">{error}</div>
+          <div className="text-red-600 dark:text-red-400 text-xs mt-1">{error}</div>
         )}
         {expanded && (
           <div
@@ -134,8 +134,8 @@ export default function CommentForm({ slug, onCommentAdded, commentsCount = 0 })
                 fontFamily: '"Inter", system-ui, sans-serif',
                 fontSize: 12,
                 fontWeight: 500,
-                background: "#111",
-                color: "#fff",
+                background: "rgb(var(--color-editorial-ink))",
+                color: "rgb(var(--color-editorial-paper))",
                 border: "none",
                 padding: "6px 12px",
                 borderRadius: 3,

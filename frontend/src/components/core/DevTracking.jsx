@@ -27,7 +27,7 @@ export default function DevTracking() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <p className="text-gray-500 text-center">Chargement...</p>
+        <p className="text-editorial-dim text-center">Chargement...</p>
       </div>
     );
   }
@@ -38,11 +38,11 @@ export default function DevTracking() {
         <title>Suivi des devs &mdash; NICKORP</title>
         <meta name="description" content="Suivez l'avancement des d\u00e9veloppements en cours." />
       </Helmet>
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">Suivi des devs</h1>
+      <h1 className="text-4xl font-bold text-editorial-ink mb-8">Suivi des devs</h1>
 
       {apiError && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6">
-          <p className="text-yellow-800 text-sm">
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded p-4 mb-6">
+          <p className="text-yellow-800 dark:text-yellow-200 text-sm">
             Impossible de r&eacute;cup&eacute;rer les issues GitHub pour le
             moment. Veuillez r&eacute;essayer plus tard.
           </p>
@@ -55,9 +55,9 @@ export default function DevTracking() {
             {issues.map((issue, index) => (
               <li
                 key={index}
-                className="border border-gray-200 rounded p-4"
+                className="border border-editorial-rule rounded p-4"
               >
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-editorial-ink">
                   {issue.title}
                 </h2>
                 {issue.labels && issue.labels.length > 0 && (
@@ -84,7 +84,7 @@ export default function DevTracking() {
         </>
       ) : (
         !apiError && (
-          <p className="text-gray-500">Aucune issue ouverte.</p>
+          <p className="text-editorial-dim">Aucune issue ouverte.</p>
         )
       )}
     </div>
