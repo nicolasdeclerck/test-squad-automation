@@ -15,6 +15,12 @@ if not SECRET_KEY:  # noqa: F405
 
 STATIC_ROOT = BASE_DIR / "staticfiles"  # noqa: F405
 
+SITE_URL = os.environ.get("SITE_URL", "https://blog.nickorp.com")
+FRONTEND_INDEX_HTML = os.environ.get(
+    "FRONTEND_INDEX_HTML",
+    "/app/frontend/index.html",
+)
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = [
     "https://blog.nickorp.com",
