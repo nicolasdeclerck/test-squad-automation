@@ -58,163 +58,212 @@ export default function ProfileEdit() {
 
   if (!user) return null;
 
-  return (
-    <div className="max-w-sm mx-auto px-4 py-16">
-      {user.avatar && (
-        <div className="mb-6 flex flex-col items-center gap-3">
-          <Avatar user={user} size="lg" />
-          {!showDeleteConfirm ? (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-sm text-red-600 hover:text-red-800 underline"
-            >
-              Supprimer l&apos;avatar
-            </button>
-          ) : (
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleDeleteAvatar}
-                disabled={isDeleting}
-                className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded disabled:opacity-50"
-              >
-                {isDeleting ? "Suppression..." : "Confirmer la suppression"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
-              >
-                Annuler
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
 
+  return (
+    <div className="max-w-[1200px] mx-auto px-5 sm:px-10 py-12 lg:py-16">
       <Helmet>
         <title>Modifier mon profil</title>
         <meta name="description" content="Modifiez votre profil : pr\u00e9nom, nom, email et avatar." />
       </Helmet>
-      <h1 className="text-2xl font-bold text-gray-900 text-center mb-8">
-        Modifier mon profil
-      </h1>
 
-      {successMsg && (
-        <div className="mb-6 p-3 border border-green-200 bg-green-50 rounded">
-          <p className="text-sm text-green-800">{successMsg}</p>
-        </div>
-      )}
-
-      {errors.non_field_errors && (
-        <div className="mb-6 p-3 border border-red-200 bg-red-50 rounded">
-          {errors.non_field_errors.map((err, i) => (
-            <p key={i} className="text-sm text-red-800">
-              {err}
-            </p>
-          ))}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="mb-4">
-          <label htmlFor="first_name" className="form-label">
-            Pr&eacute;nom
-          </label>
-          <input
-            type="text"
-            id="first_name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className={`form-input${
-              errors.first_name ? " border-red-500" : ""
-            }`}
-          />
-          {errors.first_name &&
-            errors.first_name.map((err, i) => (
-              <p key={i} className="form-error">
-                {err}
-              </p>
-            ))}
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="last_name" className="form-label">
-            Nom
-          </label>
-          <input
-            type="text"
-            id="last_name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className={`form-input${
-              errors.last_name ? " border-red-500" : ""
-            }`}
-          />
-          {errors.last_name &&
-            errors.last_name.map((err, i) => (
-              <p key={i} className="form-error">
-                {err}
-              </p>
-            ))}
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="email" className="form-label">
-            Adresse email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={`form-input${
-              errors.email ? " border-red-500" : ""
-            }`}
-          />
-          {errors.email &&
-            errors.email.map((err, i) => (
-              <p key={i} className="form-error">
-                {err}
-              </p>
-            ))}
-        </div>
-
-        <div className="mb-6">
-          <label htmlFor="avatar" className="form-label">
-            Avatar
-          </label>
-          <input
-            type="file"
-            id="avatar"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(e) => setAvatar(e.target.files[0] || null)}
-            className={`form-input${errors.avatar ? " border-red-500" : ""}`}
-          />
-          {errors.avatar &&
-            errors.avatar.map((err, i) => (
-              <p key={i} className="form-error">
-                {err}
-              </p>
-            ))}
-          <p className="text-xs text-gray-400 mt-1">
-            JPEG, PNG ou WebP &mdash; 5 Mo maximum
-          </p>
-        </div>
-
-        <button type="submit" className="btn-primary w-full py-3">
-          Enregistrer
-        </button>
-      </form>
-
-      <div className="mt-6 text-center">
-        <Link
-          to="/"
-          className="text-sm text-gray-500 hover:text-black"
+      <div className="max-w-[760px]">
+        <p
+          className="font-sans text-editorial-accent font-semibold mb-3"
+          style={{
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+          }}
         >
-          Retour
-        </Link>
+          Compte
+        </p>
+        <div className="flex items-end justify-between gap-6 mb-10">
+          <h1
+            className="font-serif text-editorial-ink"
+            style={{
+              fontSize: "clamp(32px, 4.6vw, 54px)",
+              lineHeight: 1.05,
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              margin: 0,
+            }}
+          >
+            Mon profil
+          </h1>
+          <Link
+            to="/"
+            className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors shrink-0 pb-2"
+          >
+            ← Retour
+          </Link>
+        </div>
+
+        <div className="flex items-start gap-4 pb-8 mb-8 border-b border-editorial-rule">
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <Avatar user={user} size="lg" />
+            {user.avatar && !showDeleteConfirm && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="font-sans text-xs text-editorial-dim hover:text-editorial-ink transition-colors"
+              >
+                Supprimer l&apos;avatar
+              </button>
+            )}
+          </div>
+          <div className="min-w-0 pt-1">
+            {fullName && (
+              <p className="font-serif text-editorial-ink text-xl leading-tight tracking-tight mb-1">
+                {fullName}
+              </p>
+            )}
+            <p className="font-sans text-sm text-editorial-dim break-all">
+              {user.email}
+            </p>
+          </div>
+        </div>
+
+        {user.avatar && showDeleteConfirm && (
+          <div
+            className="mb-6 px-4 py-3 border border-editorial-rule bg-editorial-rule2 flex items-center gap-3"
+            style={{ borderRadius: 3 }}
+          >
+            <p className="font-sans text-sm text-editorial-text flex-1">
+              Confirmer la suppression de l&apos;avatar ?
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="btn-secondary py-2"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAvatar}
+              disabled={isDeleting}
+              className="btn-danger py-2 disabled:opacity-50"
+            >
+              {isDeleting ? "Suppression…" : "Supprimer"}
+            </button>
+          </div>
+        )}
+
+        {successMsg && (
+          <div
+            className="mb-6 px-4 py-3 border border-editorial-rule bg-editorial-rule2 font-sans text-sm text-editorial-ink"
+            style={{ borderRadius: 3 }}
+          >
+            {successMsg}
+          </div>
+        )}
+
+        {errors.non_field_errors && (
+          <div
+            className="mb-6 px-4 py-3 border border-red-200 bg-red-50"
+            style={{ borderRadius: 3 }}
+          >
+            {errors.non_field_errors.map((err, i) => (
+              <p key={i} className="font-sans text-sm text-red-700">
+                {err}
+              </p>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="mb-5">
+            <label htmlFor="first_name" className="form-label">
+              Pr&eacute;nom
+            </label>
+            <input
+              type="text"
+              id="first_name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className={`form-input${
+                errors.first_name ? " border-red-500" : ""
+              }`}
+            />
+            {errors.first_name &&
+              errors.first_name.map((err, i) => (
+                <p key={i} className="form-error">
+                  {err}
+                </p>
+              ))}
+          </div>
+
+          <div className="mb-5">
+            <label htmlFor="last_name" className="form-label">
+              Nom
+            </label>
+            <input
+              type="text"
+              id="last_name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className={`form-input${
+                errors.last_name ? " border-red-500" : ""
+              }`}
+            />
+            {errors.last_name &&
+              errors.last_name.map((err, i) => (
+                <p key={i} className="form-error">
+                  {err}
+                </p>
+              ))}
+          </div>
+
+          <div className="mb-5">
+            <label htmlFor="email" className="form-label">
+              Adresse email
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`form-input${
+                errors.email ? " border-red-500" : ""
+              }`}
+            />
+            {errors.email &&
+              errors.email.map((err, i) => (
+                <p key={i} className="form-error">
+                  {err}
+                </p>
+              ))}
+          </div>
+
+          <div className="mb-8">
+            <label htmlFor="avatar" className="form-label">
+              Avatar
+            </label>
+            <input
+              type="file"
+              id="avatar"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => setAvatar(e.target.files[0] || null)}
+              className={`form-input${errors.avatar ? " border-red-500" : ""}`}
+            />
+            {errors.avatar &&
+              errors.avatar.map((err, i) => (
+                <p key={i} className="form-error">
+                  {err}
+                </p>
+              ))}
+            <p className="font-sans text-editorial-dim2 mt-2" style={{ fontSize: 11 }}>
+              JPEG, PNG ou WebP &middot; 5 Mo maximum
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button type="submit" className="btn-primary flex-1 py-3">
+              Enregistrer
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
