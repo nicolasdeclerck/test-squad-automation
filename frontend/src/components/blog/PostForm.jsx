@@ -53,23 +53,47 @@ function SaveStatusIndicator({ saveStatus, lastSavedAt }) {
   if (saveStatus === "idle") return null;
 
   const statusConfig = {
-    saving: { text: "Sauvegarde en cours...", className: "text-gray-400" },
+    saving: {
+      text: "Sauvegarde en cours…",
+      dot: "#9a9a9a",
+      color: "#6b6b6b",
+    },
     saved: {
       text: lastSavedAt
-        ? `Brouillon sauvegardé à ${lastSavedAt}`
-        : "Brouillon sauvegardé",
-      className: "text-green-600",
+        ? `Brouillon enregistré · ${lastSavedAt}`
+        : "Brouillon enregistré",
+      dot: "#9ea69a",
+      color: "#6b6b6b",
     },
-    error: { text: "Erreur de sauvegarde", className: "text-red-500" },
+    error: {
+      text: "Erreur de sauvegarde",
+      dot: "#b54b1a",
+      color: "#b54b1a",
+    },
   };
 
   const config = statusConfig[saveStatus];
   if (!config) return null;
 
   return (
-    <p className={`text-xs ${config.className} mb-4`}>
+    <div
+      className="flex items-center gap-2 mb-4"
+      style={{
+        fontFamily: '"Inter", system-ui, sans-serif',
+        fontSize: 11,
+        color: config.color,
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: config.dot,
+        }}
+      />
       {config.text}
-    </p>
+    </div>
   );
 }
 
@@ -456,16 +480,17 @@ export default function PostForm() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <p className="text-gray-500 text-center">Chargement...</p>
+      <div className="max-w-[760px] mx-auto px-5 sm:px-10 py-12">
+        <p className="text-editorial-dim text-center">Chargement…</p>
       </div>
     );
   }
 
   const pageTitle = isEdit ? "Modifier l'article" : "Ajouter un article";
+  const eyebrow = isEdit ? "Édition" : "Nouveau brouillon";
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className="max-w-[760px] mx-auto px-5 sm:px-10 py-12 lg:py-16">
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageTitle} />
@@ -473,8 +498,27 @@ export default function PostForm() {
 
       <h1 className="sr-only">{pageTitle}</h1>
 
+      <div className="flex items-center justify-between mb-8">
+        <p
+          className="font-sans text-editorial-accent font-semibold"
+          style={{
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+          }}
+        >
+          {eyebrow}
+        </p>
+        {isEdit && (
+          <SaveStatusIndicator
+            saveStatus={saveStatus}
+            lastSavedAt={lastSavedAt}
+          />
+        )}
+      </div>
+
       {errors.non_field_errors && (
-        <div className="mb-6 p-3 border border-red-200 rounded">
+        <div className="mb-6 p-3 border border-red-200 rounded-[3px] bg-red-50">
           {errors.non_field_errors.map((err, i) => (
             <p key={i} className="form-error">
               {err}
@@ -484,21 +528,19 @@ export default function PostForm() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="mb-5">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Image de couverture
-          </label>
+        <div className="mb-6">
+          <label className="form-label">Image de couverture</label>
           {coverImage ? (
             <div className="relative group">
               <img
                 src={coverImage}
                 alt="Image de couverture"
-                className="w-full h-48 object-cover rounded-lg"
+                className="w-full h-56 object-cover"
               />
               <button
                 type="button"
                 onClick={handleCoverImageDelete}
-                className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 bg-editorial-ink text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-sm"
                 aria-label="Supprimer l'image de couverture"
                 title="Supprimer l'image de couverture"
               >
@@ -508,18 +550,22 @@ export default function PostForm() {
           ) : (
             <label
               htmlFor="cover-image-input"
-              className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+              className="flex items-center justify-center w-full h-36 border border-dashed border-editorial-rule bg-editorial-paper cursor-pointer hover:border-editorial-dim2 transition-colors"
             >
-              <div className="text-center">
+              <div className="text-center font-sans">
                 {coverImageUploading ? (
-                  <p className="text-sm text-gray-400">Upload en cours...</p>
+                  <p className="text-sm text-editorial-dim">Upload en cours…</p>
                 ) : (
                   <>
-                    <p className="text-sm text-gray-500">
-                      Cliquer pour ajouter une image de couverture
+                    <p className="text-sm text-editorial-text">
+                      Glisser une image ici
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      JPEG, PNG, WebP ou GIF — 10 Mo max
+                    <p className="text-xs text-editorial-dim2 mt-1">
+                      ou{" "}
+                      <span className="text-editorial-ink2 underline">
+                        parcourir
+                      </span>
+                      {" "}· JPEG, PNG, WebP, GIF · 10 Mo max
                     </p>
                   </>
                 )}
@@ -536,7 +582,7 @@ export default function PostForm() {
           )}
         </div>
 
-        <div className="mb-5">
+        <div className="mb-6">
           <label htmlFor="title" className="sr-only">
             Titre
           </label>
@@ -550,9 +596,15 @@ export default function PostForm() {
             rows={1}
             maxLength={200}
             onInput={autoResize}
-            className={`w-full text-2xl sm:text-3xl font-bold text-gray-900 border-0 outline-none focus:ring-0 bg-transparent placeholder-gray-300 p-0 resize-none overflow-hidden break-words${
+            className={`w-full font-serif text-editorial-ink border-0 outline-none focus:ring-0 bg-transparent placeholder:text-editorial-dim2 p-0 resize-none overflow-hidden break-words leading-tight tracking-tight${
               errors.title ? " border-b-2 border-red-500" : ""
             }`}
+            style={{
+              fontSize: "clamp(28px, 4vw, 44px)",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.08,
+            }}
           />
           {errors.title &&
             errors.title.map((err, i) => (
@@ -562,7 +614,7 @@ export default function PostForm() {
             ))}
         </div>
 
-        <div className="mb-5">
+        <div className="mb-6">
           <TagsInput
             label="Tags"
             placeholder="Ajouter des tags"
@@ -572,28 +624,34 @@ export default function PostForm() {
             onSearchChange={searchTags}
             maxDropdownHeight={200}
             clearable
+            classNames={{
+              label: "form-label",
+            }}
           />
         </div>
 
         {isEdit && postStatus === "published" && (
-          <div className="mb-5">
+          <div className="mb-6 py-4 border-y border-editorial-rule">
             <Switch
               checked={isPinned}
               onChange={handlePinToggle}
               disabled={pinToggling}
+              color="dark"
               label="Épingler à la une"
               description="L'article apparaîtra dans la section « À la une » de la page d'accueil (3 max)."
             />
           </div>
         )}
 
-        {isEdit && <SaveStatusIndicator saveStatus={saveStatus} lastSavedAt={lastSavedAt} />}
-
         <div className="mb-6">
           <label className="sr-only">Contenu</label>
           <div
-            style={{ minHeight: "300px" }}
-            className={errors.content ? "border border-red-500" : ""}
+            style={{ minHeight: "320px" }}
+            className={
+              errors.content
+                ? "border border-red-500"
+                : "border-t border-editorial-rule pt-6"
+            }
           >
             {contentReady && (
               <BlockNoteEditor
@@ -603,9 +661,14 @@ export default function PostForm() {
               />
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Raccourcis : <kbd>Ctrl+B</kbd> gras, <kbd>Ctrl+I</kbd> italique,{" "}
-            <kbd>/</kbd> pour les blocs (titres, listes, etc.)
+          <p
+            className="font-sans text-editorial-dim2 mt-3"
+            style={{ fontSize: 11 }}
+          >
+            Raccourcis :{" "}
+            <kbd className="font-mono text-editorial-dim">Ctrl+B</kbd> gras,{" "}
+            <kbd className="font-mono text-editorial-dim">Ctrl+I</kbd> italique,{" "}
+            <kbd className="font-mono text-editorial-dim">/</kbd> pour les blocs
           </p>
           {errors.content &&
             errors.content.map((err, i) => (
@@ -616,7 +679,7 @@ export default function PostForm() {
         </div>
 
         {!isEdit && (
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-8">
             <button
               type="button"
               onClick={(e) => handleSubmit(e, { publish: false })}
@@ -635,12 +698,12 @@ export default function PostForm() {
         )}
       </form>
 
-      <div className="mt-6 text-center">
+      <div className="mt-10 pt-6 border-t border-editorial-rule">
         <Link
           to="/"
-          className="text-sm text-gray-500 hover:text-black transition-colors"
+          className="text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
         >
-          Retour
+          ← Retour aux articles
         </Link>
       </div>
     </div>

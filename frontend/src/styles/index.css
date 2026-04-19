@@ -46,27 +46,31 @@
   }
 
   .btn-primary {
-    @apply btn bg-black text-white hover:bg-gray-800 rounded;
+    @apply btn bg-editorial-ink text-white hover:bg-editorial-ink2;
+    border-radius: 3px;
   }
 
   .btn-secondary {
-    @apply btn border border-gray-300 text-gray-700 hover:bg-gray-50 rounded;
+    @apply btn border border-editorial-rule text-editorial-text bg-white hover:bg-editorial-rule2;
+    border-radius: 3px;
   }
 
   .btn-danger {
-    @apply btn border border-gray-300 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded;
+    @apply btn border border-editorial-rule text-editorial-dim hover:text-editorial-ink hover:bg-editorial-rule2;
+    border-radius: 3px;
   }
 
   .card {
-    @apply py-6 border-b border-gray-200;
+    @apply py-7 border-b border-editorial-rule;
   }
 
   .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-xs uppercase tracking-[1.3px] font-semibold text-editorial-dim mb-2;
   }
 
   .form-input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition text-sm;
+    @apply w-full px-3 py-2 border border-editorial-rule bg-white text-editorial-text focus:outline-none focus:ring-1 focus:ring-editorial-ink focus:border-editorial-ink transition text-sm;
+    border-radius: 3px;
   }
 
   .form-error {
@@ -74,7 +78,7 @@
   }
 
   .nav-link {
-    @apply text-sm text-gray-500 hover:text-black transition-colors;
+    @apply text-sm text-editorial-dim hover:text-editorial-ink transition-colors;
   }
 }
 
