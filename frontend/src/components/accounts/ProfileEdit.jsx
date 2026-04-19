@@ -61,8 +61,35 @@ export default function ProfileEdit() {
   return (
     <div className="max-w-sm mx-auto px-4 py-16">
       {user.avatar && (
-        <div className="mb-6 flex justify-center">
+        <div className="mb-6 flex flex-col items-center gap-3">
           <Avatar user={user} size="lg" />
+          {!showDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Supprimer l&apos;avatar
+            </button>
+          ) : (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleDeleteAvatar}
+                disabled={isDeleting}
+                className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded disabled:opacity-50"
+              >
+                {isDeleting ? "Suppression..." : "Confirmer la suppression"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Annuler
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -180,38 +207,6 @@ export default function ProfileEdit() {
           Enregistrer
         </button>
       </form>
-
-      {user.avatar && (
-        <div className="mt-4 text-center">
-          {!showDeleteConfirm ? (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-sm text-red-600 hover:text-red-800 underline"
-            >
-              Supprimer l&apos;avatar
-            </button>
-          ) : (
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleDeleteAvatar}
-                disabled={isDeleting}
-                className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded disabled:opacity-50"
-              >
-                {isDeleting ? "Suppression..." : "Confirmer la suppression"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
-              >
-                Annuler
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="mt-6 text-center">
         <Link
