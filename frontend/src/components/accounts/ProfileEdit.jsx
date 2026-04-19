@@ -99,9 +99,20 @@ export default function ProfileEdit() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-4 pb-8 mb-8 border-b border-editorial-rule">
-          <Avatar user={user} size="lg" />
-          <div className="min-w-0">
+        <div className="flex items-start gap-4 pb-8 mb-8 border-b border-editorial-rule">
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <Avatar user={user} size="lg" />
+            {user.avatar && !showDeleteConfirm && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="font-sans text-xs text-editorial-dim hover:text-editorial-ink transition-colors"
+              >
+                Supprimer l&apos;avatar
+              </button>
+            )}
+          </div>
+          <div className="min-w-0 pt-1">
             {fullName && (
               <p className="font-serif text-editorial-ink text-xl leading-tight tracking-tight mb-1">
                 {fullName}
@@ -112,6 +123,32 @@ export default function ProfileEdit() {
             </p>
           </div>
         </div>
+
+        {user.avatar && showDeleteConfirm && (
+          <div
+            className="mb-6 px-4 py-3 border border-editorial-rule bg-editorial-rule2 flex items-center gap-3"
+            style={{ borderRadius: 3 }}
+          >
+            <p className="font-sans text-sm text-editorial-text flex-1">
+              Confirmer la suppression de l&apos;avatar ?
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="btn-secondary py-2"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAvatar}
+              disabled={isDeleting}
+              className="btn-danger py-2 disabled:opacity-50"
+            >
+              {isDeleting ? "Suppression…" : "Supprimer"}
+            </button>
+          </div>
+        )}
 
         {successMsg && (
           <div
@@ -227,41 +264,6 @@ export default function ProfileEdit() {
             </button>
           </div>
         </form>
-
-        {user.avatar && (
-          <div className="mt-8 pt-6 border-t border-editorial-rule">
-            {!showDeleteConfirm ? (
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="font-sans text-sm text-editorial-dim hover:text-editorial-ink transition-colors"
-              >
-                Supprimer l&apos;avatar
-              </button>
-            ) : (
-              <div className="flex items-center gap-3">
-                <p className="font-sans text-sm text-editorial-text flex-1">
-                  Confirmer la suppression de l&apos;avatar ?
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="btn-secondary py-2"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteAvatar}
-                  disabled={isDeleting}
-                  className="btn-danger py-2 disabled:opacity-50"
-                >
-                  {isDeleting ? "Suppression…" : "Supprimer"}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
