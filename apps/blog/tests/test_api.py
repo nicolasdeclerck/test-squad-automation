@@ -1398,3 +1398,85 @@ class TestPostCoverImageAPI:
         assert response.status_code == 200
         post.refresh_from_db()
         assert post.cover_image.url != old_url
+
+
+@pytest.mark.django_db
+class TestPostViewCountAPI:
+    def setup_method(self):
+        self.client = Client()
+
+    def test_view_count_increments_on_anonymous_detail(self):
+        post = PostFactory(view_count=0)
+        self.client.get(api_post_url(post.slug))
+        post.refresh_from_db()
+        assert post.view_count == 1
+
+    def test_view_count_increments_on_non_author_detail(self):
+        post = PostFactory(view_count=0)
+        other = UserFactory()
+        self.client.force_login(other)
+        self.client.get(api_post_url(post.slug))
+        self.client.get(api_post_url(post.slug))
+        post.refresh_from_db()
+        assert post.view_count == 2
+
+    def test_view_count_not_incremented_for_author(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, view_count=5)
+        self.client.force_login(user)
+        self.client.get(api_post_url(post.slug))
+        post.refresh_from_db()
+        assert post.view_count == 5
+
+    def test_view_count_not_incremented_on_draft(self):
+        user = SuperUserFactory()
+        post = PostFactory(author=user, status=Post.STATUS_DRAFT, view_count=0)
+        self.client.force_login(user)
+        self.client.get(api_post_url(post.slug))
+        post.refresh_from_db()
+        assert post.view_count == 0
+
+    def test_view_count_visible_to_superuser_in_detail(self):
+        post = PostFactory(view_count=42)
+        admin = SuperUserFactory()
+        self.client.force_login(admin)
+        response = self.client.get(api_post_url(post.slug))
+        # The superuser's own GET triggers one increment.
+        assert response.json()["view_count"] == 43
+
+    def test_view_count_hidden_from_anonymous_in_detail(self):
+        post = PostFactory(view_count=42)
+        response = self.client.get(api_post_url(post.slug))
+        assert response.json()["view_count"] is None
+
+    def test_view_count_hidden_from_regular_user_in_detail(self):
+        post = PostFactory(view_count=42)
+        user = UserFactory()
+        self.client.force_login(user)
+        response = self.client.get(api_post_url(post.slug))
+        assert response.json()["view_count"] is None
+
+    def test_view_count_visible_to_superuser_in_list(self):
+        PostFactory(view_count=7)
+        admin = SuperUserFactory()
+        self.client.force_login(admin)
+        response = self.client.get(API_POSTS_URL)
+        assert response.json()["results"][0]["view_count"] == 7
+
+    def test_view_count_hidden_from_anonymous_in_list(self):
+        PostFactory(view_count=7)
+        response = self.client.get(API_POSTS_URL)
+        assert response.json()["results"][0]["view_count"] is None
+
+    def test_view_count_hidden_from_regular_user_in_list(self):
+        PostFactory(view_count=7)
+        user = UserFactory()
+        self.client.force_login(user)
+        response = self.client.get(API_POSTS_URL)
+        assert response.json()["results"][0]["view_count"] is None
+
+    def test_list_does_not_increment_view_count(self):
+        post = PostFactory(view_count=0)
+        self.client.get(API_POSTS_URL)
+        post.refresh_from_db()
+        assert post.view_count == 0

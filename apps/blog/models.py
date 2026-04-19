@@ -176,6 +176,7 @@ class Post(models.Model):
     )
     is_pinned = models.BooleanField(default=False, db_index=True)
     pinned_at = models.DateTimeField(null=True, blank=True)
+    view_count = models.PositiveIntegerField(default=0)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

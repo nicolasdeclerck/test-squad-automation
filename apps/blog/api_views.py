@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.db.models import Q
+from django.db.models import F, Q
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -137,6 +137,19 @@ class PostDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
                 Q(status=Post.STATUS_PUBLISHED) | Q(author=self.request.user)
             )
         return qs.filter(status=Post.STATUS_PUBLISHED)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        is_author = (
+            request.user.is_authenticated and instance.author_id == request.user.id
+        )
+        if instance.status == Post.STATUS_PUBLISHED and not is_author:
+            Post.objects.filter(pk=instance.pk).update(
+                view_count=F("view_count") + 1
+            )
+            instance.view_count = (instance.view_count or 0) + 1
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)

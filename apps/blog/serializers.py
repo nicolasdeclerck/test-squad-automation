@@ -50,6 +50,7 @@ class PostListSerializer(serializers.ModelSerializer):
     reading_time_minutes = serializers.SerializerMethodField()
     has_draft = serializers.SerializerMethodField()
     cover_image = serializers.ImageField(read_only=True)
+    view_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -66,10 +67,17 @@ class PostListSerializer(serializers.ModelSerializer):
             "has_draft",
             "is_pinned",
             "pinned_at",
+            "view_count",
             "published_at",
             "created_at",
         )
         read_only_fields = ("is_pinned", "pinned_at")
+
+    def get_view_count(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.view_count
+        return None
 
     def get_reading_time_minutes(self, obj):
         """Estime le temps de lecture (en minutes) affiché sur la liste."""
@@ -123,6 +131,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
     draft_title = serializers.SerializerMethodField()
     draft_content = serializers.SerializerMethodField()
     cover_image = serializers.ImageField(read_only=True)
+    view_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -142,6 +151,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "draft_content",
             "is_pinned",
             "pinned_at",
+            "view_count",
             "published_at",
             "created_at",
         )
@@ -172,6 +182,12 @@ class PostDetailSerializer(serializers.ModelSerializer):
         if self._is_author(obj):
             return obj.draft_content
         return ""
+
+    def get_view_count(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.view_count
+        return None
 
     def get_approved_comments(self, obj):
         comments = (

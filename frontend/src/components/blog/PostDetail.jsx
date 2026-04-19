@@ -367,6 +367,10 @@ export default function PostDetail() {
   const readingMinutes = post.reading_time_minutes;
   const isOwnerSuperuser = post.is_owner && user?.is_superuser;
   const hasDraftChanges = post.status === "published" && post.has_draft;
+  const showViewCount =
+    user?.is_superuser &&
+    post.view_count !== null &&
+    post.view_count !== undefined;
 
   return (
     <div className="bg-editorial-paper">
@@ -437,6 +441,11 @@ export default function PostDetail() {
                     year: "numeric",
                   })}
                   {readingMinutes ? ` · ${readingMinutes} min de lecture` : ""}
+                  {showViewCount
+                    ? ` · ${post.view_count} ${
+                        post.view_count > 1 ? "vues" : "vue"
+                      }`
+                    : ""}
                 </div>
               </div>
             </div>
