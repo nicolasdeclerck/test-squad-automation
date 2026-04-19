@@ -246,7 +246,7 @@ function OwnerActions({
           style={{
             fontFamily: '"Inter", system-ui, sans-serif',
             fontSize: 11,
-            color: "#b54b1a",
+            color: "#15803d",
             alignSelf: "center",
             fontStyle: "italic",
           }}
