@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import Avatar from "../ui/Avatar";
+
+const navLinkClass = ({ isActive }) =>
+  isActive ? "nav-link-active" : "nav-link";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -37,15 +40,15 @@ export default function Header() {
 
         {/* Navigation desktop */}
         <nav className="hidden md:flex items-center gap-7">
-          <Link to="/" className="nav-link">
+          <NavLink to="/" end className={navLinkClass}>
             Accueil
-          </Link>
-          <Link to="/articles" className="nav-link">
+          </NavLink>
+          <NavLink to="/articles" className={navLinkClass}>
             Articles
-          </Link>
-          <Link to="/contact" className="nav-link">
+          </NavLink>
+          <NavLink to="/contact" className={navLinkClass}>
             Contact
-          </Link>
+          </NavLink>
         </nav>
 
         {/* Boutons auth desktop */}
@@ -53,7 +56,11 @@ export default function Header() {
           {user ? (
             <>
               {user.is_superuser && (
-                <Link to="/articles/creer" className="btn-primary">
+                <Link
+                  to="/articles/creer"
+                  className="inline-flex items-center text-[13px] font-medium bg-editorial-ink text-white hover:bg-editorial-ink2 transition-colors"
+                  style={{ padding: "8px 14px", borderRadius: 3 }}
+                >
                   Ajouter un article
                 </Link>
               )}

@@ -78,7 +78,11 @@
   }
 
   .nav-link {
-    @apply text-sm text-editorial-dim hover:text-editorial-ink transition-colors;
+    @apply text-[13px] text-editorial-dim hover:text-editorial-ink transition-colors font-normal;
+  }
+
+  .nav-link-active {
+    @apply text-[13px] text-editorial-ink font-medium;
   }
 }
 
