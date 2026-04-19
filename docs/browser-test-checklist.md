@@ -57,7 +57,6 @@
 - **Action** : Scroller en bas de page
 - **Vérifications** :
   - Le footer est visible avec le copyright
-  - Le lien "Suivi des devs" est visible si connecté
 
 ### 1.4 — [PUBLIC] Navigation mobile (responsive)
 
@@ -645,35 +644,16 @@
 
 ---
 
-## 10. Suivi des développements (Dev Tracking)
+## 10. Composants UI transversaux
 
-### 10.1 — [AUTH] Affichage des issues GitHub
-
-- **URL** : `/suivi-des-devs`
-- **Vérifications** :
-  - La liste des issues GitHub est affichée
-  - Chaque issue affiche : titre et labels avec couleurs
-  - La pagination fonctionne (10 par page)
-
-### 10.2 — [AUTH] Gestion des erreurs API GitHub
-
-- **URL** : `/suivi-des-devs` (si API GitHub indisponible)
-- **Vérifications** :
-  - Un message d'erreur explicite est affiché
-  - L'application ne plante pas
-
----
-
-## 11. Composants UI transversaux
-
-### 11.1 — [PUBLIC] Avatar avec initiales
+### 10.1 — [PUBLIC] Avatar avec initiales
 
 - **Vérifications** :
   - Les utilisateurs sans avatar affichent leurs initiales
   - Les initiales sont correctes (première lettre prénom + nom)
   - L'avatar est affiché en différentes tailles selon le contexte (sm/md/lg)
 
-### 11.2 — [PUBLIC] Pagination
+### 10.2 — [PUBLIC] Pagination
 
 - **Vérifications** (sur `/articles` ou `/articles/mes-brouillons`) :
   - Les boutons "Précédent" / "Suivant" sont affichés si nécessaire
@@ -683,28 +663,28 @@
 
 ---
 
-## 12. Historique des versions
+## 11. Historique des versions
 
-### 12.1 — [AUTH/OWNER] Bouton historique des versions visible pour l'auteur
+### 11.1 — [AUTH/OWNER] Bouton historique des versions visible pour l'auteur
 
 - **URL** : `/articles/{slug}` (article publié par l'utilisateur connecté, ayant au moins une version)
 - **Vérifications** :
   - Un bouton ou lien "Historique des versions" est visible
   - Le bouton redirige vers `/articles/{slug}/versions`
 
-### 12.2 — [AUTH] Bouton historique des versions absent pour un non-auteur
+### 11.2 — [AUTH] Bouton historique des versions absent pour un non-auteur
 
 - **URL** : `/articles/{slug}` (article publié par un autre utilisateur)
 - **Vérifications** :
   - Le bouton "Historique des versions" n'est PAS visible
 
-### 12.3 — [PUBLIC] Bouton historique absent pour un visiteur non connecté
+### 11.3 — [PUBLIC] Bouton historique absent pour un visiteur non connecté
 
 - **URL** : `/articles/{slug}`
 - **Vérifications** :
   - Le bouton "Historique des versions" n'est PAS visible
 
-### 12.4 — [AUTH/OWNER] Liste des versions d'un article
+### 11.4 — [AUTH/OWNER] Liste des versions d'un article
 
 - **URL** : `/articles/{slug}/versions`
 - **Vérifications** :
@@ -714,7 +694,7 @@
   - Un lien de retour vers l'article est présent
   - Le clic sur une version redirige vers `/articles/{slug}/versions/{n}`
 
-### 12.5 — [AUTH/OWNER] Détail d'une version (lecture seule)
+### 11.5 — [AUTH/OWNER] Détail d'une version (lecture seule)
 
 - **URL** : `/articles/{slug}/versions/{n}`
 - **Vérifications** :
@@ -724,7 +704,7 @@
   - Un lien de retour vers la liste des versions est présent
   - Un lien de retour vers l'article est présent
 
-### 12.7 — [AUTH/OWNER] Restauration d'une version comme brouillon
+### 11.7 — [AUTH/OWNER] Restauration d'une version comme brouillon
 
 - **URL** : `/articles/{slug}/versions/{n}`
 - **Action** : Cliquer sur le bouton "Restaurer cette version"
@@ -736,14 +716,14 @@
   - Redirection automatique vers `/articles/{slug}/modifier`
   - L'éditeur affiche le contenu de la version restaurée (draft_title et draft_content mis à jour)
 
-### 12.8 — [AUTH] Restauration d'une version — Non-auteur
+### 11.8 — [AUTH] Restauration d'une version — Non-auteur
 
 - **Action** : Un utilisateur non-auteur tente d'accéder à `/articles/{slug}/versions/{n}`
 - **Vérifications** :
   - L'accès à la page de version est refusé (403 ou message d'erreur)
   - Le bouton "Restaurer cette version" n'est pas accessible
 
-### 12.6 — [AUTH/OWNER] Protection des routes versions
+### 11.6 — [AUTH/OWNER] Protection des routes versions
 
 - **Action** : Accéder à `/articles/{slug}/versions` sans être connecté
 - **Vérifications** :
@@ -752,9 +732,9 @@
 
 ---
 
-## 13. Scénarios end-to-end (parcours complets)
+## 12. Scénarios end-to-end (parcours complets)
 
-### 13.1 — Parcours complet : inscription → création article → commentaire
+### 12.1 — Parcours complet : inscription → création article → commentaire
 
 1. Ouvrir `/comptes/inscription`
 2. Créer un compte avec `newuser@example.com` / `Testpass123!`
@@ -768,7 +748,7 @@
 10. Ajouter un commentaire "Super article !"
 11. Vérifier le message de modération
 
-### 13.2 — Parcours complet : brouillon → édition avec autosave → publication
+### 12.2 — Parcours complet : brouillon → édition avec autosave → publication
 
 1. Se connecter avec un utilisateur existant
 2. Naviguer vers `/articles/creer`
@@ -781,7 +761,7 @@
 9. Attendre que l'indicateur affiche "Brouillon sauvegardé"
 10. Vérifier que les modifications sont sauvegardées automatiquement (pas de bouton "Modifier"/"Mettre à jour")
 
-### 13.3 — Parcours complet : gestion du profil
+### 12.3 — Parcours complet : gestion du profil
 
 1. Se connecter
 2. Naviguer vers `/comptes/profil/modifier`
@@ -795,7 +775,7 @@
 10. Supprimer l'avatar
 11. Vérifier que les initiales s'affichent à la place
 
-### 13.4 — Parcours complet : permissions inter-utilisateurs (superutilisateur vs utilisateur normal)
+### 12.4 — Parcours complet : permissions inter-utilisateurs (superutilisateur vs utilisateur normal)
 
 1. Se connecter avec un superutilisateur
 2. Créer et publier un article
@@ -809,7 +789,7 @@
 10. Ajouter un commentaire
 11. Vérifier le message de modération
 
-### 13.5 — Parcours complet : publication → historique des versions
+### 12.5 — Parcours complet : publication → historique des versions
 
 1. Se connecter avec l'utilisateur 1
 2. Créer un article et le publier (version 1)
@@ -825,7 +805,7 @@
 12. Ouvrir l'article de l'utilisateur 1
 13. Vérifier que le bouton "Historique des versions" est ABSENT
 
-### 13.6 — Parcours complet : publication → restauration de version → re-publication
+### 12.6 — Parcours complet : publication → restauration de version → re-publication
 
 1. Se connecter avec l'utilisateur 1
 2. Créer un article avec titre "Version originale" et du contenu, le publier (version 1)
@@ -841,7 +821,7 @@
 12. Vérifier que l'éditeur contient le titre "Version originale" et le contenu de la version 1
 13. Vérifier que l'article publié affiche toujours "Version modifiée" (non publié automatiquement)
 
-### 13.7 — Parcours complet : re-publication avec indicateur de modifications non publiées
+### 12.7 — Parcours complet : re-publication avec indicateur de modifications non publiées
 
 1. Se connecter avec l'utilisateur 1
 2. Créer un article avec titre "Article à re-publier" et du contenu, le publier (version 1)
@@ -862,7 +842,7 @@
 17. Vérifier dans "Historique des versions" qu'une nouvelle version a été créée
 18. Vérifier dans la liste des articles que le badge "brouillon en cours" a disparu
 
-### 13.9 — Parcours complet : épinglage d'articles à la une
+### 12.9 — Parcours complet : épinglage d'articles à la une
 
 1. Se connecter avec l'utilisateur 1 (superutilisateur)
 2. Créer et publier 4 articles A1, A2, A3, A4
@@ -878,7 +858,7 @@
 12. Se déconnecter, puis vérifier que la section « À la une » reste visible en mode public (avec A2, A3, A4)
 13. Se connecter avec l'utilisateur 2 (non-auteur des articles) et vérifier que les boutons « Épingler/Désépingler » sont ABSENTS
 
-### 13.8 — Parcours complet : édition continue d'un article publié (brouillon continu)
+### 12.8 — Parcours complet : édition continue d'un article publié (brouillon continu)
 
 1. Se connecter avec l'utilisateur 1
 2. Créer un article avec titre "Article initial" et du contenu, le publier (version 1)
