@@ -9,10 +9,12 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
+import { buildHeadingIndex } from "../../utils/articleToc";
+import ArticleToc from "./ArticleToc";
 import CommentForm from "./CommentForm";
 import CommentSection from "./CommentSection";
 
-function BlockNoteRenderer({ content }) {
+function BlockNoteRenderer({ content, onHeadings }) {
   const blocks = useMemo(() => {
     try {
       return JSON.parse(content);
@@ -31,15 +33,24 @@ function BlockNoteRenderer({ content }) {
   const [html, setHtml] = useState("");
 
   useEffect(() => {
+    if (!validBlocks && onHeadings) {
+      onHeadings([]);
+    }
+  }, [validBlocks, onHeadings]);
+
+  useEffect(() => {
     if (editor && validBlocks) {
       editor
         .blocksToFullHTML(editor.document)
         .then((rawHtml) => {
-          setHtml(DOMPurify.sanitize(rawHtml));
+          const sanitized = DOMPurify.sanitize(rawHtml);
+          const { items, html: enrichedHtml } = buildHeadingIndex(sanitized);
+          setHtml(enrichedHtml);
+          if (onHeadings) onHeadings(items);
         })
         .catch(() => {});
     }
-  }, [editor, validBlocks]);
+  }, [editor, validBlocks, onHeadings]);
 
   if (!validBlocks) {
     return (
@@ -268,6 +279,7 @@ export default function PostDetail() {
   const [publishError, setPublishError] = useState("");
   const [hasVersions, setHasVersions] = useState(false);
   const [pinToggling, setPinToggling] = useState(false);
+  const [headings, setHeadings] = useState([]);
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -478,7 +490,14 @@ export default function PostDetail() {
               />
             )}
 
-            <BlockNoteRenderer content={displayContent} />
+            <div className="lg:hidden">
+              <ArticleToc items={headings} collapsible />
+            </div>
+
+            <BlockNoteRenderer
+              content={displayContent}
+              onHeadings={setHeadings}
+            />
 
             <div
               className="mt-14 pt-6"
@@ -505,7 +524,12 @@ export default function PostDetail() {
                 paddingTop: 0,
               }}
             >
-              <div className="lg:sticky lg:top-24 border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
+              {headings.length >= 2 && (
+                <div className="hidden lg:block lg:sticky lg:top-[68px]">
+                  <ArticleToc items={headings} />
+                </div>
+              )}
+              <div className="border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
                 <CommentForm
                   slug={post.slug}
                   onCommentAdded={() => setRefreshKey((k) => k + 1)}
