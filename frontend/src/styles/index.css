@@ -123,6 +123,12 @@
 }
 
 /* BlockNote editor overrides */
+.bn-container,
+.bn-editor,
+.bn-editor .ProseMirror {
+  background: transparent !important;
+}
+
 .bn-editor {
   padding-left: 0 !important;
 }
