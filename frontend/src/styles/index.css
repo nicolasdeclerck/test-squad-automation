@@ -127,9 +127,18 @@
   padding-left: 0 !important;
 }
 
+.bn-container:focus,
+.bn-container:focus-visible,
+.bn-container:focus-within,
+.bn-editor:focus,
+.bn-editor:focus-visible,
+.bn-editor:focus-within,
 .bn-editor .ProseMirror:focus,
-.bn-editor .ProseMirror:focus-visible {
+.bn-editor .ProseMirror:focus-visible,
+.bn-editor [contenteditable]:focus,
+.bn-editor [contenteditable]:focus-visible {
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Article prose — editorial typography for rendered BlockNote content */
