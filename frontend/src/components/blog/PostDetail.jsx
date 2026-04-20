@@ -9,10 +9,12 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
+import { buildHeadingIndex } from "../../utils/articleToc";
+import ArticleToc from "./ArticleToc";
 import CommentForm from "./CommentForm";
 import CommentSection from "./CommentSection";
 
-function BlockNoteRenderer({ content }) {
+function BlockNoteRenderer({ content, onHeadings }) {
   const blocks = useMemo(() => {
     try {
       return JSON.parse(content);
@@ -31,15 +33,24 @@ function BlockNoteRenderer({ content }) {
   const [html, setHtml] = useState("");
 
   useEffect(() => {
+    if (!validBlocks && onHeadings) {
+      onHeadings([]);
+    }
+  }, [validBlocks, onHeadings]);
+
+  useEffect(() => {
     if (editor && validBlocks) {
       editor
         .blocksToFullHTML(editor.document)
         .then((rawHtml) => {
-          setHtml(DOMPurify.sanitize(rawHtml));
+          const sanitized = DOMPurify.sanitize(rawHtml);
+          const { items, html: enrichedHtml } = buildHeadingIndex(sanitized);
+          setHtml(enrichedHtml);
+          if (onHeadings) onHeadings(items);
         })
         .catch(() => {});
     }
-  }, [editor, validBlocks]);
+  }, [editor, validBlocks, onHeadings]);
 
   if (!validBlocks) {
     return (
@@ -268,6 +279,7 @@ export default function PostDetail() {
   const [publishError, setPublishError] = useState("");
   const [hasVersions, setHasVersions] = useState(false);
   const [pinToggling, setPinToggling] = useState(false);
+  const [headings, setHeadings] = useState([]);
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -478,7 +490,12 @@ export default function PostDetail() {
               />
             )}
 
-            <BlockNoteRenderer content={displayContent} />
+            <BlockNoteRenderer
+              content={displayContent}
+              onHeadings={setHeadings}
+            />
+
+            <ArticleToc items={headings} />
 
             <div
               className="mt-14 pt-6"
