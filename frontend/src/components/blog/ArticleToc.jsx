@@ -18,11 +18,7 @@ export default function ArticleToc({ items }) {
       aria-label="Sommaire de l'article"
       style={{
         fontFamily: '"Inter", system-ui, sans-serif',
-        margin: "48px 0 8px",
-        padding: "20px 22px",
-        border: "1px solid rgb(var(--color-editorial-rule))",
-        background: "rgb(var(--color-editorial-card))",
-        borderRadius: 3,
+        margin: "0 0 40px",
       }}
     >
       <h2
