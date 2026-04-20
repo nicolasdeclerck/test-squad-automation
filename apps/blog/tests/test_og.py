@@ -52,7 +52,22 @@ class TestExtractExcerpt:
                 }
             ]
         )
-        assert extract_excerpt(blocks) == "Hello  world"
+        assert extract_excerpt(blocks) == "Hello world"
+
+    def test_joins_multiple_blocks_with_single_space(self):
+        blocks = json.dumps(
+            [
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": "First block."}],
+                },
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": "Second block."}],
+                },
+            ]
+        )
+        assert extract_excerpt(blocks) == "First block. Second block."
 
     def test_walks_nested_children(self):
         blocks = json.dumps(
@@ -166,6 +181,9 @@ class TestArticleOGView:
             response = self.client.get(self._url(post.slug))
 
         assert response.status_code == 200
+        assert response["Content-Type"] == "text/html; charset=utf-8"
+        assert response["Cache-Control"] == "public, max-age=300"
+        assert "X-Robots-Tag" not in response
         body = response.content.decode("utf-8")
         assert 'property="og:title" content="Article pub"' in body
         assert 'property="og:description" content="Texte pub"' in body
@@ -205,9 +223,23 @@ class TestArticleOGView:
             response = self.client.get(self._url(post.slug))
 
         assert response.status_code == 200
+        assert response["X-Robots-Tag"] == "noindex"
+        assert response["Cache-Control"] == "no-store"
         body = response.content.decode("utf-8")
         assert "og:title" not in body
         assert "<title>NICKORP</title>" in body
+
+    def test_reserved_slug_returns_fallback_with_noindex(self, index_html):
+        with override_settings(
+            FRONTEND_INDEX_HTML=str(index_html),
+            SITE_URL="https://blog.example.com",
+            DEFAULT_OG_IMAGE_URL="/static/og/default.png",
+        ):
+            response = self.client.get(self._url("creer"))
+
+        assert response.status_code == 200
+        assert response["X-Robots-Tag"] == "noindex"
+        assert "og:title" not in response.content.decode("utf-8")
 
     def test_unknown_slug_returns_plain_html(self, index_html):
         with override_settings(

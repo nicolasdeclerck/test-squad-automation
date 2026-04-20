@@ -1,6 +1,7 @@
 """Open Graph meta tags helpers for article sharing (LinkedIn, Twitter…)."""
 
 import json
+import re
 from html import escape
 from urllib.parse import urljoin
 
@@ -17,7 +18,7 @@ def extract_excerpt(content, max_chars=EXCERPT_MAX_CHARS):
     except (json.JSONDecodeError, TypeError):
         text = str(content).strip()
     else:
-        texts = []
+        block_texts = []
 
         def walk(items):
             if not isinstance(items, list):
@@ -25,13 +26,17 @@ def extract_excerpt(content, max_chars=EXCERPT_MAX_CHARS):
             for item in items:
                 if not isinstance(item, dict):
                     continue
+                parts = []
                 for c in item.get("content", []) or []:
                     if isinstance(c, dict) and c.get("type") == "text":
-                        texts.append(c.get("text", ""))
+                        parts.append(c.get("text", ""))
+                joined = "".join(parts).strip()
+                if joined:
+                    block_texts.append(joined)
                 walk(item.get("children", []) or [])
 
         walk(blocks)
-        text = " ".join(t for t in texts if t).strip()
+        text = " ".join(block_texts).strip()
 
     if len(text) <= max_chars:
         return text
@@ -62,17 +67,22 @@ def build_meta_tags(post, canonical_url, default_image_url, base_url):
     image_url = _absolute(image_url, base_url)
     canonical_url = _absolute(canonical_url, base_url)
 
+    title_esc = escape(title, quote=True)
+    desc_esc = escape(description, quote=True)
+    url_esc = escape(canonical_url, quote=True)
+    image_esc = escape(image_url, quote=True)
+
     tags = [
-        f'<meta property="og:type" content="article">',
-        f'<meta property="og:title" content="{escape(title, quote=True)}">',
-        f'<meta property="og:description" content="{escape(description, quote=True)}">',
-        f'<meta property="og:url" content="{escape(canonical_url, quote=True)}">',
-        f'<meta property="og:image" content="{escape(image_url, quote=True)}">',
-        f'<meta name="twitter:card" content="summary_large_image">',
-        f'<meta name="twitter:title" content="{escape(title, quote=True)}">',
-        f'<meta name="twitter:description" content="{escape(description, quote=True)}">',
-        f'<meta name="twitter:image" content="{escape(image_url, quote=True)}">',
-        f'<link rel="canonical" href="{escape(canonical_url, quote=True)}">',
+        '<meta property="og:type" content="article">',
+        f'<meta property="og:title" content="{title_esc}">',
+        f'<meta property="og:description" content="{desc_esc}">',
+        f'<meta property="og:url" content="{url_esc}">',
+        f'<meta property="og:image" content="{image_esc}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        f'<meta name="twitter:title" content="{title_esc}">',
+        f'<meta name="twitter:description" content="{desc_esc}">',
+        f'<meta name="twitter:image" content="{image_esc}">',
+        f'<link rel="canonical" href="{url_esc}">',
     ]
     return "\n    ".join(tags)
 
@@ -88,8 +98,6 @@ def inject_into_head(html, injected):
 
 def replace_title(html, new_title):
     """Replace the first <title>…</title> tag content."""
-    import re
-
     return re.sub(
         r"<title>.*?</title>",
         f"<title>{escape(new_title)}</title>",

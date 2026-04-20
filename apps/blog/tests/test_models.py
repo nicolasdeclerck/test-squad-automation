@@ -110,6 +110,11 @@ class TestPostModel:
         post3 = PostFactory(title="Doublon")
         assert post3.slug == "doublon-2"
 
+    def test_reserved_spa_slug_is_avoided(self):
+        post = PostFactory(title="Créer")
+        assert post.slug not in Post.RESERVED_SLUGS
+        assert post.slug.startswith("creer")
+
     def test_default_status_is_published(self):
         post = PostFactory()
         assert post.status == Post.STATUS_PUBLISHED
