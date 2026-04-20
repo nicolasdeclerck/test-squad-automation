@@ -61,7 +61,21 @@ Summarize back to the user in one sentence:
 
 If any of the three is unclear, ask **one** clarifying question before continuing.
 
-### 2. Gather context (lightweight)
+### 2. Sharpen the request (when the ask is vague)
+
+If the user's request is fuzzy — no clear "why", no acceptance criteria, or a scope that could fit anywhere between a one-line fix and a multi-week feature — invoke the local `brainstorming` skill (`.claude/skills/brainstorming/`) **before** drafting. It runs a short Socratic round and returns a refined spec you then turn into a ticket.
+
+Trigger this step when any of these is true:
+
+- No clear user problem, user, or motivation stated.
+- A solution is proposed but no alternatives were considered.
+- The request bundles several possibly-unrelated concerns.
+
+Skip it when the request is already concrete: precise repro steps for a bug, a tightly scoped chore, or a feature the user has clearly pre-designed.
+
+Once `brainstorming` returns an approved spec, continue with step 3 using that spec as the source of truth instead of the user's original phrasing.
+
+### 3. Gather context (lightweight)
 
 Do the minimum needed to write a useful issue:
 
@@ -71,14 +85,14 @@ Do the minimum needed to write a useful issue:
 
 Optionally run one or two `Grep`/`Read` calls to anchor the issue in real file paths — but do not dive deep. If you find yourself reading more than 2–3 files, stop: that's implementation territory, not ticket drafting.
 
-### 3. Check for duplicates
+### 4. Check for duplicates
 
 Call `mcp__github__search_issues` with a short query derived from the subject (state `open`). If a plausible duplicate exists:
 
 - Show the user the top 1–3 matches (number, title, state).
 - Ask whether to proceed anyway, comment on the existing issue instead, or abort.
 
-### 4. Draft the issue
+### 5. Draft the issue
 
 Produce a draft using `templates/issue-body.md`. Required fields:
 
@@ -92,7 +106,7 @@ Produce a draft using `templates/issue-body.md`. Required fields:
 
 Show the full draft to the user (title, body, labels, assignees) and **wait for explicit approval** before creating. Accept small edits in-place; re-show the draft after edits.
 
-### 5. Create the issue
+### 6. Create the issue
 
 Once approved, call `mcp__github__issue_write` with method `create`:
 
@@ -104,7 +118,7 @@ Once approved, call `mcp__github__issue_write` with method `create`:
 
 Return the new issue's URL and number to the user.
 
-### 6. Offer next steps (do not auto-chain)
+### 7. Offer next steps (do not auto-chain)
 
 After creation, ask the user if they want to:
 
@@ -121,7 +135,7 @@ After creation, ask the user if they want to:
 - **Scope lock**: only create issues on repositories in the authorized scope. Refuse others and tell the user why.
 - **No implementation work**: never create a branch, never edit source files, never open a PR from this skill.
 - **No auto-labelling**: only apply labels that already exist on the repo — check with `mcp__github__get_label` or `mcp__github__list_issues` if unsure.
-- **No duplicates without acknowledgement**: always run the duplicate check in step 3.
+- **No duplicates without acknowledgement**: always run the duplicate check in step 4.
 - **Respect the user's wording**: keep the user's technical terms in the title and body; do not rename their feature.
 - **One issue per call**: if the user describes multiple distinct problems, propose splitting into separate tickets rather than bundling.
 - **Never close or modify unrelated issues** as part of this workflow.
