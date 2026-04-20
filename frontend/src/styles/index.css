@@ -74,6 +74,10 @@
   body {
     @apply font-sans text-editorial-text antialiased;
   }
+
+  html {
+    scroll-padding-top: 88px;
+  }
 }
 
 @layer components {

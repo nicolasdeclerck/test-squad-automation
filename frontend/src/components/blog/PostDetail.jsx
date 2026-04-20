@@ -520,8 +520,18 @@ export default function PostDetail() {
                 paddingTop: 0,
               }}
             >
-              <div className="lg:sticky lg:top-24 border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
-                <ArticleToc items={headings} />
+              {headings.length >= 2 && (
+                <div className="lg:sticky lg:top-[68px] border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
+                  <ArticleToc items={headings} />
+                </div>
+              )}
+              <div
+                className={
+                  headings.length >= 2
+                    ? ""
+                    : "border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0"
+                }
+              >
                 <CommentForm
                   slug={post.slug}
                   onCommentAdded={() => setRefreshKey((k) => k + 1)}

@@ -19,6 +19,8 @@ export default function ArticleToc({ items }) {
       style={{
         fontFamily: '"Inter", system-ui, sans-serif',
         margin: "0 0 40px",
+        padding: "20px 0",
+        background: "rgb(var(--color-editorial-paper))",
       }}
     >
       <h2
