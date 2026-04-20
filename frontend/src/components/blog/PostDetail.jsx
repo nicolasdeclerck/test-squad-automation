@@ -490,6 +490,10 @@ export default function PostDetail() {
               />
             )}
 
+            <div className="lg:hidden mb-10">
+              <ArticleToc items={headings} collapsible />
+            </div>
+
             <BlockNoteRenderer
               content={displayContent}
               onHeadings={setHeadings}
@@ -521,17 +525,11 @@ export default function PostDetail() {
               }}
             >
               {headings.length >= 2 && (
-                <div className="lg:sticky lg:top-[68px] border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
+                <div className="hidden lg:block lg:sticky lg:top-[68px]">
                   <ArticleToc items={headings} />
                 </div>
               )}
-              <div
-                className={
-                  headings.length >= 2
-                    ? ""
-                    : "border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0"
-                }
-              >
+              <div className="border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
                 <CommentForm
                   slug={post.slug}
                   onCommentAdded={() => setRefreshKey((k) => k + 1)}

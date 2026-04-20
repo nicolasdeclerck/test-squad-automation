@@ -78,6 +78,18 @@
   html {
     scroll-padding-top: 88px;
   }
+
+  .article-toc-details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .article-toc-details > summary {
+    list-style: none;
+  }
+
+  .article-toc-details[open] > summary .article-toc-chevron {
+    transform: rotate(180deg);
+  }
 }
 
 @layer components {
