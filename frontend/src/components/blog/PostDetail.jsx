@@ -495,8 +495,6 @@ export default function PostDetail() {
               onHeadings={setHeadings}
             />
 
-            <ArticleToc items={headings} />
-
             <div
               className="mt-14 pt-6"
               style={{
@@ -523,6 +521,7 @@ export default function PostDetail() {
               }}
             >
               <div className="lg:sticky lg:top-24 border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
+                <ArticleToc items={headings} />
                 <CommentForm
                   slug={post.slug}
                   onCommentAdded={() => setRefreshKey((k) => k + 1)}
