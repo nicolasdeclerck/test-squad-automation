@@ -8,6 +8,7 @@ services:
     volumes:
       - static_files:/app/staticfiles
       - media_files:/app/media
+      - frontend_dist:/app/frontend:ro
     depends_on:
       - postgres
       - redis

@@ -75,6 +75,16 @@ LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/comptes/connexion/"
 LOGOUT_REDIRECT_URL = "/"
 
+SITE_URL = os.environ.get("SITE_URL", "http://localhost:5173")
+FRONTEND_INDEX_HTML = os.environ.get(
+    "FRONTEND_INDEX_HTML",
+    str(BASE_DIR / "frontend" / "dist" / "index.html"),
+)
+DEFAULT_OG_IMAGE_URL = os.environ.get(
+    "DEFAULT_OG_IMAGE_URL",
+    "/static/og/default.png",
+)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",

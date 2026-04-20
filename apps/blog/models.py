@@ -182,6 +182,7 @@ class Post(models.Model):
     COVER_MAX_SIZE = (1200, 630)
     COVER_JPEG_QUALITY = 85
     MAX_PINNED_POSTS = 3
+    RESERVED_SLUGS = frozenset({"creer", "mes-brouillons"})
 
     class Meta:
         ordering = ["-created_at"]
@@ -247,9 +248,14 @@ class Post(models.Model):
             base_slug = slugify(source_title)
             if not base_slug:
                 base_slug = "article"
+            if base_slug in self.RESERVED_SLUGS:
+                base_slug = f"{base_slug}-article"
             slug = base_slug
             counter = 1
-            while Post.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            while (
+                Post.objects.filter(slug=slug).exclude(pk=self.pk).exists()
+                or slug in self.RESERVED_SLUGS
+            ):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug
