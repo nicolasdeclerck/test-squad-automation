@@ -35,6 +35,18 @@ Use the GitHub MCP tools. Do not attempt to use `gh` CLI. Key tools:
 
 Follow these phases **in order**. Do not skip phases without the user's agreement.
 
+### 0. Sync local repo
+
+Before anything else, make sure the local checkout is up to date so exploration (Phase 2), planning (Phase 3) and branching (Phase 4) all start from current `main`/`master`.
+
+1. Detect the default branch: `DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')`.
+2. Fetch: `git fetch origin`.
+3. If the current branch **is** the default branch: `git pull --ff-only`.
+4. If the current branch is a feature branch (e.g. the user is resuming a session on a branch they already created), **stay on it** — do not switch. The fetch is enough for later branching off an up-to-date `origin/<default>`.
+5. If `pull --ff-only` fails (local commits on the default branch), **stop and ask the user** — never merge or rebase silently.
+
+If the cwd is not a git repo, skip this phase.
+
 ### 1. Load the issue
 
 Always start here. Never implement from memory of the issue.

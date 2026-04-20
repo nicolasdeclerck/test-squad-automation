@@ -51,6 +51,18 @@ Helpful read-only tools to prepare the issue:
 
 Follow these phases in order. Keep each one short — the goal is a good ticket, not a novel.
 
+### 0. Sync local repo
+
+If you'll anchor the issue on `file:line` references (see step 2), make sure the local checkout is up to date first so the cited lines match what reviewers will see.
+
+1. Detect the default branch: `DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')`.
+2. Fetch: `git fetch origin`.
+3. If the current branch **is** the default branch: `git pull --ff-only`.
+4. Otherwise, stay on the current branch — the fetch is enough.
+5. If `pull --ff-only` fails (local commits on the default branch), **stop and ask the user** — never merge or rebase silently.
+
+If the cwd is not a git repo (e.g. the user is drafting a ticket outside a repo), skip this phase.
+
 ### 1. Capture the user's intent
 
 Summarize back to the user in one sentence:
