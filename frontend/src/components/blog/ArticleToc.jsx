@@ -1,12 +1,6 @@
-const INDENT_BY_LEVEL = { 1: 0, 2: 12, 3: 24 };
+import { useState } from "react";
 
-const SUMMARY_LABEL_STYLE = {
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: 2,
-  textTransform: "uppercase",
-  color: "rgb(var(--color-editorial-dim))",
-};
+const INDENT_BY_LEVEL = { 1: "pl-0", 2: "pl-3", 3: "pl-6" };
 
 function Chevron() {
   return (
@@ -20,8 +14,7 @@ function Chevron() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      style={{ transition: "transform 150ms ease" }}
-      className="article-toc-chevron"
+      className="article-toc-chevron transition-transform duration-150"
     >
       <path d="m3 4.5 3 3 3-3" />
     </svg>
@@ -29,14 +22,15 @@ function Chevron() {
 }
 
 export default function ArticleToc({ items, collapsible = false }) {
+  const [open, setOpen] = useState(true);
+
   if (!Array.isArray(items) || items.length < 2) return null;
 
   const handleClick = (event, id) => {
     event.preventDefault();
     const target = document.getElementById(id);
     if (!target) return;
-    const details = event.currentTarget.closest("details");
-    if (details) details.open = false;
+    if (collapsible) setOpen(false);
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     if (window.history?.replaceState) {
       window.history.replaceState(null, "", `#${id}`);
@@ -44,34 +38,20 @@ export default function ArticleToc({ items, collapsible = false }) {
   };
 
   const list = (
-    <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
+    <ol className="list-none p-0 m-0">
       {items.map((item) => (
         <li
           key={item.id}
-          style={{
-            paddingLeft: INDENT_BY_LEVEL[item.level] ?? 0,
-            lineHeight: 1.5,
-            margin: "4px 0",
-          }}
+          className={`${INDENT_BY_LEVEL[item.level] ?? "pl-0"} my-1 leading-6`}
         >
           <a
             href={`#${item.id}`}
             onClick={(event) => handleClick(event, item.id)}
-            style={{
-              fontSize: item.level === 1 ? 14 : 13,
-              fontWeight: item.level === 1 ? 500 : 400,
-              color: "rgb(var(--color-editorial-ink2))",
-              textDecoration: "none",
-              borderBottom: "1px solid transparent",
-              transition: "border-color 120ms ease, color 120ms ease",
-            }}
-            onMouseEnter={(event) => {
-              event.currentTarget.style.borderBottomColor =
-                "rgb(var(--color-editorial-ink2))";
-            }}
-            onMouseLeave={(event) => {
-              event.currentTarget.style.borderBottomColor = "transparent";
-            }}
+            className={`article-toc-link no-underline text-editorial-ink2 ${
+              item.level === 1
+                ? "text-sm font-medium"
+                : "text-[13px] font-normal"
+            }`}
           >
             {item.text}
           </a>
@@ -83,32 +63,18 @@ export default function ArticleToc({ items, collapsible = false }) {
   if (collapsible) {
     return (
       <details
-        className="article-toc-details"
-        open
-        style={{
-          fontFamily: '"Inter", system-ui, sans-serif',
-          border: "1px solid rgb(var(--color-editorial-rule))",
-          borderRadius: 3,
-          padding: "14px 18px",
-          background: "rgb(var(--color-editorial-card))",
-        }}
+        className="article-toc-details font-sans border border-editorial-rule rounded-[3px] px-[18px] py-[14px] bg-editorial-card"
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
       >
         <summary
-          style={{
-            ...SUMMARY_LABEL_STYLE,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-            cursor: "pointer",
-            listStyle: "none",
-          }}
+          className="article-toc-label flex items-center justify-between gap-2 cursor-pointer list-none"
           aria-label="Sommaire de l'article"
         >
           <span>Sommaire</span>
           <Chevron />
         </summary>
-        <div style={{ marginTop: 12 }}>{list}</div>
+        <div className="mt-3">{list}</div>
       </details>
     );
   }
@@ -116,14 +82,9 @@ export default function ArticleToc({ items, collapsible = false }) {
   return (
     <nav
       aria-label="Sommaire de l'article"
-      style={{
-        fontFamily: '"Inter", system-ui, sans-serif',
-        margin: "0 0 40px",
-        padding: "20px 0",
-        background: "rgb(var(--color-editorial-paper))",
-      }}
+      className="font-sans my-0 mb-10 py-5 bg-editorial-paper"
     >
-      <h2 style={{ ...SUMMARY_LABEL_STYLE, margin: "0 0 14px" }}>Sommaire</h2>
+      <h2 className="article-toc-label mt-0 mb-[14px]">Sommaire</h2>
       {list}
     </nav>
   );
