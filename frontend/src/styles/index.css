@@ -90,6 +90,35 @@
   .article-toc-details[open] > summary .article-toc-chevron {
     transform: rotate(180deg);
   }
+
+  .article-toc-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgb(var(--color-editorial-dim));
+  }
+
+  .article-toc-link {
+    border-bottom: 1px solid transparent;
+    transition:
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .article-toc-link:hover {
+    border-bottom-color: rgb(var(--color-editorial-ink2));
+  }
+
+  .article-toc-link:focus {
+    outline: none;
+  }
+
+  .article-toc-link:focus-visible {
+    outline: 2px solid rgb(var(--color-editorial-accent));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }
 
 @layer components {
@@ -149,6 +178,13 @@
   padding-left: 0 !important;
 }
 
+/*
+ * Supprime le focus ring Firefox (box-shadow + outline) sur tous les wrappers
+ * BlockNote et leurs [contenteditable]. Le reset est volontairement large pour
+ * couvrir les futures variantes de markup BlockNote/Mantine. Si une MAJ
+ * introduit un focus ring légitime (ex. toolbar accessibilité), restreindre
+ * ici plutôt que d'empiler des surcharges ailleurs.
+ */
 .bn-container:focus,
 .bn-container:focus-visible,
 .bn-container:focus-within,

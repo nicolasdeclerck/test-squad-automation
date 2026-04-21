@@ -524,11 +524,9 @@ export default function PostDetail() {
                 paddingTop: 0,
               }}
             >
-              {headings.length >= 2 && (
-                <div className="hidden lg:block lg:sticky lg:top-[68px]">
-                  <ArticleToc items={headings} />
-                </div>
-              )}
+              <div className="hidden lg:block lg:sticky lg:top-[68px]">
+                <ArticleToc items={headings} />
+              </div>
               <div className="border-t border-editorial-rule lg:border-t-0 pt-12 lg:pt-0">
                 <CommentForm
                   slug={post.slug}
