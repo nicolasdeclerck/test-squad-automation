@@ -34,3 +34,4 @@ static/css/output.css
 .claude/settings.local.json
 .claude-state.json
 test.db
+.claude/worktrees
