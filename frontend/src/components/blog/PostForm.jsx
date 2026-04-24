@@ -116,7 +116,9 @@ export default function PostForm() {
   const [coverImageUploading, setCoverImageUploading] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [postStatus, setPostStatus] = useState("");
+  const [hasDraft, setHasDraft] = useState(false);
   const [pinToggling, setPinToggling] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const coverImageFileRef = useRef(null);
   const coverBlobUrlRef = useRef(null);
   const titleRef = useRef(null);
@@ -153,6 +155,7 @@ export default function PostForm() {
           }
           setIsPinned(Boolean(res.data.is_pinned));
           setPostStatus(res.data.status || "");
+          setHasDraft(Boolean(res.data.has_draft));
           try {
             const parsed = JSON.parse(editContent);
             setInitialContent(parsed);
@@ -194,7 +197,7 @@ export default function PostForm() {
   };
 
   const performAutosave = useCallback(async () => {
-    if (!slug || isSavingRef.current) return;
+    if (!slug || isSavingRef.current) return true;
 
     const currentTitle = titleValueRef.current;
     const currentContent = editorRef.current
@@ -210,7 +213,7 @@ export default function PostForm() {
       JSON.stringify(currentTags) === JSON.stringify(lastSavedTagsRef.current)
     ) {
       isDirtyRef.current = false;
-      return;
+      return true;
     }
 
     isSavingRef.current = true;
@@ -235,6 +238,8 @@ export default function PostForm() {
         now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
       );
       setSaveStatus("saved");
+      setHasDraft(true);
+      return true;
     } else {
       setSaveStatus("error");
       isDirtyRef.current = true;
@@ -245,6 +250,7 @@ export default function PostForm() {
           performAutosave();
         }, 5000);
       }
+      return false;
     }
   }, [slug]);
 
@@ -415,6 +421,48 @@ export default function PostForm() {
     if (res.ok) {
       setCoverImage(null);
     }
+  };
+
+  const handlePublishFromEdit = async () => {
+    if (!slug || publishing) return;
+    setErrors({});
+
+    if (!titleValueRef.current.trim()) {
+      setErrors({ title: ["Le titre est obligatoire."] });
+      return;
+    }
+
+    // Cancel any pending autosave timer and flush dirty content before publishing
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (isDirtyRef.current) {
+      const saved = await performAutosave();
+      if (!saved) {
+        setErrors({
+          non_field_errors: [
+            "Impossible de sauvegarder les modifications avant publication. Veuillez réessayer.",
+          ],
+        });
+        return;
+      }
+    }
+
+    setPublishing(true);
+    const res = await api.post(`/api/blog/posts/${slug}/publish/`);
+    if (res.ok) {
+      isDirtyRef.current = false;
+      setPublishing(false);
+      navigate(`/articles/${res.data.slug}`);
+      return;
+    }
+    setPublishing(false);
+    const errorMessage =
+      res.errors?.error ||
+      res.errors?.detail ||
+      "Erreur lors de la publication.";
+    setErrors({ non_field_errors: [errorMessage] });
   };
 
   const handleSubmit = async (e, { publish = false } = {}) => {
@@ -698,6 +746,26 @@ export default function PostForm() {
             </button>
           </div>
         )}
+
+        {isEdit &&
+          (postStatus === "draft" ||
+            (postStatus === "published" && hasDraft)) && (
+            <div className="flex gap-3 mt-8">
+              <button
+                type="button"
+                onClick={handlePublishFromEdit}
+                disabled={publishing}
+                className="btn-primary flex-1 py-3"
+                style={{ opacity: publishing ? 0.6 : 1 }}
+              >
+                {publishing
+                  ? "Publication…"
+                  : postStatus === "published"
+                    ? "Publier les modifications"
+                    : "Publier"}
+              </button>
+            </div>
+          )}
       </form>
 
       <div className="mt-10 pt-6 border-t border-editorial-rule">
