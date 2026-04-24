@@ -184,11 +184,19 @@ class Profile(models.Model):
 - Sanitisation HTML avec DOMPurify
 
 ### Tests
+
+#### Backend (Django)
 - Utilise `pytest-django`
 - Chaque nouvelle fonctionnalité doit avoir des tests unitaires et d'intégration
 - Les factories sont dans `tests/factories.py` de chaque app (utilise `factory_boy`)
 - Coverage minimum attendu : 80%
 - Lancer les tests : `pytest --cov=apps`
+
+#### Frontend (React)
+- Utilise `vitest` + `@testing-library/react` + `@testing-library/jest-dom`
+- Environnement `jsdom` configuré dans `frontend/vite.config.js`
+- Les fichiers de tests suivent la convention `*.test.js` / `*.test.jsx` à côté du code testé
+- Lancer les tests : `cd frontend && npm test` (run unique) ou `npm run test:watch` (mode watch)
 
 ### Celery
 - Toutes les tâches asynchrones dans `tasks.py` de l'app concernée
