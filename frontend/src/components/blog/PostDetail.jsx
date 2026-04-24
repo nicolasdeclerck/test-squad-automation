@@ -490,7 +490,7 @@ export default function PostDetail() {
               />
             )}
 
-            <div className="lg:hidden">
+            <div className="lg:hidden pb-4">
               <ArticleToc items={headings} collapsible />
             </div>
 
