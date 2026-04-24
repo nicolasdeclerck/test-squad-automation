@@ -86,10 +86,20 @@ Produce a **short, concrete plan** and share it with the user before coding:
 
 ### 4. Prepare the branch
 
-1. Create a branch from the default branch using the naming convention in `references/conventions.md`.
+1. Choose a branch name following the convention in `references/conventions.md`.
    - Format: `<type>/<issue-number>-<kebab-slug>` (e.g. `fix/42-null-pointer-login`, `feat/108-dark-mode`).
-2. If a branch already exists for the user's session (check current branch), stay on it — don't switch.
-3. Never commit directly to `main`/`master`.
+2. Create the branch **and link it to the issue on GitHub**:
+   - **Preferred** — if `gh` is installed and authenticated, use `gh issue develop` so the branch appears in the issue's "Development" sidebar (calls the `createLinkedBranch` GraphQL mutation under the hood):
+     ```bash
+     if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+       gh issue develop <issue-number> --name <branch> --base <default> --checkout
+     else
+       git checkout -b <branch> "origin/<default>"
+     fi
+     ```
+   - **Fallback** — if `gh` is unavailable (e.g. CI, sandboxed environment), use plain `git checkout -b`. The branch will still be linked to the issue **indirectly** via the PR's `Fixes #<n>` in Phase 7, but it won't appear in the issue's "Development" sidebar until then.
+3. If a branch already exists for the user's session (check current branch), stay on it — don't switch.
+4. Never commit directly to `main`/`master`.
 
 ### 5. Implement
 
