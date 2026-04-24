@@ -240,6 +240,10 @@ function OwnerActions({
         borderTop: "1px solid rgb(var(--color-editorial-rule))",
         borderBottom: "1px solid rgb(var(--color-editorial-rule))",
         margin: "28px 0",
+        position: "sticky",
+        top: 68,
+        zIndex: 9,
+        background: "rgb(var(--color-editorial-paper))",
       }}
     >
       <span
