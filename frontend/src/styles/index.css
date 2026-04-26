@@ -19,6 +19,11 @@
     --color-editorial-avatar-bg: 212 231 214;
     --color-editorial-avatar-bg-alt: 227 238 224;
     --color-editorial-avatar-fg: 31 31 31;
+
+    /* Sticky-layout tokens — must stay in sync with Header.jsx height
+       and the z-stack (Header is z-10, OwnerActions sits just below). */
+    --header-height: 68px;
+    --z-owner-actions: 9;
   }
 
   .dark {
