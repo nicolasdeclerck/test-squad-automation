@@ -154,7 +154,11 @@ class TestProfileUpdateAPI:
             "/api/accounts/profile/",
             data=encode_multipart(
                 "BoUnDaRyStRiNg",
-                {"first_name": "Jean", "last_name": "Dupont"},
+                {
+                    "first_name": "Jean",
+                    "last_name": "Dupont",
+                    "email": user.email,
+                },
             ),
             content_type=MULTIPART_CONTENT,
         )
@@ -307,7 +311,12 @@ class TestProfileUpdateAvatarValidationAPI:
             "/api/accounts/profile/",
             data=encode_multipart(
                 "BoUnDaRyStRiNg",
-                {"first_name": "Jean", "last_name": "Dupont", "avatar": jpeg_file},
+                {
+                    "first_name": "Jean",
+                    "last_name": "Dupont",
+                    "email": user.email,
+                    "avatar": jpeg_file,
+                },
             ),
             content_type=MULTIPART_CONTENT,
         )
