@@ -89,15 +89,22 @@ Produce a **short, concrete plan** and share it with the user before coding:
 1. Choose a branch name following the convention in `references/conventions.md`.
    - Format: `<type>/<issue-number>-<kebab-slug>` (e.g. `fix/42-null-pointer-login`, `feat/108-dark-mode`).
 2. Create the branch **and link it to the issue on GitHub**:
-   - **Preferred** — if `gh` is installed and authenticated, use `gh issue develop` so the branch appears in the issue's "Development" sidebar (calls the `createLinkedBranch` GraphQL mutation under the hood):
+   - **Preferred** — if `gh` is installed and authenticated, use `gh issue develop` so the branch appears in the issue's "Development" sidebar (calls the `createLinkedBranch` GraphQL mutation under the hood). The snippet below also falls back to plain `git checkout -b` when the `gh` invocation itself fails (e.g. issue already linked to a branch with that name, no write access on the repo, network error):
      ```bash
      if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
-       gh issue develop <issue-number> --name <branch> --base <default> --checkout
+       if ! gh issue develop <issue-number> --name <branch> --base <default> --checkout; then
+         echo "gh issue develop failed (issue already linked, missing write access, or other reason); falling back to plain git checkout. The branch will still be linked via 'Fixes #<n>' in the PR body." >&2
+         git checkout -b <branch> "origin/<default>"
+       fi
      else
        git checkout -b <branch> "origin/<default>"
      fi
      ```
-   - **Fallback** — if `gh` is unavailable (e.g. CI, sandboxed environment), use plain `git checkout -b`. The branch will still be linked to the issue **indirectly** via the PR's `Fixes #<n>` in Phase 7, but it won't appear in the issue's "Development" sidebar until then.
+   - **Fallback** — if `gh` is unavailable (e.g. CI, sandboxed environment) **or** if `gh issue develop` returns a non-zero exit code, use plain `git checkout -b`. The branch will still be linked to the issue **indirectly** via the PR's `Fixes #<n>` in Phase 7, but it won't appear in the issue's "Development" sidebar until then.
+   - **Common `gh issue develop` failure modes** to recognize:
+     - *"a branch with that name already exists"* — the issue already has a linked branch. Either reuse it (`git fetch && git checkout <branch>`) or pick a new name.
+     - *"GraphQL: Resource not accessible by integration"* — the authenticated user lacks write access on the target repo (typical on forks). Fall back to `git checkout -b` and rely on `Fixes #<n>` in the PR.
+     - *"could not resolve to an Issue"* — wrong repo or wrong issue number. Stop and confirm with the user.
 3. If a branch already exists for the user's session (check current branch), stay on it — don't switch.
 4. Never commit directly to `main`/`master`.
 
