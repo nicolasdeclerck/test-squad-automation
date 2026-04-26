@@ -22,6 +22,20 @@ Rules:
 - Never include ticket titles verbatim — summarize.
 - If the repo uses a different prefix scheme (e.g. `username/...`), follow it.
 
+### Creating the branch
+
+Prefer `gh issue develop` over plain `git checkout -b` so the branch appears in the issue's "Development" sidebar on GitHub. The full snippet (with fallback when `gh` is missing or its invocation fails) lives in `SKILL.md` Phase 4. In short:
+
+```bash
+# preferred — links the branch to the issue server-side
+gh issue develop <issue-number> --name <branch> --base <default> --checkout
+
+# fallback — when gh is unavailable or the call fails (e.g. branch already linked,
+# missing write access on the repo). The branch is then linked indirectly through
+# the PR body's `Fixes #<n>`.
+git checkout -b <branch> "origin/<default>"
+```
+
 ## Commit messages
 
 Use Conventional Commits unless the repo clearly uses another style:
