@@ -20,9 +20,11 @@ celerybeat-schedule
 
 # Tests / Coverage
 .coverage
+coverage.xml
 htmlcov/
 .pytest_cache/
 .mypy_cache/
+frontend/coverage/
 
 # Node / Frontend
 node_modules/

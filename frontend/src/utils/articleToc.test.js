@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { buildHeadingIndex, slugify } from "./articleToc";
 
 describe("slugify", () => {

@@ -196,7 +196,16 @@ class Profile(models.Model):
 - Utilise `vitest` + `@testing-library/react` + `@testing-library/jest-dom`
 - Environnement `jsdom` configuré dans `frontend/vite.config.js`
 - Les fichiers de tests suivent la convention `*.test.js` / `*.test.jsx` à côté du code testé
-- Lancer les tests : `cd frontend && npm test` (run unique) ou `npm run test:watch` (mode watch)
+- `globals: true` est activé : **ne pas importer** `describe`, `it`, `expect`, `vi`, etc. depuis `vitest` dans les fichiers de tests
+- Pour les composants qui dépendent d'`AuthContext` ou du client API (`src/api/client`), utiliser `vi.mock()` plutôt que de monter le contexte réel — voir `OwnerActions.test.jsx` pour un exemple de wrapping `MemoryRouter`
+- Lancer les tests : `cd frontend && npm test` (run unique), `npm run test:watch` (mode watch), ou `npm run test:coverage` (avec rapport de couverture v8)
+- Coverage cible : 80% (parité avec le backend). Le seuil n'est pas encore appliqué — voir `vite.config.js > test.coverage.thresholds`
+
+#### CI
+- Workflow unique `.github/workflows/ci.yml` exécuté sur chaque PR et push sur `main` :
+  - `backend` : `pytest --cov=apps` avec services Postgres + Redis
+  - `frontend` : `npm run test:coverage` puis `npm run build`
+- Les rapports de couverture sont uploadés en artefacts (`backend-coverage`, `frontend-coverage`)
 
 ### Celery
 - Toutes les tâches asynchrones dans `tasks.py` de l'app concernée
