@@ -4,12 +4,13 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { Alert } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import DOMPurify from "dompurify";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import { buildHeadingIndex } from "../../utils/articleToc";
+import { useSyntaxHighlight } from "../../utils/highlightCode";
 import ArticleToc from "./ArticleToc";
 import CommentForm from "./CommentForm";
 import CommentSection from "./CommentSection";
@@ -33,6 +34,9 @@ function BlockNoteRenderer({ content, onHeadings }) {
   });
 
   const [html, setHtml] = useState("");
+  const contentRef = useRef(null);
+
+  useSyntaxHighlight(contentRef, html);
 
   useEffect(() => {
     if (!validBlocks && onHeadings) {
@@ -62,6 +66,7 @@ function BlockNoteRenderer({ content, onHeadings }) {
 
   return (
     <div
+      ref={contentRef}
       className="article-prose"
       dangerouslySetInnerHTML={{ __html: html }}
     />
