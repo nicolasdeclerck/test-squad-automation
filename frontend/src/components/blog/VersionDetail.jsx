@@ -4,10 +4,11 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { Button, Modal } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import DOMPurify from "dompurify";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
+import { useSyntaxHighlight } from "../../utils/highlightCode";
 
 function BlockNoteRenderer({ content }) {
   const blocks = useMemo(() => {
@@ -26,6 +27,9 @@ function BlockNoteRenderer({ content }) {
   });
 
   const [html, setHtml] = useState("");
+  const contentRef = useRef(null);
+
+  useSyntaxHighlight(contentRef, html);
 
   useEffect(() => {
     if (editor && validBlocks) {
@@ -41,6 +45,7 @@ function BlockNoteRenderer({ content }) {
 
   return (
     <div
+      ref={contentRef}
       className="article-prose"
       dangerouslySetInnerHTML={{ __html: html }}
     />
